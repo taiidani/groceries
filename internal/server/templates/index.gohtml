@@ -4,6 +4,7 @@
     <article id="list">
         <header>Grocery List</header>
 
+        <div id="list-items">
         {{ range .List.Categories }}
         {{ if .Items }}
             <details open="open">
@@ -21,6 +22,9 @@
                             <em>({{.Quantity}})</em>
                         {{ end }}
                     </td>
+                    <td style="width: 1rem;">
+                        <i class="bi bi-x-circle pointer" hx-post="/item/delete" hx-target="#list-items" hx-select="#list-items" hx-swap="outerHTML"></i>
+                    </td>
                 </tr>
                 {{ end }}
                 </tbody>
@@ -28,22 +32,29 @@
             </details>
         {{ end }}
         {{ end }}
+        </div>
 
         <footer>
-            <form id="addItemForm" method="POST" action="/item/add">
-                <fieldset role="group">
-                    <select name="category" aria-label="Category" required>
-                        <option selected disabled value="">Category</option>
-                        {{ range .List.Categories }}
-                        <option value="{{.ID}}">{{.Name}}</option>
-                        {{ end }}
-                    </select>
-                    <input type="text" name="name" placeholder="Name" minlength="3" required />
-                    <input type="text" name="quantity" placeholder="Quantity" />
-                    <button type="submit" class="primary">Add</button>
-                </fieldset>
-            </form>
+            <button class="primary" hx-post="/finish" hx-target="#list-items" hx-select="#list-items" hx-swap="outerHTML">✔️ Finish Shopping</button>
         </footer>
+    </article>
+
+    <article>
+        <header>Add an Item</header>
+
+        <form id="addItemForm" method="POST" action="/item/add">
+            <fieldset>
+                <select name="category" aria-label="Category" required>
+                    <option selected disabled value="">Category</option>
+                    {{ range .List.Categories }}
+                    <option value="{{.ID}}">{{.Name}}</option>
+                    {{ end }}
+                </select>
+                <input type="text" name="name" placeholder="Name" minlength="3" required />
+                <input type="text" name="quantity" placeholder="Quantity" />
+                <button type="submit" class="primary">Add</button>
+            </fieldset>
+        </form>
     </article>
 </main>
 

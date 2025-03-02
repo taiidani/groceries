@@ -1,29 +1,26 @@
 {{ template "header.gohtml" . }}
 
 <main class="container">
-    <article>
+    <article id="categories">
         <header>Categories</header>
 
-        <table>
-            <tbody>
-        {{ range .List.Categories }}
-            <tr>
-                <td>
-                    <strong>{{ .Name }}</strong>
-                    ({{ len .Items }} item{{ if ne (len .Items) 1 }}s{{end}})
-                </td>
-                <td style="width: 10rem;">
-                    <form method="POST" action="/category/delete">
-                        <fieldset role="group">
-                            <input type="hidden" name="id" value="{{.ID}}" />
-                            <button type="submit" class="secondary">Delete</button>
-                        </fieldset>
-                    </form>
-                </td>
-            </tr>
-        {{ end }}
-            </tbody>
-        </table>
+        <div id="categories-items">
+            <table>
+                <tbody>
+            {{ range .List.Categories }}
+                <tr hx-vals='{"id": "{{.ID}}"}'>
+                    <td>
+                        <strong>{{ .Name }}</strong>
+                        ({{ len .Items }} item{{ if ne (len .Items) 1 }}s{{end}})
+                    </td>
+                    <td style="width: 2rem;">
+                        <i class="bi bi-x-circle pointer" hx-post="/category/delete" hx-target="#categories-items" hx-select="#categories-items" hx-swap="outerHTML"></i>
+                    </td>
+                </tr>
+            {{ end }}
+                </tbody>
+            </table>
+        </div>
 
         <footer>
             <form method="POST" action="/category/add">

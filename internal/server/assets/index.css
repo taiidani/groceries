@@ -8,13 +8,17 @@
 
     --text-color: #222;
     --link-color: var(--secondary-color);
-    --default-bg-color: #eee;
+    --background-color: #FFFFDD;
     --btn-primary-background: var(--primary-color);
     --btn-primary-border: var(--primary-color);
+}
 
-    /* Pico overrides */
-    --pico-color: var(--text-color) !important;
-    --pico-background-color: var(--primary-color) !important;
+:root:not([data-theme=dark]),
+[data-theme=light] {
+    --pico-color: var(--text-color);
+    /* --pico-background-color: var(--background-color); */
+    --pico-card-sectioning-background-color: var(--background-color);
+    /* --pico-card-background-color: white; */
 }
 
 body {
@@ -23,7 +27,7 @@ body {
     background-repeat: repeat;
     /* background-position: bottom; */
     /* background-size: cover; */
-    background-color: var(--default-bg-color);
+    background-color: var(--background-color);
     /* font-size: 0.9rem; */
 }
 
@@ -93,4 +97,8 @@ body>header .logo img {
 
 #list .done {
     text-decoration: line-through;
+}
+
+.pointer {
+    cursor: pointer;
 }
