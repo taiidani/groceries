@@ -2,11 +2,12 @@
 
 <main class="container">
     <article id="list">
-        <header>List</header>
+        <header>Grocery List</header>
 
         {{ range .List.Categories }}
+        {{ if .Items }}
             <details open="open">
-            <summary role="button" {{if not .Items}}class="secondary outline"{{end}}>{{ .Name }}</summary>
+            <summary role="button" class="outline">{{ .Name }}</summary>
             <table class="striped">
                 <tbody>
                 {{ range .Items }}
@@ -26,6 +27,7 @@
             </table>
             </details>
         {{ end }}
+        {{ end }}
 
         <footer>
             <form id="addItemForm" method="POST" action="/item/add">
@@ -38,41 +40,7 @@
                     </select>
                     <input type="text" name="name" placeholder="Name" minlength="3" required />
                     <input type="text" name="quantity" placeholder="Quantity" />
-                    <button type="submit">Add</button>
-                </fieldset>
-            </form>
-        </footer>
-    </article>
-
-    <article>
-        <header>Categories</header>
-
-        <table>
-            <tbody>
-        {{ range .List.Categories }}
-            <tr>
-                <td>
-                    <strong>{{ .Name }}</strong>
-                    ({{ len .Items }} item{{ if ne (len .Items) 1 }}s{{end}})
-                </td>
-                <td style="width: 10rem;">
-                    <form method="POST" action="/category/delete">
-                        <fieldset role="group">
-                            <input type="hidden" name="id" value="{{.ID}}" />
-                            <button type="submit">Delete</button>
-                        </fieldset>
-                    </form>
-                </td>
-            </tr>
-        {{ end }}
-            </tbody>
-        </table>
-
-        <footer>
-            <form method="POST" action="/category/add">
-                <fieldset role="group">
-                    <input type="text" name="name" placeholder="Category Name" minlength="3" required />
-                    <button type="submit">Add</button>
+                    <button type="submit" class="primary">Add</button>
                 </fieldset>
             </form>
         </footer>

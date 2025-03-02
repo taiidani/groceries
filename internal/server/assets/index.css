@@ -56,16 +56,22 @@ img.htmx-indicator {
     display: inline;
 }
 
+
 button {
-    --pico-background-color: var(--primary-color) !important;
-    --pico-color: var(--text-color) !important;
+    cursor: pointer;
 }
 
 button.primary {
     --pico-background-color: var(--primary-color) !important;
     --pico-border-color: var(--btn-primary-border);
     --pico-color: var(--pico-primary-inverse);
-    cursor: pointer;
+}
+
+button.secondary {
+    --pico-background-color: var(--secondary-color) !important;
+    --pico-border-color: var(--btn-primary-border);
+    --pico-color: var(--pico-primary-inverse);
+
 }
 
 body>header,
@@ -77,17 +83,12 @@ body>footer {
 }
 
 body>header li {
-    padding-top: 0;
-    padding-bottom: 0;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
 }
 
-body>header .logo {
-    display: block;
+body>header .logo img {
     height: 1.5rem;
-    width: 1.5rem;
-    margin-top: -1rem;
-    background-image: url("/assets/favicon.png");
-    background-size: contain;
 }
 
 #list .done {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/taiidani/groceries/internal/data"
@@ -53,8 +54,13 @@ func (s *Server) itemAddHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Save the new item
+	// Add the new item
 	category.Items = append(category.Items, newItem)
+	sort.Slice(category.Items, func(i, j int) bool {
+		return category.Items[i].Name < category.Items[j].Name
+	})
+
+	// And save
 	err = s.backend.Set(r.Context(), models.ListDBKey, list, time.Hour*8760)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
@@ -116,6 +122,23 @@ func (s *Server) itemDoneHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
+func (s *Server) categoriesHandler(w http.ResponseWriter, r *http.Request) {
+	bag := indexBag{baseBag: s.newBag(r)}
+
+	var list models.List
+	err := s.backend.Get(r.Context(), models.ListDBKey, &list)
+	if err != nil {
+		if !errors.Is(err, data.ErrKeyNotFound) {
+			errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+			return
+		}
+	}
+	bag.List = list
+
+	template := "categories.gohtml"
+	renderHtml(w, http.StatusOK, template, bag)
+}
+
 func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 	var list models.List
 	err := s.backend.Get(r.Context(), models.ListDBKey, &list)
@@ -145,19 +168,23 @@ func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Save the new category
+	// Add the new category
 	list.Categories = append(list.Categories, newCategory)
+	sort.Slice(list.Categories, func(i, j int) bool {
+		return list.Categories[i].Name < list.Categories[j].Name
+	})
+
+	// And save
 	err = s.backend.Set(r.Context(), models.ListDBKey, list, time.Hour*8760)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
 	}
 
-	http.Redirect(w, r, "/", http.StatusFound)
+	http.Redirect(w, r, "/categories", http.StatusFound)
 }
 
 func (s *Server) categoryDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("wtf")
 	var list models.List
 	err := s.backend.Get(r.Context(), models.ListDBKey, &list)
 	if err != nil {
@@ -179,5 +206,5 @@ func (s *Server) categoryDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/", http.StatusFound)
+	http.Redirect(w, r, "/categories", http.StatusFound)
 }

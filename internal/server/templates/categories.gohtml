@@ -1,0 +1,39 @@
+{{ template "header.gohtml" . }}
+
+<main class="container">
+    <article>
+        <header>Categories</header>
+
+        <table>
+            <tbody>
+        {{ range .List.Categories }}
+            <tr>
+                <td>
+                    <strong>{{ .Name }}</strong>
+                    ({{ len .Items }} item{{ if ne (len .Items) 1 }}s{{end}})
+                </td>
+                <td style="width: 10rem;">
+                    <form method="POST" action="/category/delete">
+                        <fieldset role="group">
+                            <input type="hidden" name="id" value="{{.ID}}" />
+                            <button type="submit" class="secondary">Delete</button>
+                        </fieldset>
+                    </form>
+                </td>
+            </tr>
+        {{ end }}
+            </tbody>
+        </table>
+
+        <footer>
+            <form method="POST" action="/category/add">
+                <fieldset role="group">
+                    <input type="text" name="name" placeholder="Category Name" minlength="3" required />
+                    <button type="submit" class="primary">Add</button>
+                </fieldset>
+            </form>
+        </footer>
+    </article>
+</main>
+
+{{ template "footer.gohtml" . }}

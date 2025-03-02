@@ -25,11 +25,10 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) auth(w http.ResponseWriter, r *http.Request) {
 	// Super secret, just between us
-	const expected = "d41d8cd98f00b204e9800998ecf8427e"
+	const expected = "ab77936ff6728921c550adb7fc338623"
 
 	hasher := md5.New()
-	query := r.URL.Query()
-	io.WriteString(hasher, query.Get("password"))
+	io.WriteString(hasher, r.FormValue("password"))
 	sum := fmt.Sprintf("%x", hasher.Sum(nil))
 
 	if sum != expected {

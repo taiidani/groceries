@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -36,8 +35,6 @@ func errorResponse(ctx context.Context, writer http.ResponseWriter, code int, er
 		Title:   title,
 		Message: err,
 	}
-
-	fmt.Println("did we get here?")
 
 	var hub *sentry.Hub
 	if sentry.HasHubOnContext(ctx) {
