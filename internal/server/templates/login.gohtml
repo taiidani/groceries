@@ -1,0 +1,21 @@
+{{ template "header.gohtml" .}}
+
+<main class="container">
+    <section>
+        <article>
+            <header>Login</header>
+            <p>Log in for access to this site.</p>
+
+            <p>
+                <form method="POST" action="/auth">
+                    <fieldset role="group">
+                        <input type="password" name="password" />
+                        <button type="submit">Login</button>
+                    </fieldset>
+                </form>
+            </p>
+        </article>
+    </section>
+</main>
+
+{{ template "footer.gohtml" .}}

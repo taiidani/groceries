@@ -1,0 +1,29 @@
+[env]
+_.file = ".env"
+SENTRY_DSN = "https://b7c94726c8e39af642f012583a6be274@o55858.ingest.us.sentry.io/4508903750434816"
+SENTRY_ENVIRONMENT = "dev"
+PORT = "3000"
+URL = "http://localhost:3000"
+DEV = "true"
+
+[tools]
+go = "1.24"
+staticcheck = "latest"
+
+[tasks.build]
+description = "Build the server binary"
+depends = "buildjs"
+env.CGO_ENABLED = "0"
+run = ["go build -o groceries cmd/server/main.go"]
+
+[tasks.run]
+description = "Execute the app in development mode"
+depends = "buildjs"
+run = ["docker compose up -d", "go run cmd/server/main.go"]
+
+[tasks.buildjs]
+description = "Build the WASM binary"
+env.CGO_ENABLED = "0"
+env.GOOS = "js"
+env.GOARCH = "wasm"
+run = ["go build -o internal/server/assets/app.wasm cmd/app/main.go"]

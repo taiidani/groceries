@@ -1,0 +1,95 @@
+:root {
+    color-scheme: "light" !important;
+
+    /* Good old https://www.canva.com/colors/color-wheel/ */
+    --primary-color: #9ABF75;
+    --secondary-color: #759ABF;
+    --tertiary-color: #BF759A;
+
+    --text-color: #222;
+    --link-color: var(--secondary-color);
+    --default-bg-color: #eee;
+    --btn-primary-background: var(--primary-color);
+    --btn-primary-border: var(--primary-color);
+
+    /* Pico overrides */
+    --pico-color: var(--text-color) !important;
+    --pico-background-color: var(--primary-color) !important;
+}
+
+body {
+    /* https://www.publicdomainpictures.net/pictures/620000/nahled/image-17195976103Qn.jpg */
+    background-image: url("/assets/background.jpg");
+    background-repeat: repeat;
+    /* background-position: bottom; */
+    /* background-size: cover; */
+    background-color: var(--default-bg-color);
+    /* font-size: 0.9rem; */
+}
+
+a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+button a:hover {
+    text-decoration: none;
+}
+
+img.htmx-indicator {
+    height: 2em;
+}
+
+.htmx-indicator {
+    display: none;
+}
+
+.htmx-request .htmx-indicator {
+    display: inline;
+}
+
+.htmx-request.htmx-indicator {
+    display: inline;
+}
+
+button {
+    --pico-background-color: var(--primary-color) !important;
+    --pico-color: var(--text-color) !important;
+}
+
+button.primary {
+    --pico-background-color: var(--primary-color) !important;
+    --pico-border-color: var(--btn-primary-border);
+    --pico-color: var(--pico-primary-inverse);
+    cursor: pointer;
+}
+
+body>header,
+body>footer {
+    background-color: var(--pico-background-color);
+    padding-top: 0;
+    padding-bottom: 0;
+    color: var(--text-color);
+}
+
+body>header li {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+body>header .logo {
+    display: block;
+    height: 1.5rem;
+    width: 1.5rem;
+    margin-top: -1rem;
+    background-image: url("/assets/favicon.png");
+    background-size: contain;
+}
+
+#list .done {
+    text-decoration: line-through;
+}

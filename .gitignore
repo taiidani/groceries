@@ -1,0 +1,6 @@
+bin
+groceries
+*.wasm
+.env
+.DS_Store
+__debug*

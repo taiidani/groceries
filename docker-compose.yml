@@ -1,0 +1,13 @@
+# Use this file with "docker compose up" to launch a redis instance for testing persistance against.
+#
+# To enable in the bot, run it with:
+#  REDIS_HOST=$(docker compose port redis 6379) go run main.go
+#
+
+services:
+  redis:
+    image: redis:7
+    ports:
+      - target: 6379
+        published: 6379
+        host_ip: 127.0.0.1

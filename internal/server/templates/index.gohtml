@@ -1,0 +1,82 @@
+{{ template "header.gohtml" . }}
+
+<main class="container">
+    <article id="list">
+        <header>List</header>
+
+        {{ range .List.Categories }}
+            <details open="open">
+            <summary role="button" {{if not .Items}}class="secondary outline"{{end}}>{{ .Name }}</summary>
+            <table class="striped">
+                <tbody>
+                {{ range .Items }}
+                <tr class="{{ if .Done }}done{{end}}" hx-vals='{"id": "{{.ID}}"}'>
+                    <td style="width: 1rem;">
+                        <input type="checkbox" name="{{.ID}}" hx-post="/item/done" value="checked" {{ if .Done }}checked{{ end }} />
+                    </td>
+                    <td>
+                        <strong>{{.Name}}</strong>
+                        {{ if .Quantity }}
+                            <em>({{.Quantity}})</em>
+                        {{ end }}
+                    </td>
+                </tr>
+                {{ end }}
+                </tbody>
+            </table>
+            </details>
+        {{ end }}
+
+        <footer>
+            <form id="addItemForm" method="POST" action="/item/add">
+                <fieldset role="group">
+                    <select name="category" aria-label="Category" required>
+                        <option selected disabled value="">Category</option>
+                        {{ range .List.Categories }}
+                        <option value="{{.ID}}">{{.Name}}</option>
+                        {{ end }}
+                    </select>
+                    <input type="text" name="name" placeholder="Name" minlength="3" required />
+                    <input type="text" name="quantity" placeholder="Quantity" />
+                    <button type="submit">Add</button>
+                </fieldset>
+            </form>
+        </footer>
+    </article>
+
+    <article>
+        <header>Categories</header>
+
+        <table>
+            <tbody>
+        {{ range .List.Categories }}
+            <tr>
+                <td>
+                    <strong>{{ .Name }}</strong>
+                    ({{ len .Items }} item{{ if ne (len .Items) 1 }}s{{end}})
+                </td>
+                <td style="width: 10rem;">
+                    <form method="POST" action="/category/delete">
+                        <fieldset role="group">
+                            <input type="hidden" name="id" value="{{.ID}}" />
+                            <button type="submit">Delete</button>
+                        </fieldset>
+                    </form>
+                </td>
+            </tr>
+        {{ end }}
+            </tbody>
+        </table>
+
+        <footer>
+            <form method="POST" action="/category/add">
+                <fieldset role="group">
+                    <input type="text" name="name" placeholder="Category Name" minlength="3" required />
+                    <button type="submit">Add</button>
+                </fieldset>
+            </form>
+        </footer>
+    </article>
+</main>
+
+{{ template "footer.gohtml" . }}
