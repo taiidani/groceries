@@ -5,6 +5,12 @@ SENTRY_ENVIRONMENT = "dev"
 PORT = "3000"
 URL = "http://localhost:3000"
 DEV = "true"
+LOG_LEVEL = "info"
+
+DB_TYPE = "sqlite"
+SQLITE_FILENAME = "db.sqlite"
+GOOSE_DRIVER = "sqlite"
+GOOSE_MIGRATION_DIR = "./internal/db/migrations"
 
 [tools]
 go = "1.24.1"

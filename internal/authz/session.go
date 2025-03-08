@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/taiidani/groceries/internal/data"
+	"github.com/taiidani/groceries/internal/cache"
 	"github.com/taiidani/groceries/internal/models"
 )
 
 const defaultSessionExpiration = time.Duration(time.Hour * 168)
 
-func NewSession(ctx context.Context, sess models.Session, backend data.DB) (*http.Cookie, error) {
+func NewSession(ctx context.Context, sess models.Session, backend cache.Cache) (*http.Cookie, error) {
 	sessionKey := uuid.New().String()
 	err := backend.Set(ctx, "session:"+sessionKey, sess, defaultSessionExpiration)
 	if err != nil {
@@ -44,7 +44,7 @@ func DeleteSession() *http.Cookie {
 	return &cookie
 }
 
-func GetSession(r *http.Request, backend data.DB) (*models.Session, error) {
+func GetSession(r *http.Request, cache cache.Cache) (*models.Session, error) {
 	var sess *models.Session
 	cookie, err := r.Cookie("session")
 	if err != nil {
@@ -52,7 +52,7 @@ func GetSession(r *http.Request, backend data.DB) (*models.Session, error) {
 		return nil, nil
 	}
 
-	err = backend.Get(r.Context(), "session:"+cookie.Value, &sess)
+	err = cache.Get(r.Context(), "session:"+cookie.Value, &sess)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load session from backend: %w", err)
 	}
@@ -60,7 +60,7 @@ func GetSession(r *http.Request, backend data.DB) (*models.Session, error) {
 	return sess, nil
 }
 
-func UpdateSession(r *http.Request, sess *models.Session, backend data.DB) error {
+func UpdateSession(r *http.Request, sess *models.Session, backend cache.Cache) error {
 	cookie, err := r.Cookie("session")
 	if err != nil {
 		// No cookie 🍪

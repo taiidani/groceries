@@ -11,7 +11,7 @@
                 <fieldset role="group">
                     <select name="category" aria-label="Category" required style="width: 30%">
                         <option selected disabled value="">Category</option>
-                        {{ range .List.Categories }}
+                        {{ range .Categories }}
                         <option value="{{.ID}}">{{.Name}}</option>
                         {{ end }}
                     </select>
@@ -21,9 +21,9 @@
                 </fieldset>
             </form>
 
-            {{ if .List.Categories }}
+            {{ if .Categories }}
             <form id="bagSummary" method="POST" action="/bag/done">
-                {{ range .List.Categories }}
+                {{ range .Categories }}
                     {{ range .Items }}
                         {{ if .InBag }}
                         <div hx-vals='{"id": "{{.ID}}"}'>
@@ -49,12 +49,12 @@
         <article id="list">
             <header>Grocery List</header>
 
-            {{ if not .List.Categories }}
+            {{ if not .Categories }}
             <p>Add items above to see them here!</p>
             {{ end }}
 
             <div id="list-items">
-            {{ range .List.Categories }}
+            {{ range .Categories }}
             {{ if .Items }}
                 <details open="open">
                 <summary class="outline">{{ .Name }}</summary>
@@ -85,7 +85,7 @@
             {{ end }}
             </div>
 
-            {{ if .List.Categories }}
+            {{ if .Categories }}
             <footer>
                 <button class="primary" hx-post="/finish" hx-target="#list-items" hx-select="#list-items" hx-swap="outerHTML"><i class="bi bi-cart-check"></i> Check Out</button>
             </footer>

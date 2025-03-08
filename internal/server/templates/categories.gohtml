@@ -7,7 +7,7 @@
         <div id="categories-items">
             <table>
                 <tbody>
-            {{ range .List.Categories }}
+            {{ range .Categories }}
                 <tr hx-vals='{"id": "{{.ID}}"}'>
                     <td>
                         <strong>{{ .Name }}</strong>

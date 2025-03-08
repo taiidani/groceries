@@ -1,8 +1,9 @@
-package db
+package cache
 
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -11,18 +12,30 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/taiidani/groceries/internal/data"
+)
+
+type Cache interface {
+	Set(ctx context.Context, key string, value any, expiration time.Duration) (err error)
+	Get(ctx context.Context, key string, value any) error
+}
+
+const (
+	dbPrefix = "groceries:"
+)
+
+var (
+	ErrKeyNotFound = errors.New("key not found")
 )
 
 // db is a singleton holding either a Redis or Memory backed database
-var db data.DB
+var db Cache
 
-func NewDB() data.DB {
+func New() Cache {
 	host, ok := os.LookupEnv("REDIS_HOST")
 	if !ok {
 		// Default to a memory backend
 		slog.Warn("Redis persistence disabled")
-		db = &data.MemoryStore{Data: map[string][]byte{}}
+		db = &MemoryStore{Data: map[string][]byte{}}
 		return db
 	}
 
@@ -48,7 +61,7 @@ func NewDB() data.DB {
 	}
 
 	// Set the singleton db value to the Redis backend
-	db = &data.RedisStore{Client: redis.NewClient(opts)}
+	db = &RedisStore{Client: redis.NewClient(opts)}
 	if err := db.Set(context.Background(), "client", "groceries", time.Hour*24); err != nil {
 		log.Fatalf("Unable to connect to Redis backend at %s: %s", addr, err)
 	}

@@ -38,7 +38,7 @@ func (s *Server) auth(w http.ResponseWriter, r *http.Request) {
 
 	// Yay we're authorized
 	sess := models.Session{}
-	cookie, err := authz.NewSession(r.Context(), sess, s.backend)
+	cookie, err := authz.NewSession(r.Context(), sess, s.cache)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("could not create session: %w", err))
 		return
@@ -59,7 +59,7 @@ func (s *Server) sessionMiddleware(next http.Handler) http.Handler {
 		fmt.Printf("%s %s\n", r.Method, r.URL.Path)
 
 		// Do we have a session already?
-		sess, err := authz.GetSession(r, s.backend)
+		sess, err := authz.GetSession(r, s.cache)
 		if err != nil {
 			slog.Warn("Failed to retrieve session", "error", err)
 		}

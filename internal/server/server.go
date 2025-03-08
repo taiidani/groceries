@@ -1,6 +1,7 @@
 package server
 
 import (
+	"database/sql"
 	"embed"
 	"fmt"
 	"html/template"
@@ -9,12 +10,13 @@ import (
 	"os"
 
 	sentryhttp "github.com/getsentry/sentry-go/http"
-	"github.com/taiidani/groceries/internal/data"
+	"github.com/taiidani/groceries/internal/cache"
 	"github.com/taiidani/groceries/internal/models"
 )
 
 type Server struct {
-	backend   data.DB
+	cache     cache.Cache
+	db        *sql.DB
 	publicURL string
 	port      string
 	*http.Server
@@ -26,7 +28,7 @@ var templates embed.FS
 // DevMode can be toggled to pull rendered files from the filesystem or the embedded FS.
 var DevMode = os.Getenv("DEV") == "true"
 
-func NewServer(backend data.DB, port string) *Server {
+func NewServer(db *sql.DB, cache cache.Cache, port string) *Server {
 	mux := http.NewServeMux()
 
 	publicURL := os.Getenv("PUBLIC_URL")
@@ -41,7 +43,8 @@ func NewServer(backend data.DB, port string) *Server {
 		},
 		publicURL: publicURL,
 		port:      port,
-		backend:   backend,
+		db:        db,
+		cache:     cache,
 	}
 	srv.addRoutes(mux)
 

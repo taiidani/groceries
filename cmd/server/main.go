@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -13,7 +15,7 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/taiidani/groceries/internal/data"
+	"github.com/taiidani/groceries/internal/cache"
 	"github.com/taiidani/groceries/internal/db"
 	"github.com/taiidani/groceries/internal/server"
 )
@@ -31,8 +33,17 @@ func main() {
 	// Flush buffered Sentry events before the program terminates.
 	defer teardown()
 
+	// Set up the structured logger
+	initLogging()
+
 	// Set up the Redis/Memory database
-	db := db.NewDB()
+	cache := cache.New()
+
+	// Set up the relational database
+	db, err := initDatabase(ctx)
+	if err != nil {
+		log.Fatalf("database init: %s", err)
+	}
 
 	// Start the instances
 	wg := sync.WaitGroup{}
@@ -41,7 +52,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		// Start the web UI
-		if err := initServer(ctx, db); err != nil {
+		if err := initServer(ctx, db, cache); err != nil {
 			log.Fatal(err)
 		}
 	}()
@@ -49,6 +60,39 @@ func main() {
 	wg.Wait()
 
 	fmt.Println("Shutdown successful")
+}
+
+func initLogging() {
+	var level slog.Level
+	switch os.Getenv("LOG_LEVEL") {
+	case "error":
+		level = slog.LevelError
+	case "warn":
+		level = slog.LevelWarn
+	case "debug":
+		level = slog.LevelDebug
+	default:
+		level = slog.LevelInfo
+	}
+
+	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: level,
+	})
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
+}
+
+func initDatabase(ctx context.Context) (*sql.DB, error) {
+	switch os.Getenv("DB_TYPE") {
+	case "memory":
+		return db.NewMemory(ctx)
+	case "sqlite":
+		return db.NewFile(ctx, os.Getenv("SQLITE_FILENAME"))
+	case "postgres":
+		return db.NewConn(ctx, os.Getenv("DATABASE_URL"))
+	default:
+		return nil, errors.New("unknown DB_TYPE database version specified")
+	}
 }
 
 func initSentry() (func(), error) {
@@ -67,13 +111,13 @@ func initSentry() (func(), error) {
 	}, nil
 }
 
-func initServer(ctx context.Context, db data.DB) error {
+func initServer(ctx context.Context, db *sql.DB, cache cache.Cache) error {
 	port := os.Getenv("PORT")
 	if port == "" {
 		log.Fatal("Required PORT environment variable not present")
 	}
 
-	srv := server.NewServer(db, port)
+	srv := server.NewServer(db, cache, port)
 
 	go func() {
 		slog.Info("Server starting", "port", port)
