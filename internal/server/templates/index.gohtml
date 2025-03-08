@@ -1,61 +1,97 @@
 {{ template "header.gohtml" . }}
 
 <main class="container">
-    <article id="list">
-        <header>Grocery List</header>
 
-        <div id="list-items">
-        {{ range .List.Categories }}
-        {{ if .Items }}
-            <details open="open">
-            <summary role="button" class="outline">{{ .Name }}</summary>
-            <table class="striped">
-                <tbody>
-                {{ range .Items }}
-                <tr class="{{ if .Done }}done{{end}}" hx-vals='{"id": "{{.ID}}"}'>
-                    <td style="width: 1rem;">
-                        <input type="checkbox" name="{{.ID}}" hx-post="/item/done" value="checked" {{ if .Done }}checked{{ end }} />
-                    </td>
-                    <td>
-                        <strong>{{.Name}}</strong>
-                        {{ if .Quantity }}
-                            <em>({{.Quantity}})</em>
+    <section>
+        <article id="itemAdder">
+            <header>Add Items</header>
+
+            <form id="addItemsForm" method="POST" action="/item/add">
+                <input type="hidden" name="in-bag" value="true" />
+                <fieldset role="group">
+                    <select name="category" aria-label="Category" required style="width: 30%">
+                        <option selected disabled value="">Category</option>
+                        {{ range .List.Categories }}
+                        <option value="{{.ID}}">{{.Name}}</option>
                         {{ end }}
-                    </td>
-                    <td style="width: 1rem;">
-                        <i class="bi bi-x-circle pointer" hx-post="/item/delete" hx-target="#list-items" hx-select="#list-items" hx-swap="outerHTML"></i>
-                    </td>
-                </tr>
-                {{ end }}
-                </tbody>
-            </table>
-            </details>
-        {{ end }}
-        {{ end }}
-        </div>
+                    </select>
+                    <input type="text" name="name" placeholder="Name (Quantity)" minlength="3" required />
 
-        <footer>
-            <button class="primary" hx-post="/finish" hx-target="#list-items" hx-select="#list-items" hx-swap="outerHTML"><i class="bi bi-cart-check"></i> Check Out</button>
-        </footer>
-    </article>
+                    <button type="submit" class="primary"><i class="bi bi-bag-plus" alt="Prepare"></i></button>
+                </fieldset>
+            </form>
 
-    <article>
-        <header>Add an Item</header>
-
-        <form id="addItemForm" method="POST" action="/item/add">
-            <fieldset>
-                <select name="category" aria-label="Category" required>
-                    <option selected disabled value="">Category</option>
-                    {{ range .List.Categories }}
-                    <option value="{{.ID}}">{{.Name}}</option>
+            {{ if .List.Categories }}
+            <form id="bagSummary" method="POST" action="/bag/done">
+                {{ range .List.Categories }}
+                    {{ range .Items }}
+                        {{ if .InBag }}
+                        <div hx-vals='{"id": "{{.ID}}"}'>
+                            <p>
+                                <strong>{{.Name}}</strong>
+                                {{ if .Quantity }}
+                                    <em>({{.Quantity}})</em>
+                                {{ end }}
+                                <i class="bi bi-x-circle pointer" hx-post="/item/delete" hx-target="#itemAdder" hx-select="#itemAdder" hx-swap="outerHTML"></i>
+                            </p>
+                        </div>
+                        {{ end }}
                     {{ end }}
-                </select>
-                <input type="text" name="name" placeholder="Name" minlength="3" required />
-                <input type="text" name="quantity" placeholder="Quantity" />
-                <button type="submit" class="primary"><i class="bi bi-bag-plus"></i> Add</button>
-            </fieldset>
-        </form>
-    </article>
+                {{ end }}
+
+                <button type="submit" class="secondary"><i class="bi bi-check"></i> Save</button>
+            </form>
+            {{ end }}
+        </article>
+    </section>
+
+    <section>
+        <article id="list">
+            <header>Grocery List</header>
+
+            {{ if not .List.Categories }}
+            <p>Add items above to see them here!</p>
+            {{ end }}
+
+            <div id="list-items">
+            {{ range .List.Categories }}
+            {{ if .Items }}
+                <details open="open">
+                <summary class="outline">{{ .Name }}</summary>
+                <table class="striped">
+                    <tbody>
+                    {{ range .Items }}
+                    {{ if not .InBag }}
+                    <tr class="{{ if .Done }}done{{end}}" hx-vals='{"id": "{{.ID}}"}'>
+                        <td style="width: 1rem;">
+                            <input type="checkbox" name="{{.ID}}" hx-post="/item/done" value="checked" {{ if .Done }}checked{{ end }} />
+                        </td>
+                        <td>
+                            <strong>{{.Name}}</strong>
+                            {{ if .Quantity }}
+                                <em>({{.Quantity}})</em>
+                            {{ end }}
+                        </td>
+                        <td style="width: 1rem;">
+                            <i class="bi bi-x-circle pointer" hx-post="/item/delete" hx-target="#list-items" hx-select="#list-items" hx-swap="outerHTML"></i>
+                        </td>
+                    </tr>
+                    {{ end }}
+                    {{ end }}
+                    </tbody>
+                </table>
+                </details>
+            {{ end }}
+            {{ end }}
+            </div>
+
+            {{ if .List.Categories }}
+            <footer>
+                <button class="primary" hx-post="/finish" hx-target="#list-items" hx-select="#list-items" hx-swap="outerHTML"><i class="bi bi-cart-check"></i> Check Out</button>
+            </footer>
+            {{ end }}
+        </article>
+    </section>
 </main>
 
 {{ template "footer.gohtml" . }}

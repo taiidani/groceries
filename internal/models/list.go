@@ -13,9 +13,10 @@ type Category struct {
 }
 
 type Item struct {
-	ID       string
-	Category string
-	Name     string
-	Quantity string
-	Done     bool
+	ID         string
+	CategoryID string
+	Name       string
+	Quantity   string
+	InBag      bool // The bag denotes in-progress item additions
+	Done       bool
 }

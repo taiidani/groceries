@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"time"
 
 	"github.com/taiidani/groceries/internal/data"
 	"github.com/taiidani/groceries/internal/models"
@@ -65,7 +64,7 @@ func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	// And save
-	err = s.backend.Set(r.Context(), models.ListDBKey, list, time.Hour*8760)
+	err = s.backend.Set(r.Context(), models.ListDBKey, list, listDefaultExpiration)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
@@ -90,7 +89,7 @@ func (s *Server) categoryDeleteHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	err = s.backend.Set(r.Context(), models.ListDBKey, list, time.Hour*8760)
+	err = s.backend.Set(r.Context(), models.ListDBKey, list, listDefaultExpiration)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return

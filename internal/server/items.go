@@ -5,12 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"sort"
 	"time"
 
 	"github.com/taiidani/groceries/internal/data"
 	"github.com/taiidani/groceries/internal/models"
 )
+
+const listDefaultExpiration = time.Hour * 8760
 
 func (s *Server) itemAddHandler(w http.ResponseWriter, r *http.Request) {
 	var list models.List
@@ -34,16 +37,19 @@ func (s *Server) itemAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newItem := models.Item{
-		ID:       base64.StdEncoding.EncodeToString([]byte(r.FormValue("name"))),
-		Name:     r.FormValue("name"),
-		Quantity: r.FormValue("quantity"),
+	// Parse the name (quantity) into a name, quantity pair
+	name, quantity, err := parseItemName(r.FormValue("name"))
+	if err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
 	}
 
-	// Validate inputs
-	if len(newItem.Name) < 3 {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("provided name needs to be at least 3 characters"))
-		return
+	newItem := models.Item{
+		ID:         base64.StdEncoding.EncodeToString([]byte(r.FormValue("name"))),
+		CategoryID: categoryID,
+		Name:       name,
+		InBag:      r.FormValue("in-bag") == "true",
+		Quantity:   quantity,
 	}
 
 	// Check for existing item
@@ -61,7 +67,7 @@ func (s *Server) itemAddHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	// And save
-	err = s.backend.Set(r.Context(), models.ListDBKey, list, time.Hour*8760)
+	err = s.backend.Set(r.Context(), models.ListDBKey, list, listDefaultExpiration)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
@@ -87,7 +93,7 @@ func (s *Server) itemDeleteHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	err = s.backend.Set(r.Context(), models.ListDBKey, list, time.Hour*8760)
+	err = s.backend.Set(r.Context(), models.ListDBKey, list, listDefaultExpiration)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
@@ -113,7 +119,34 @@ func (s *Server) itemDoneHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	err = s.backend.Set(r.Context(), models.ListDBKey, list, time.Hour*8760)
+	err = s.backend.Set(r.Context(), models.ListDBKey, list, listDefaultExpiration)
+	if err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
+	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+// bagDoneHandler will clear the bag by setting all items' `InBag` to false
+func (s *Server) bagDoneHandler(w http.ResponseWriter, r *http.Request) {
+	var list models.List
+	err := s.backend.Get(r.Context(), models.ListDBKey, &list)
+	if err != nil {
+		if !errors.Is(err, data.ErrKeyNotFound) {
+			errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
+	for i, cat := range list.Categories {
+		for j := range cat.Items {
+			list.Categories[i].Items[j].InBag = false
+		}
+	}
+
+	// Save the updated list
+	err = s.backend.Set(r.Context(), models.ListDBKey, list, listDefaultExpiration)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
@@ -142,11 +175,29 @@ func (s *Server) finishHandler(w http.ResponseWriter, r *http.Request) {
 		list.Categories[i].Items = newItems
 	}
 
-	err = s.backend.Set(r.Context(), models.ListDBKey, list, time.Hour*8760)
+	err = s.backend.Set(r.Context(), models.ListDBKey, list, listDefaultExpiration)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
 	}
 
 	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+func parseItemName(name string) (string, string, error) {
+	quantity := ""
+
+	// Determine the quantity, if present
+	re := regexp.MustCompile(`^(.+) \((.+)\)$`)
+	matches := re.FindStringSubmatch(name)
+	if len(matches) == 3 {
+		name = matches[1]
+		quantity = matches[2]
+	}
+
+	if len(name) < 3 {
+		return name, quantity, errors.New("provided name needs to be at least 3 characters")
+	}
+
+	return name, quantity, nil
 }
