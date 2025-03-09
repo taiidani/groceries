@@ -43,7 +43,7 @@ func (s *Server) itemAddHandler(w http.ResponseWriter, r *http.Request) {
 		Quantity:   quantity,
 	}
 
-	_, err = list.AddItem(r.Context(), newItem)
+	err = list.AddItem(r.Context(), newItem)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return

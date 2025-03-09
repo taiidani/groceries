@@ -45,7 +45,7 @@ func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add the new category
-	_, err := list.AddCategory(r.Context(), newCategory.Name)
+	err := list.AddCategory(r.Context(), newCategory.Name)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return

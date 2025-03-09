@@ -32,7 +32,7 @@ func NewList(db *sql.DB) *List {
 }
 
 func (l *List) LoadCategories(ctx context.Context) ([]Category, error) {
-	rows, err := l.db.QueryContext(ctx, "SELECT oid, name FROM category ORDER BY name")
+	rows, err := l.db.QueryContext(ctx, "SELECT id, name FROM category ORDER BY name")
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (l *List) LoadCategories(ctx context.Context) ([]Category, error) {
 
 func (l *List) LoadItemsForCategory(ctx context.Context, id string) ([]Item, error) {
 	rows, err := l.db.QueryContext(ctx,
-		"SELECT oid, name, quantity, in_bag, done FROM item WHERE category_id = ? ORDER BY name",
+		"SELECT id, name, quantity, in_bag, done FROM item WHERE category_id = $1 ORDER BY name",
 		id)
 	if err != nil {
 		return nil, err
@@ -86,58 +86,41 @@ func (l *List) LoadItemsForCategory(ctx context.Context, id string) ([]Item, err
 	return ret, nil
 }
 
-func (l *List) AddCategory(ctx context.Context, name string) (int64, error) {
-	result, err := l.db.ExecContext(ctx, "INSERT INTO category (name) VALUES (?)", name)
-	if err != nil {
-		return 0, err
-	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-
-	return id, nil
+func (l *List) AddCategory(ctx context.Context, name string) error {
+	_, err := l.db.ExecContext(ctx, "INSERT INTO category (name) VALUES ($1)", name)
+	return err
 }
 
 func (l *List) DeleteCategory(ctx context.Context, id string) error {
-	_, err := l.db.ExecContext(ctx, "DELETE FROM item WHERE category_id = ?", id)
+	_, err := l.db.ExecContext(ctx, "DELETE FROM item WHERE category_id = $1", id)
 	if err != nil {
 		return err
 	}
 
-	_, err = l.db.ExecContext(ctx, "DELETE FROM category WHERE oid = ?", id)
+	_, err = l.db.ExecContext(ctx, "DELETE FROM category WHERE id = $1", id)
 	return err
 }
 
-func (l *List) AddItem(ctx context.Context, item Item) (int64, error) {
-	result, err := l.db.ExecContext(ctx,
-		"INSERT INTO item (category_id, name, quantity, in_bag) VALUES (?, ?, ?, ?)",
+func (l *List) AddItem(ctx context.Context, item Item) error {
+	_, err := l.db.ExecContext(ctx,
+		"INSERT INTO item (category_id, name, quantity, in_bag) VALUES ($1, $2, $3, $4)",
 		item.CategoryID,
 		item.Name,
 		item.Quantity,
 		item.InBag,
 	)
-	if err != nil {
-		return 0, err
-	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-
-	return id, nil
+	return err
 }
 
 func (l *List) DeleteItem(ctx context.Context, id string) error {
-	_, err := l.db.ExecContext(ctx, "DELETE FROM item WHERE oid = ?", id)
+	_, err := l.db.ExecContext(ctx, "DELETE FROM item WHERE id = $1", id)
 	return err
 }
 
 func (l *List) MarkItemDone(ctx context.Context, id string) error {
 	_, err := l.db.ExecContext(ctx,
-		"UPDATE item SET done = TRUE WHERE oid = ?",
+		"UPDATE item SET done = TRUE WHERE id = $1",
 		id,
 	)
 

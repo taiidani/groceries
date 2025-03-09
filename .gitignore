@@ -3,4 +3,3 @@ groceries
 .env
 .DS_Store
 __debug*
-db.sqlite

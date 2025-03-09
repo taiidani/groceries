@@ -84,12 +84,8 @@ func initLogging() {
 
 func initDatabase(ctx context.Context) (*sql.DB, error) {
 	switch os.Getenv("DB_TYPE") {
-	case "memory":
-		return db.NewMemory(ctx)
-	case "sqlite":
-		return db.NewFile(ctx, os.Getenv("SQLITE_FILENAME"))
 	case "postgres":
-		return db.NewConn(ctx, os.Getenv("DATABASE_URL"))
+		return db.New(ctx, os.Getenv("DATABASE_URL"))
 	default:
 		return nil, errors.New("unknown DB_TYPE database version specified")
 	}
