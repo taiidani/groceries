@@ -1,7 +1,6 @@
 {{ template "header.gohtml" . }}
 
 <main class="container">
-
     <section>
         <article id="itemAdder">
             <header>Add Items</header>
@@ -49,7 +48,9 @@
         <article id="list">
             <header>Grocery List</header>
 
-            {{ if not .Categories }}
+            {{ if .Total }}
+            <progress value="{{ .TotalDone }}" max="{{ .Total }}"></progress>
+            {{ else }}
             <p>Add items above to see them here!</p>
             {{ end }}
 
@@ -64,7 +65,7 @@
                     {{ if not .InBag }}
                     <tr class="{{ if .Done }}done{{end}}" hx-vals='{"id": "{{.ID}}"}'>
                         <td style="width: 1rem;">
-                            <input type="checkbox" name="{{.ID}}" hx-post="/item/done" value="checked" {{ if .Done }}checked{{ end }} />
+                            <input type="checkbox" name="{{.ID}}" hx-post="/item/done" hx-target="#list" hx-select="#list" hx-swap="outerHTML" value="checked" {{ if .Done }}checked{{ end }} />
                         </td>
                         <td>
                             <strong>{{.Name}}</strong>
@@ -73,7 +74,7 @@
                             {{ end }}
                         </td>
                         <td style="width: 1rem;">
-                            <i class="bi bi-x-circle pointer" hx-post="/item/delete" hx-target="#list-items" hx-select="#list-items" hx-swap="outerHTML"></i>
+                            <i class="bi bi-x-circle pointer" hx-post="/item/delete" hx-target="#list" hx-select="#list" hx-swap="outerHTML"></i>
                         </td>
                     </tr>
                     {{ end }}
@@ -85,9 +86,9 @@
             {{ end }}
             </div>
 
-            {{ if .Categories }}
+            {{ if .Total }}
             <footer>
-                <button class="primary" hx-post="/finish" hx-target="#list-items" hx-select="#list-items" hx-swap="outerHTML"><i class="bi bi-cart-check"></i> Check Out</button>
+                <button class="primary" hx-post="/finish" hx-target="#list" hx-select="#list" hx-swap="outerHTML"><i class="bi bi-cart-check"></i> Check Out</button>
             </footer>
             {{ end }}
         </article>

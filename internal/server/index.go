@@ -8,6 +8,8 @@ import (
 
 type indexBag struct {
 	baseBag
+	Total      int
+	TotalDone  int
 	Categories []models.Category
 }
 
@@ -21,6 +23,16 @@ func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	bag.Categories = categories
+
+	// Count the total & total done for the progress bar
+	for _, cat := range categories {
+		for _, item := range cat.Items {
+			bag.Total++
+			if item.Done {
+				bag.TotalDone++
+			}
+		}
+	}
 
 	template := "index.gohtml"
 	renderHtml(w, http.StatusOK, template, bag)
