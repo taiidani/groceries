@@ -118,10 +118,11 @@ func (l *List) DeleteItem(ctx context.Context, id string) error {
 	return err
 }
 
-func (l *List) MarkItemDone(ctx context.Context, id string) error {
+func (l *List) MarkItemDone(ctx context.Context, id string, value bool) error {
 	_, err := l.db.ExecContext(ctx,
-		"UPDATE item SET done = TRUE WHERE id = $1",
+		"UPDATE item SET done = $2 WHERE id = $1",
 		id,
+		value,
 	)
 
 	return err

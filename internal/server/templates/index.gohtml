@@ -44,15 +44,9 @@
         </article>
     </section>
 
-    <section>
+    <section id="shopping-list">
         <article id="list">
             <header>Grocery List</header>
-
-            {{ if .Total }}
-            <progress value="{{ .TotalDone }}" max="{{ .Total }}"></progress>
-            {{ else }}
-            <p>Add items above to see them here!</p>
-            {{ end }}
 
             <div id="list-items">
             {{ range .Categories }}
@@ -62,10 +56,10 @@
                 <table class="striped">
                     <tbody>
                     {{ range .Items }}
-                    {{ if not .InBag }}
+                    {{ if and (not .InBag) (not .Done) }}
                     <tr class="{{ if .Done }}done{{end}}" hx-vals='{"id": "{{.ID}}"}'>
                         <td style="width: 1rem;">
-                            <input type="checkbox" name="{{.ID}}" hx-post="/item/done" hx-target="#list" hx-select="#list" hx-swap="outerHTML" value="checked" {{ if .Done }}checked{{ end }} />
+                            <input type="checkbox" name="{{.ID}}" hx-post="/item/done" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML" value="checked" {{ if .Done }}checked{{ end }} />
                         </td>
                         <td>
                             <strong>{{.Name}}</strong>
@@ -74,7 +68,43 @@
                             {{ end }}
                         </td>
                         <td style="width: 1rem;">
-                            <i class="bi bi-x-circle pointer" hx-post="/item/delete" hx-target="#list" hx-select="#list" hx-swap="outerHTML"></i>
+                            <i class="bi bi-x-circle pointer" hx-post="/item/delete" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML"></i>
+                        </td>
+                    </tr>
+                    {{ end }}
+                    {{ end }}
+                    </tbody>
+                </table>
+                </details>
+            {{ end }}
+            {{ end }}
+            </div>
+        </article>
+
+        {{ if .TotalDone }}
+        <article id="checkout">
+            <header>Shopping Cart</header>
+
+            <progress value="{{ .TotalDone }}" max="{{ .Total }}"></progress>
+
+            <div id="checkout-items">
+            {{ range .Categories }}
+            {{ if .Items }}
+                <details open="open">
+                <summary class="outline">{{ .Name }}</summary>
+                <table class="striped">
+                    <tbody>
+                    {{ range .Items }}
+                    {{ if .Done }}
+                    <tr class="{{ if .Done }}done{{end}}" hx-vals='{"id": "{{.ID}}"}'>
+                        <td style="width: 1rem;">
+                            <i class="bi bi-arrow-counterclockwise pointer"  hx-post="/item/undone" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML"></i>
+                        </td>
+                        <td>
+                            <strong>{{.Name}}</strong>
+                            {{ if .Quantity }}
+                                <em>({{.Quantity}})</em>
+                            {{ end }}
                         </td>
                     </tr>
                     {{ end }}
@@ -86,12 +116,11 @@
             {{ end }}
             </div>
 
-            {{ if .Total }}
             <footer>
-                <button class="primary" hx-post="/finish" hx-target="#list" hx-select="#list" hx-swap="outerHTML"><i class="bi bi-cart-check"></i> Check Out</button>
+                <button class="primary" hx-post="/finish" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML"><i class="bi bi-cart-check"></i> Check Out</button>
             </footer>
-            {{ end }}
         </article>
+        {{ end }}
     </section>
 </main>
 

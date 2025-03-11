@@ -67,8 +67,19 @@ func (s *Server) itemDeleteHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) itemDoneHandler(w http.ResponseWriter, r *http.Request) {
 	list := models.NewList(s.db)
 
-	// TODO Toggle done, not always done
-	err := list.MarkItemDone(r.Context(), r.FormValue("id"))
+	err := list.MarkItemDone(r.Context(), r.FormValue("id"), true)
+	if err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
+	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+func (s *Server) itemUnDoneHandler(w http.ResponseWriter, r *http.Request) {
+	list := models.NewList(s.db)
+
+	err := list.MarkItemDone(r.Context(), r.FormValue("id"), false)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
