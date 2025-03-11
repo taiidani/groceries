@@ -26,8 +26,9 @@ func (s *Server) categoriesHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 	list := models.NewList(s.db)
 
-	newCategory := &models.Category{
-		Name: r.FormValue("name"),
+	newCategory := models.Category{
+		Name:        r.FormValue("name"),
+		Description: r.FormValue("description"),
 	}
 
 	// Validate inputs
@@ -45,7 +46,7 @@ func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add the new category
-	err := list.AddCategory(r.Context(), newCategory.Name)
+	err := list.AddCategory(r.Context(), newCategory)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return

@@ -100,6 +100,13 @@ body>header .logo img {
     text-decoration: line-through;
 }
 
+/* Used to ensure that a pointer appears when hovering over an item. */
+/* Good for hx-post icons that you want to act more like buttons. */
 .pointer {
     cursor: pointer;
+}
+
+/* Used for long-form alternate text like descriptions. */
+.soft {
+    font-weight: lighter;
 }

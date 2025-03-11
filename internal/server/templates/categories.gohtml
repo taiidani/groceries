@@ -10,8 +10,12 @@
             {{ range .Categories }}
                 <tr hx-vals='{"id": "{{.ID}}"}'>
                     <td>
-                        <strong>{{ .Name }}</strong>
-                        ({{ len .Items }} item{{ if ne (len .Items) 1 }}s{{end}})
+                        <p>
+                            <strong>{{ .Name }}</strong>
+                            ({{ len .Items }} item{{ if ne (len .Items) 1 }}s{{end}})
+                        </p>
+
+                        <p class="soft">{{ .Description }}</p>
                     </td>
                     <td style="width: 2rem;">
                         <i class="bi bi-x-circle pointer" hx-post="/category/delete" hx-target="#categories-items" hx-select="#categories-items" hx-swap="outerHTML"></i>
@@ -24,10 +28,9 @@
 
         <footer>
             <form method="POST" action="/category/add">
-                <fieldset role="group">
-                    <input type="text" name="name" placeholder="Category Name" minlength="3" class="autofocus" required />
-                    <button type="submit" class="primary"><i class="bi bi-folder-plus"></i> Add</button>
-                </fieldset>
+                <input type="text" name="name" placeholder="Category Name" minlength="3" maxlength="255" class="autofocus" required />
+                <input type="text" name="description" placeholder="Description" />
+                <button type="submit" class="primary"><i class="bi bi-folder-plus"></i> Add</button>
             </form>
         </footer>
     </article>

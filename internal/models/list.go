@@ -13,9 +13,10 @@ type List struct {
 }
 
 type Category struct {
-	ID    string
-	Name  string
-	Items []Item
+	ID          string
+	Name        string
+	Description string
+	Items       []Item
 }
 
 type Item struct {
@@ -32,7 +33,7 @@ func NewList(db *sql.DB) *List {
 }
 
 func (l *List) LoadCategories(ctx context.Context) ([]Category, error) {
-	rows, err := l.db.QueryContext(ctx, "SELECT id, name FROM category ORDER BY name")
+	rows, err := l.db.QueryContext(ctx, "SELECT id, name, description FROM category ORDER BY name")
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +43,7 @@ func (l *List) LoadCategories(ctx context.Context) ([]Category, error) {
 	for rows.Next() {
 		// Load the category
 		var cat Category
-		if err := rows.Scan(&cat.ID, &cat.Name); err != nil {
+		if err := rows.Scan(&cat.ID, &cat.Name, &cat.Description); err != nil {
 			return nil, err
 		}
 
@@ -86,8 +87,8 @@ func (l *List) LoadItemsForCategory(ctx context.Context, id string) ([]Item, err
 	return ret, nil
 }
 
-func (l *List) AddCategory(ctx context.Context, name string) error {
-	_, err := l.db.ExecContext(ctx, "INSERT INTO category (name) VALUES ($1)", name)
+func (l *List) AddCategory(ctx context.Context, cat Category) error {
+	_, err := l.db.ExecContext(ctx, "INSERT INTO category (name, description) VALUES ($1, $2)", cat.Name, cat.Description)
 	return err
 }
 
