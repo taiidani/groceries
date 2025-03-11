@@ -24,7 +24,7 @@ run = ["go build -o groceries cmd/server/main.go"]
 
 [tasks.run]
 description = "Execute the app in development mode"
-run = ["docker compose up -d", "go run cmd/server/main.go"]
+run = ["docker compose up -d --wait", "go run cmd/server/main.go"]
 
 [tasks.seed]
 description = "Populate the database with seeds"
