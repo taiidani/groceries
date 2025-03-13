@@ -7,8 +7,13 @@ import (
 	"github.com/taiidani/groceries/internal/models"
 )
 
+type categoriesBag struct {
+	baseBag
+	Categories []models.Category
+}
+
 func (s *Server) categoriesHandler(w http.ResponseWriter, r *http.Request) {
-	bag := indexBag{baseBag: s.newBag(r)}
+	bag := categoriesBag{baseBag: s.newBag(r)}
 
 	list := models.NewList(s.db)
 	categories, err := list.LoadCategories(r.Context())

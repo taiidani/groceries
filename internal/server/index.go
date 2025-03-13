@@ -8,9 +8,12 @@ import (
 
 type indexBag struct {
 	baseBag
-	Total      int
-	TotalDone  int
-	Categories []models.Category
+	Total          int
+	TotalDone      int
+	Categories     []models.Category
+	BagCategories  []models.Category
+	ListCategories []models.Category
+	DoneCategories []models.Category
 }
 
 func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -22,7 +25,49 @@ func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
 	}
+
 	bag.Categories = categories
+	for _, cat := range categories {
+		bagItems := []models.Item{}
+		listItems := []models.Item{}
+		doneItems := []models.Item{}
+		for _, item := range cat.Items {
+			if item.InBag {
+				bagItems = append(bagItems, item)
+			} else if item.Done {
+				doneItems = append(doneItems, item)
+			} else {
+				listItems = append(listItems, item)
+			}
+		}
+
+		if len(bagItems) > 0 {
+			bag.BagCategories = append(bag.BagCategories, models.Category{
+				ID:          cat.ID,
+				Description: cat.Description,
+				Name:        cat.Name,
+				Items:       bagItems,
+			})
+		}
+
+		if len(listItems) > 0 {
+			bag.ListCategories = append(bag.ListCategories, models.Category{
+				ID:          cat.ID,
+				Description: cat.Description,
+				Name:        cat.Name,
+				Items:       listItems,
+			})
+		}
+
+		if len(doneItems) > 0 {
+			bag.DoneCategories = append(bag.DoneCategories, models.Category{
+				ID:          cat.ID,
+				Description: cat.Description,
+				Name:        cat.Name,
+				Items:       doneItems,
+			})
+		}
+	}
 
 	// Count the total & total done for the progress bar
 	for _, cat := range categories {

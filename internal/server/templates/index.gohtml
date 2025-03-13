@@ -20,9 +20,9 @@
                 </fieldset>
             </form>
 
-            {{ if .Categories }}
+            {{ if .BagCategories }}
             <form id="bagSummary" method="POST" action="/bag/done">
-                {{ range .Categories }}
+                {{ range .BagCategories }}
                     {{ range .Items }}
                         {{ if .InBag }}
                         <div hx-vals='{"id": "{{.ID}}"}'>
@@ -49,14 +49,13 @@
             <header>Grocery List</header>
 
             <div id="list-items">
-            {{ range .Categories }}
+            {{ range .ListCategories }}
             {{ if .Items }}
                 <details open="open">
-                <summary class="outline">{{ .Name }}</summary>
+                <summary class="outline" title="{{.Description}}">{{ .Name }}</summary>
                 <table class="striped">
                     <tbody>
                     {{ range .Items }}
-                    {{ if and (not .InBag) (not .Done) }}
                     <tr class="{{ if .Done }}done{{end}}" hx-vals='{"id": "{{.ID}}"}'>
                         <td style="width: 1rem;">
                             <input type="checkbox" name="{{.ID}}" hx-post="/item/done" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML" value="checked" {{ if .Done }}checked{{ end }} />
@@ -71,7 +70,6 @@
                             <i class="bi bi-x-circle pointer" hx-post="/item/delete" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML"></i>
                         </td>
                     </tr>
-                    {{ end }}
                     {{ end }}
                     </tbody>
                 </table>
@@ -88,7 +86,7 @@
             <progress value="{{ .TotalDone }}" max="{{ .Total }}"></progress>
 
             <div id="checkout-items">
-            {{ range .Categories }}
+            {{ range .DoneCategories }}
             {{ if .Items }}
                 <details open="open">
                 <summary class="outline">{{ .Name }}</summary>
