@@ -96,6 +96,12 @@ button.secondary {
     --pico-color: var(--pico-primary-inverse);
 }
 
+button.tertiary {
+    --pico-background-color: var(--tertiary-color) !important;
+    --pico-border-color: var(--btn-primary-border);
+    --pico-color: var(--pico-primary-inverse);
+}
+
 body>header,
 body>footer {
     background-color: var(--background-color);

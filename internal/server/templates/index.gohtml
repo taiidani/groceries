@@ -1,13 +1,13 @@
 {{ template "header.gohtml" . }}
-
+{{ $Categories := .Categories}}
 <main class="container">
     <section>
         <article id="itemAdder">
             <header>Add Items</header>
 
             <form id="addItemsForm" method="POST" action="/item/add">
-                <input type="hidden" name="in-bag" value="true" />
                 <fieldset role="group">
+                    <input type="hidden" name="in-bag" value="true" />
                     <select name="category" aria-label="Category" required style="width: 30%">
                         <option selected disabled value="">Category</option>
                         {{ range .Categories }}
@@ -20,31 +20,38 @@
                 </fieldset>
             </form>
 
-            {{ if .BagCategories }}
-            <form id="bagSummary" method="POST" action="/bag/done">
-                {{ range .BagCategories }}
-                    {{ range .Items }}
-                        {{ if .InBag }}
-                        <div hx-vals='{"id": "{{.ID}}"}'>
-                            <p>
-                                <strong>{{.Name}}</strong>
-                                {{ if .Quantity }}
-                                    <em>({{.Quantity}})</em>
-                                {{ end }}
-                                <i class="bi bi-x-circle pointer" hx-post="/item/delete" hx-target="#itemAdder" hx-select="#itemAdder" hx-swap="outerHTML"></i>
-                            </p>
-                        </div>
+            {{ range .BagItems }}
+            {{ $catID := .CategoryID }}
+            <form method="POST" action="/item/update" hx-vals='{"id": "{{.ID}}"}'>
+                <fieldset role="group">
+                    <input type="hidden" name="id" value="{{.ID}}" />
+                    <input type="hidden" name="in-bag" value="true" />
+                    <select name="category" aria-label="Category" required style="width: 30%">
+                        <option disabled value="">Category</option>
+                        {{ range $Categories }}
+                        <option value="{{.ID}}" {{if eq .ID $catID }}selected{{end}}>{{.Name}}</option>
                         {{ end }}
-                    {{ end }}
-                {{ end }}
+                    </select>
+                    <input type="text" name="name" placeholder="Name (Quantity)" minlength="3" required value="{{.Name}}" />
 
-                <button type="submit" class="secondary"><i class="bi bi-check"></i> Save</button>
+                    <button type="submit" class="secondary"><i class="bi bi-save pointer"></i></button>
+                    <button type="submit" name="action" value="delete" class="tertiary"><i class="bi bi-bag-dash pointer"></i></button>
+                </fieldset>
             </form>
+            {{ end }}
+
+            {{ if .BagItems }}
+            <footer>
+                <form method="POST" action="/bag/done">
+                    <button type="submit" class="secondary"><i class="bi bi-check"></i> Save</button>
+                </form>
+            </footer>
             {{ end }}
         </article>
     </section>
 
     <section id="shopping-list">
+        {{ if .ListCategories }}
         <article id="list">
             <header>Grocery List</header>
 
@@ -78,6 +85,7 @@
             {{ end }}
             </div>
         </article>
+        {{ end }}
 
         {{ if .TotalDone }}
         <article id="checkout">

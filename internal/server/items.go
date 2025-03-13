@@ -52,6 +52,55 @@ func (s *Server) itemAddHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
+func (s *Server) itemUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	if r.FormValue("action") == "delete" {
+		s.itemDeleteHandler(w, r)
+		return
+	}
+
+	list := models.NewList(s.db)
+	categories, err := list.LoadCategories(r.Context())
+	if err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
+	categoryID := r.FormValue("category")
+	var category *models.Category
+	for i, cat := range categories {
+		if cat.ID == categoryID {
+			category = &categories[i]
+		}
+	}
+	if category == nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("provided category not found"))
+		return
+	}
+
+	// Parse the name (quantity) into a name, quantity pair
+	name, quantity, err := parseItemName(r.FormValue("name"))
+	if err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
+	newItem := models.Item{
+		ID:         r.FormValue("id"),
+		CategoryID: categoryID,
+		Name:       name,
+		InBag:      r.FormValue("in-bag") == "true",
+		Quantity:   quantity,
+	}
+
+	err = list.UpdateItem(r.Context(), newItem)
+	if err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
+	http.Redirect(w, r, "/", http.StatusFound)
+}
+
 func (s *Server) itemDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	list := models.NewList(s.db)
 

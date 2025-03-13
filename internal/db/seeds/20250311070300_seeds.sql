@@ -10,13 +10,15 @@ INSERT INTO category (name, description) VALUES
 ('Bulk Foods', 'Mostly nuts'),
 ('Exotic Pets', 'Not a frequented aisle');
 
-INSERT INTO item (category_id, name, quantity, done) VALUES
-(1, 'Breakfast sausage', '1 package', FALSE),
-(1, 'Tofu', '', FALSE),
-(1, 'Pizza', '2', TRUE),
-(2, 'Cashews', '1 cup', TRUE),
-(2, 'Garlic powder', '1.5oz', FALSE),
-(2, 'Almonds', '0.5lb', FALSE);
+INSERT INTO item (category_id, name, quantity, done, in_bag) VALUES
+(1, 'Breakfast sausage', '1 package', FALSE, FALSE),
+(1, 'Tofu', '', FALSE, FALSE),
+(1, 'Pizza', '2', TRUE, FALSE),
+(2, 'Cashews', '1 cup', TRUE, FALSE),
+(2, 'Garlic powder', '1.5oz', FALSE, FALSE),
+(2, 'Almonds', '0.5lb', FALSE, FALSE),
+(1, 'Jolly Llama', '', FALSE, TRUE),
+(2, 'Dried beets', '1lb', FALSE, TRUE);
 -- +goose StatementEnd
 
 -- +goose Down

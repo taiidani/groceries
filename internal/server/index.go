@@ -11,7 +11,7 @@ type indexBag struct {
 	Total          int
 	TotalDone      int
 	Categories     []models.Category
-	BagCategories  []models.Category
+	BagItems       []models.Item
 	ListCategories []models.Category
 	DoneCategories []models.Category
 }
@@ -28,26 +28,16 @@ func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 
 	bag.Categories = categories
 	for _, cat := range categories {
-		bagItems := []models.Item{}
 		listItems := []models.Item{}
 		doneItems := []models.Item{}
 		for _, item := range cat.Items {
 			if item.InBag {
-				bagItems = append(bagItems, item)
+				bag.BagItems = append(bag.BagItems, item)
 			} else if item.Done {
 				doneItems = append(doneItems, item)
 			} else {
 				listItems = append(listItems, item)
 			}
-		}
-
-		if len(bagItems) > 0 {
-			bag.BagCategories = append(bag.BagCategories, models.Category{
-				ID:          cat.ID,
-				Description: cat.Description,
-				Name:        cat.Name,
-				Items:       bagItems,
-			})
 		}
 
 		if len(listItems) > 0 {

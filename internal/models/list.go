@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"database/sql"
+	"errors"
 )
 
 const ListDBKey = "list"
@@ -74,7 +75,7 @@ func (l *List) LoadItemsForCategory(ctx context.Context, id string) ([]Item, err
 	ret := []Item{}
 	for rows.Next() {
 		// Load the item
-		var item Item
+		item := Item{CategoryID: id}
 		if err := rows.Scan(&item.ID, &item.Name, &item.Quantity, &item.InBag, &item.Done); err != nil {
 			return nil, err
 		}
@@ -105,6 +106,23 @@ func (l *List) DeleteCategory(ctx context.Context, id string) error {
 func (l *List) AddItem(ctx context.Context, item Item) error {
 	_, err := l.db.ExecContext(ctx,
 		"INSERT INTO item (category_id, name, quantity, in_bag) VALUES ($1, $2, $3, $4)",
+		item.CategoryID,
+		item.Name,
+		item.Quantity,
+		item.InBag,
+	)
+
+	return err
+}
+
+func (l *List) UpdateItem(ctx context.Context, item Item) error {
+	if item.ID == "" {
+		return errors.New("cannot update item with empty id")
+	}
+
+	_, err := l.db.ExecContext(ctx,
+		"UPDATE item SET category_id = $2, name = $3, quantity = $4, in_bag = $5 WHERE id = $1",
+		item.ID,
 		item.CategoryID,
 		item.Name,
 		item.Quantity,
