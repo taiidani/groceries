@@ -1,6 +1,6 @@
-:root {
-    color-scheme: "light" !important;
-
+/* Light, default mode */
+:root:not([data-theme=dark]),
+[data-theme=light] {
     /* Good old https://www.canva.com/colors/color-wheel/ */
     --primary-color: #9ABF75;
     --secondary-color: #759ABF;
@@ -8,27 +8,45 @@
 
     --text-color: #222;
     --link-color: var(--secondary-color);
-    --background-color: #FFFFDD;
+    --background-color: #FFFFFF;
+    --header-footer-background-color: #FFFFDD;
     --btn-primary-background: var(--primary-color);
     --btn-primary-border: var(--primary-color);
+
+    --pico-color: var(--text-color);
+    --pico-background-color: var(--background-color);
+    --pico-card-background-color: var(--background-color);
+    --pico-card-sectioning-background-color: var(--header-footer-background-color);
 }
 
-:root:not([data-theme=dark]),
-[data-theme=light] {
-    --pico-color: var(--text-color);
-    /* --pico-background-color: var(--background-color); */
-    --pico-card-sectioning-background-color: var(--background-color);
-    /* --pico-card-background-color: white; */
+/* Dark mode */
+@media only screen and (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+        /* Good old https://www.canva.com/colors/color-wheel/ */
+        --primary-color: #3e4e2e;
+        --secondary-color: #394b5d;
+        --tertiary-color: #6a4055;
+
+        --text-color: #EEE;
+        --link-color: var(--secondary-color);
+        --background-color: #000000;
+        --header-footer-background-color: #000022;
+        --btn-primary-background: var(--primary-color);
+        --btn-primary-border: var(--primary-color);
+
+        --pico-color: var(--text-color);
+        --pico-background-color: var(--background-color);
+        --pico-card-background-color: var(--background-color);
+        --pico-card-sectioning-background-color: var(--header-footer-background-color);
+    }
 }
 
 body {
     /* https://www.publicdomainpictures.net/pictures/620000/nahled/image-17195976103Qn.jpg */
     background-image: url("/assets/background.jpg");
     background-repeat: repeat;
-    /* background-position: bottom; */
-    /* background-size: cover; */
     background-color: var(--background-color);
-    /* font-size: 0.9rem; */
+    color: var(--text-color);
 }
 
 a {
@@ -76,12 +94,11 @@ button.secondary {
     --pico-background-color: var(--secondary-color) !important;
     --pico-border-color: var(--btn-primary-border);
     --pico-color: var(--pico-primary-inverse);
-
 }
 
 body>header,
 body>footer {
-    background-color: var(--pico-background-color);
+    background-color: var(--background-color);
     padding-top: 0;
     padding-bottom: 0;
     color: var(--text-color);
