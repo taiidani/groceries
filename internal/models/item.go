@@ -51,6 +51,33 @@ ORDER BY category.name, item.name`)
 	return ret, nil
 }
 
+func GetItem(ctx context.Context, id string) (Item, error) {
+	ret := Item{}
+	var inBag *bool
+	var inList *bool
+	err := db.QueryRowContext(ctx, `
+SELECT id, category_id, name,
+	(SELECT TRUE FROM item_bag WHERE item_bag.item_id = item.id) AS in_bag,
+	(SELECT TRUE FROM item_list WHERE item_list.item_id = item.id) AS in_list
+FROM item
+WHERE id = $1`, id).
+		Scan(&ret.ID, &ret.Name, &ret.CategoryID, &inBag, &inList)
+
+	if inBag != nil {
+		ret.Bag = &BagItem{}
+	}
+	if inList != nil {
+		ret.List = &ListItem{}
+	}
+
+	return ret, err
+}
+
+func ItemChangeCategory(ctx context.Context, id int, categoryID int) error {
+	_, err := db.ExecContext(ctx, `UPDATE item SET category_id = $2 WHERE id = $1`, id, categoryID)
+	return err
+}
+
 func DeleteItem(ctx context.Context, id string) error {
 	_, err := db.ExecContext(ctx, `DELETE FROM item WHERE id = $1`, id)
 	return err

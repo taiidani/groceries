@@ -52,56 +52,53 @@ func (s *Server) bagAddHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) bagUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	categories, err := models.LoadCategories(r.Context())
+	id, err := strconv.Atoi(r.FormValue("id"))
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("could not parse id: %w", err))
 		return
 	}
 
-	categoryID := r.FormValue("category")
-	var category *models.Category
-	for i, cat := range categories {
-		if cat.ID == categoryID {
-			category = &categories[i]
-		}
-	}
-	if category == nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("provided category not found"))
-		return
-	}
-
-	if r.FormValue("action") == "delete" {
-		err := models.DeleteFromBag(r.Context(), r.FormValue("id"))
+	// Update the category if it has changed
+	category := r.FormValue("category")
+	if category != "" {
+		categoryID, err := strconv.Atoi(r.FormValue("category"))
 		if err != nil {
-			errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("could not remove item from bag: %w", err))
+			errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("could not parse category: %w", err))
 			return
 		}
-	} else {
+
+		err = models.ItemChangeCategory(r.Context(), id, categoryID)
+		if err != nil {
+			errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("unable to update category: %w", err))
+			return
+		}
+	}
+
+	// Update the name, if it has changed
+	fullName := r.FormValue("name")
+	if fullName != "" {
 		// Parse the name (quantity) into a name, quantity pair
-		name, quantity, err := parseItemName(r.FormValue("name"))
+		name, quantity, err := parseItemName(fullName)
 		if err != nil {
 			errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 			return
 		}
 
-		id, err := strconv.Atoi(r.FormValue("id"))
+		err = models.BagUpdateItemName(r.Context(), id, name, quantity)
 		if err != nil {
 			errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 			return
 		}
+	}
 
-		newItem := models.Item{
-			ID:         id,
-			CategoryID: categoryID,
-			Name:       name,
-			Bag:        &models.BagItem{Quantity: quantity},
-		}
+	http.Redirect(w, r, "/", http.StatusFound)
+}
 
-		err = models.UpdateItem(r.Context(), newItem)
-		if err != nil {
-			errorResponse(r.Context(), w, http.StatusInternalServerError, err)
-			return
-		}
+func (s *Server) bagDeleteHandler(w http.ResponseWriter, r *http.Request) {
+	err := models.DeleteFromBag(r.Context(), r.FormValue("id"))
+	if err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("could not remove item from bag: %w", err))
+		return
 	}
 
 	http.Redirect(w, r, "/", http.StatusFound)

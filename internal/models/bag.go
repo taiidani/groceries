@@ -79,6 +79,33 @@ func AddExistingItem(ctx context.Context, id int) error {
 	return err
 }
 
+func BagUpdateItemName(ctx context.Context, id int, name, quantity string) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.ExecContext(ctx,
+		`UPDATE item SET name = $2 WHERE id = $1`,
+		id,
+		name,
+	)
+	if err != nil {
+		return errors.Join(tx.Rollback(), err)
+	}
+
+	_, err = tx.ExecContext(ctx,
+		`UPDATE item_bag SET quantity = $2 WHERE item_id = $1`,
+		id,
+		quantity,
+	)
+	if err != nil {
+		return errors.Join(tx.Rollback(), err)
+	}
+
+	return tx.Commit()
+}
+
 func UpdateItem(ctx context.Context, item Item) error {
 	if item.ID == 0 {
 		return errors.New("cannot update item with empty id")
