@@ -3,9 +3,14 @@
 <main class="container">
     <section>
         <article id="itemAdder">
-            <header>Add Items</header>
+            <header>Add Items <span class="htmx-indicator" aria-busy="true" /></header>
 
-            <form id="addItemsForm" method="POST" action="/bag/add">
+            <form
+                hx-post="/bag/add"
+                hx-target="#itemAdder"
+                hx-select="#itemAdder"
+                hx-swap="outerHTML"
+                hx-indicator="closest article">
                 <fieldset role="group">
                     <select name="category" aria-label="Category" required style="width: 30%">
                         <option selected disabled value="">Category</option>
@@ -29,7 +34,8 @@
                         required
                         style="width: 30%"
                         hx-post="/bag/update"
-                        hx-swap="none">
+                        hx-swap="none"
+                        hx-indicator="closest article">
                         <option disabled value="">Category</option>
                         {{ range $Categories }}
                         <option value="{{.ID}}" {{if eq .ID $catID }}selected{{end}}>{{.Name}}</option>
@@ -42,9 +48,17 @@
                         required
                         value="{{.Name}}{{ if .Bag.Quantity}} ({{.Bag.Quantity}}){{end}}"
                         hx-post="/bag/update"
-                        hx-swap="none" />
+                        hx-swap="none"
+                        hx-indicator="closest article" />
 
-                    <button name="action" value="delete" class="tertiary" hx-post="/bag/delete" hx-target="#itemAdder" hx-select="#itemAdder" hx-swap="outerHTML">
+                    <button name="action"
+                        value="delete"
+                        class="tertiary"
+                        hx-post="/bag/delete"
+                        hx-target="#itemAdder"
+                        hx-select="#itemAdder"
+                        hx-swap="outerHTML"
+                        hx-indicator="closest article">
                         <i class="bi bi-bag-dash pointer"></i>
                     </button>
                 </fieldset>
@@ -64,7 +78,7 @@
     <section id="shopping-list">
         {{ if .ListCategories }}
         <article id="list">
-            <header>Grocery List</header>
+            <header>Grocery List <span class="htmx-indicator" aria-busy="true" /></header>
 
             <div id="list-items">
             {{ range .ListCategories }}
@@ -76,7 +90,7 @@
                     {{ range .Items }}
                     <tr hx-vals='{"id": "{{.ID}}"}'>
                         <td style="width: 1rem;">
-                            <input type="checkbox" name="{{.ID}}" hx-post="/list/done" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML" value="checked" />
+                            <input type="checkbox" name="{{.ID}}" hx-post="/list/done" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML" hx-indicator="closest article" value="checked" />
                         </td>
                         <td>
                             <strong>{{.Name}}</strong>
@@ -85,7 +99,7 @@
                             {{ end }}
                         </td>
                         <td style="width: 1rem;">
-                            <i class="bi bi-x-circle pointer" hx-post="/list/delete" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML"></i>
+                            <i class="bi bi-x-circle pointer" hx-post="/list/delete" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML" hx-indicator="closest article"></i>
                         </td>
                     </tr>
                     {{ end }}
@@ -100,7 +114,7 @@
 
         {{ if .TotalDone }}
         <article id="checkout">
-            <header>Shopping Cart</header>
+            <header>Shopping Cart <span class="htmx-indicator" aria-busy="true" /></header>
 
             <progress value="{{ .TotalDone }}" max="{{ .Total }}"></progress>
 
@@ -114,7 +128,7 @@
                     {{ range .Items }}
                     <tr class="done" hx-vals='{"id": "{{.ID}}"}'>
                         <td style="width: 1rem;">
-                            <i class="bi bi-arrow-counterclockwise pointer"  hx-post="/list/undone" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML"></i>
+                            <i class="bi bi-arrow-counterclockwise pointer"  hx-post="/list/undone" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML" hx-indicator="closest article"></i>
                         </td>
                         <td>
                             <strong>{{.Name}}</strong>
@@ -132,7 +146,7 @@
             </div>
 
             <footer>
-                <button class="primary" hx-post="/list/finish" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML"><i class="bi bi-cart-check"></i> Check Out</button>
+                <button class="primary" hx-post="/list/finish" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML"><i class="bi bi-cart-check" hx-indicator="closest article"></i> Check Out</button>
             </footer>
         </article>
         {{ end }}
