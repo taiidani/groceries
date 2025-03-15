@@ -133,3 +133,27 @@ body>header .logo img {
 .soft {
     font-weight: lighter;
 }
+
+/* Used in list/table rows to denote a tag being on the target resource */
+.tag {
+    display: inline-block;
+    padding: 0 0.5rem;
+    font-weight: bold;
+    background-color: var(--secondary-color);
+    border-radius: 5px;
+}
+
+ul.lite {
+    padding-left: 0;
+}
+
+ul.lite li {
+    list-style: none;
+}
+
+i.primary {
+    background-color: var(--primary-color) !important;
+    color: var(--pico-primary-inverse);
+    padding: 0 0.5rem;
+    border-radius: 5px;
+}

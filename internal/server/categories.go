@@ -15,8 +15,7 @@ type categoriesBag struct {
 func (s *Server) categoriesHandler(w http.ResponseWriter, r *http.Request) {
 	bag := categoriesBag{baseBag: s.newBag(r)}
 
-	list := models.NewList(s.db)
-	categories, err := list.LoadCategories(r.Context())
+	categories, err := models.LoadCategories(r.Context())
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
@@ -29,8 +28,6 @@ func (s *Server) categoriesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
-	list := models.NewList(s.db)
-
 	newCategory := models.Category{
 		Name:        r.FormValue("name"),
 		Description: r.FormValue("description"),
@@ -43,7 +40,12 @@ func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check for existing category
-	for _, cat := range list.Categories {
+	existingCategories, err := models.LoadCategories(r.Context())
+	if err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("could not load categories"))
+		return
+	}
+	for _, cat := range existingCategories {
 		if cat.ID == newCategory.ID {
 			errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("category already found"))
 			return
@@ -51,7 +53,7 @@ func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add the new category
-	err := list.AddCategory(r.Context(), newCategory)
+	err = models.AddCategory(r.Context(), newCategory)
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
@@ -61,9 +63,7 @@ func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) categoryDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	list := models.NewList(s.db)
-
-	err := list.DeleteCategory(r.Context(), r.FormValue("id"))
+	err := models.DeleteCategory(r.Context(), r.FormValue("id"))
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return

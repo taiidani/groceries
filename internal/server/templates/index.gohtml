@@ -5,9 +5,8 @@
         <article id="itemAdder">
             <header>Add Items</header>
 
-            <form id="addItemsForm" method="POST" action="/item/add">
+            <form id="addItemsForm" method="POST" action="/bag/add">
                 <fieldset role="group">
-                    <input type="hidden" name="in-bag" value="true" />
                     <select name="category" aria-label="Category" required style="width: 30%">
                         <option selected disabled value="">Category</option>
                         {{ range .Categories }}
@@ -22,17 +21,16 @@
 
             {{ range .BagItems }}
             {{ $catID := .CategoryID }}
-            <form method="POST" action="/item/update" hx-vals='{"id": "{{.ID}}"}'>
+            <form method="POST" action="/bag/update" hx-vals='{"id": "{{.ID}}"}'>
                 <fieldset role="group">
                     <input type="hidden" name="id" value="{{.ID}}" />
-                    <input type="hidden" name="in-bag" value="true" />
                     <select name="category" aria-label="Category" required style="width: 30%">
                         <option disabled value="">Category</option>
                         {{ range $Categories }}
                         <option value="{{.ID}}" {{if eq .ID $catID }}selected{{end}}>{{.Name}}</option>
                         {{ end }}
                     </select>
-                    <input type="text" name="name" placeholder="Name (Quantity)" minlength="3" required value="{{.Name}}" />
+                    <input type="text" name="name" placeholder="Name (Quantity)" minlength="3" required value="{{.Name}}{{ if .Bag.Quantity}} ({{.Bag.Quantity}}){{end}}" />
 
                     <button type="submit" class="secondary"><i class="bi bi-save pointer"></i></button>
                     <button type="submit" name="action" value="delete" class="tertiary"><i class="bi bi-bag-dash pointer"></i></button>
@@ -63,18 +61,18 @@
                 <table class="striped">
                     <tbody>
                     {{ range .Items }}
-                    <tr class="{{ if .Done }}done{{end}}" hx-vals='{"id": "{{.ID}}"}'>
+                    <tr hx-vals='{"id": "{{.ID}}"}'>
                         <td style="width: 1rem;">
-                            <input type="checkbox" name="{{.ID}}" hx-post="/item/done" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML" value="checked" {{ if .Done }}checked{{ end }} />
+                            <input type="checkbox" name="{{.ID}}" hx-post="/list/done" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML" value="checked" />
                         </td>
                         <td>
                             <strong>{{.Name}}</strong>
-                            {{ if .Quantity }}
-                                <em>({{.Quantity}})</em>
+                            {{ if .List.Quantity }}
+                                <em>({{.List.Quantity}})</em>
                             {{ end }}
                         </td>
                         <td style="width: 1rem;">
-                            <i class="bi bi-x-circle pointer" hx-post="/item/delete" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML"></i>
+                            <i class="bi bi-x-circle pointer" hx-post="/list/delete" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML"></i>
                         </td>
                     </tr>
                     {{ end }}
@@ -101,19 +99,17 @@
                 <table class="striped">
                     <tbody>
                     {{ range .Items }}
-                    {{ if .Done }}
-                    <tr class="{{ if .Done }}done{{end}}" hx-vals='{"id": "{{.ID}}"}'>
+                    <tr class="done" hx-vals='{"id": "{{.ID}}"}'>
                         <td style="width: 1rem;">
-                            <i class="bi bi-arrow-counterclockwise pointer"  hx-post="/item/undone" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML"></i>
+                            <i class="bi bi-arrow-counterclockwise pointer"  hx-post="/list/undone" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML"></i>
                         </td>
                         <td>
                             <strong>{{.Name}}</strong>
-                            {{ if .Quantity }}
-                                <em>({{.Quantity}})</em>
+                            {{ if .List.Quantity }}
+                                <em>({{.List.Quantity}})</em>
                             {{ end }}
                         </td>
                     </tr>
-                    {{ end }}
                     {{ end }}
                     </tbody>
                 </table>
@@ -123,7 +119,7 @@
             </div>
 
             <footer>
-                <button class="primary" hx-post="/finish" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML"><i class="bi bi-cart-check"></i> Check Out</button>
+                <button class="primary" hx-post="/list/finish" hx-target="#shopping-list" hx-select="#shopping-list" hx-swap="outerHTML"><i class="bi bi-cart-check"></i> Check Out</button>
             </footer>
         </article>
         {{ end }}

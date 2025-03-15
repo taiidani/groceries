@@ -12,60 +12,74 @@ type indexBag struct {
 	TotalDone      int
 	Categories     []models.Category
 	BagItems       []models.Item
-	ListCategories []models.Category
-	DoneCategories []models.Category
+	ListCategories []categoryWithItems
+	DoneCategories []categoryWithItems
+}
+
+type categoryWithItems struct {
+	models.Category
+	Items []models.Item
 }
 
 func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 	bag := indexBag{baseBag: s.newBag(r)}
 
-	list := models.NewList(s.db)
-	categories, err := list.LoadCategories(r.Context())
+	categories, err := models.LoadCategories(r.Context())
+	if err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+	bag.Categories = categories
+
+	bagItems, err := models.LoadBag(r.Context())
+	if err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+	bag.BagItems = bagItems
+
+	listItems, err := models.LoadList(r.Context())
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
 	}
 
-	bag.Categories = categories
 	for _, cat := range categories {
-		listItems := []models.Item{}
-		doneItems := []models.Item{}
-		for _, item := range cat.Items {
-			if item.InBag {
-				bag.BagItems = append(bag.BagItems, item)
-			} else if item.Done {
-				doneItems = append(doneItems, item)
-			} else {
-				listItems = append(listItems, item)
-			}
-		}
-
-		if len(listItems) > 0 {
-			bag.ListCategories = append(bag.ListCategories, models.Category{
-				ID:          cat.ID,
-				Description: cat.Description,
-				Name:        cat.Name,
-				Items:       listItems,
-			})
-		}
-
-		if len(doneItems) > 0 {
-			bag.DoneCategories = append(bag.DoneCategories, models.Category{
-				ID:          cat.ID,
-				Description: cat.Description,
-				Name:        cat.Name,
-				Items:       doneItems,
-			})
-		}
-	}
-
-	// Count the total & total done for the progress bar
-	for _, cat := range categories {
-		for _, item := range cat.Items {
-			bag.Total++
-			if item.Done {
+		addList := []models.Item{}
+		addDone := []models.Item{}
+		for _, item := range listItems {
+			if item.CategoryID != cat.ID {
+				continue
+			} else if item.List.Done {
+				bag.Total++
 				bag.TotalDone++
+				addDone = append(addDone, item)
+			} else {
+				bag.Total++
+				addList = append(addList, item)
 			}
+		}
+
+		if len(addList) > 0 {
+			bag.ListCategories = append(bag.ListCategories, categoryWithItems{
+				Category: models.Category{
+					ID:          cat.ID,
+					Description: cat.Description,
+					Name:        cat.Name,
+				},
+				Items: addList,
+			})
+		}
+
+		if len(addDone) > 0 {
+			bag.DoneCategories = append(bag.DoneCategories, categoryWithItems{
+				Category: models.Category{
+					ID:          cat.ID,
+					Description: cat.Description,
+					Name:        cat.Name,
+				},
+				Items: addDone,
+			})
 		}
 	}
 

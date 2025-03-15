@@ -1,5 +1,9 @@
 -- +goose Up
 -- +goose StatementBegin
+DELETE FROM item_bag;
+ALTER SEQUENCE item_bag_id_seq RESTART WITH 1;
+DELETE FROM item_list;
+ALTER SEQUENCE item_list_id_seq RESTART WITH 1;
 DELETE FROM item;
 ALTER SEQUENCE item_id_seq RESTART WITH 1;
 DELETE FROM category;
@@ -10,15 +14,28 @@ INSERT INTO category (name, description) VALUES
 ('Bulk Foods', 'Mostly nuts'),
 ('Exotic Pets', 'Not a frequented aisle');
 
-INSERT INTO item (category_id, name, quantity, done, in_bag) VALUES
-(1, 'Breakfast sausage', '1 package', FALSE, FALSE),
-(1, 'Tofu', '', FALSE, FALSE),
-(1, 'Pizza', '2', TRUE, FALSE),
-(2, 'Cashews', '1 cup', TRUE, FALSE),
-(2, 'Garlic powder', '1.5oz', FALSE, FALSE),
-(2, 'Almonds', '0.5lb', FALSE, FALSE),
-(1, 'Jolly Llama', '', FALSE, TRUE),
-(2, 'Dried beets', '1lb', FALSE, TRUE);
+INSERT INTO item (category_id, name) VALUES
+(1, 'Breakfast sausage'),
+(1, 'Tofu'),
+(1, 'Pizza'),
+(2, 'Cashews'),
+(2, 'Garlic powder'),
+(2, 'Almonds'),
+(1, 'Jolly Llama'),
+(2, 'Dried beets');
+
+
+INSERT INTO item_list (item_id, quantity, done) VALUES
+(1, '1 package', FALSE),
+(2, '', FALSE),
+(3, '2', FALSE),
+(4, '1 cup', TRUE),
+(5, '1.5oz', FALSE),
+(6, '0.5lb', FALSE);
+
+INSERT INTO item_bag (item_id, quantity) VALUES
+(7, ''),
+(8, '1lb');
 -- +goose StatementEnd
 
 -- +goose Down

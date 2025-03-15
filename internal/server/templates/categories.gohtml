@@ -12,7 +12,7 @@
                     <td>
                         <p>
                             <strong>{{ .Name }}</strong>
-                            ({{ len .Items }} item{{ if ne (len .Items) 1 }}s{{end}})
+                            ({{ .ItemCount }} item{{ if ne .ItemCount 1 }}s{{end}})
                         </p>
 
                         <p class="soft">{{ .Description }}</p>

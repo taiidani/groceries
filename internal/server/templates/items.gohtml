@@ -1,0 +1,32 @@
+{{ template "header.gohtml" . }}
+
+<main class="container">
+    <section>
+        <article id="list">
+            <header>Items</header>
+
+            <div id="list-items">
+            {{ range .Categories }}
+            {{ if .Items }}
+                <details open="open">
+                <summary class="outline" title="{{.Description}}">{{ .Name }}</summary>
+                <ul class="lite" hx-vals='{"category": "{{.ID}}"}'>
+                    {{ range .Items }}
+                    <li hx-vals='{"id": "{{.ID}}"}'>
+                        <i class="bi bi-bag-plus pointer primary"  hx-post="/item/bag" hx-target="#list" hx-select="#list" hx-swap="outerHTML"></i>
+                        <strong>{{.Name}}</strong>
+                        {{ if .Bag }}<span class="tag">in-bag</span>{{ end }}
+                        {{ if .List }}<span class="tag">in-list</span>{{ end }}
+                    </li>
+                    {{ end }}
+                    </tbody>
+                </ul>
+                </details>
+            {{ end }}
+            {{ end }}
+            </div>
+        </article>
+    </section>
+</main>
+
+{{ template "footer.gohtml" . }}
