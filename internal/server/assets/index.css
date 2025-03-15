@@ -110,9 +110,13 @@ body>footer {
     color: var(--text-color);
 }
 
-body>header li {
+body>header nav li {
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
+}
+
+body>header nav a {
+    color: var(--text-color);
 }
 
 body>header .logo img {
