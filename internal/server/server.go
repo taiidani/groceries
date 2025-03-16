@@ -70,7 +70,7 @@ func (s *Server) addRoutes(mux *http.ServeMux) {
 	mux.Handle("POST /category/add", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.categoryAddHandler))))
 	mux.Handle("POST /category/delete", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.categoryDeleteHandler))))
 	mux.Handle("/assets/", sentryHandler.Handle(http.HandlerFunc(s.assetsHandler)))
-	mux.Handle("/", sentryHandler.Handle(http.HandlerFunc(s.errorNotFoundHandler)))
+	mux.Handle("/apple-touch-icon.png", sentryHandler.Handle(http.HandlerFunc(s.assetsHandler)))
 }
 
 func renderHtml(writer http.ResponseWriter, code int, file string, data any) {
