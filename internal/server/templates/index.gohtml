@@ -2,12 +2,12 @@
 
 <main class="container" sse-connect="/sse" sse-close="close">
     <section>
-        <article id="itemAdder" sse-swap="bag" hx-get="/bag" hx-trigger="load"></article>
+        <article id="itemAdder" hx-get="/bag" hx-trigger="load"></article>
     </section>
 
     <section id="shopping-list">
-        <article id="list" sse-swap="list" hx-get="/list" hx-trigger="load"></article>
-        <article id="checkout" sse-swap="cart" hx-get="/cart" hx-trigger="load"></article>
+        <article id="list" hx-get="/list" hx-trigger="load, sse:list"></article>
+        <article id="cart" hx-get="/cart" hx-trigger="load, sse:cart"></article>
     </section>
 </main>
 

@@ -16,13 +16,13 @@
         </select>
         <input type="text" name="name" placeholder="Name (Quantity)" minlength="3" required />
 
-        <button type="submit" class="primary"><i class="bi bi-bag-plus" alt="Prepare"></i></button>
+        <button type="submit" class="primary"><i class="bi bi-bag-plus-fill" alt="Prepare"></i></button>
     </fieldset>
 </form>
 
-{{ range .BagItems }}
-{{ $catID := .CategoryID }}
-<div>
+<div id="bag" hx-get="/bag" hx-trigger="sse:bag" hx-target="#bag" hx-select="#bag" hx-swap="outerHTML">
+    {{ range .BagItems }}
+    {{ $catID := .CategoryID }}
     <fieldset role="group" hx-vals='{"id": "{{.ID}}"}'>
         <select
             name="category"
@@ -51,20 +51,17 @@
             value="delete"
             class="tertiary"
             hx-post="/bag/delete"
-            hx-target="#itemAdder"
-            hx-select="#itemAdder"
-            hx-swap="outerHTML"
+            hx-target="closest fieldset"
+            hx-swap="delete"
             hx-indicator="closest article">
-            <i class="bi bi-bag-dash pointer"></i>
+            <i class="bi bi-bag-dash-fill pointer"></i>
         </button>
     </fieldset>
+    {{ end }}
 </div>
-{{ end }}
 
-{{ if .BagItems }}
 <footer>
     <form method="POST" action="/bag/done">
         <button type="submit" class="secondary"><i class="bi bi-check"></i> Add To List</button>
     </form>
 </footer>
-{{ end }}

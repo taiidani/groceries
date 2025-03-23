@@ -10,9 +10,11 @@ import (
 	"time"
 )
 
-// type sseBag struct {
-// 	baseBag
-// }
+const (
+	sseEventBag  = "bag"
+	sseEventList = "list"
+	sseEventCart = "cart"
+)
 
 type sseServer struct {
 	clients map[int]chan<- sseEvent
@@ -42,6 +44,12 @@ func (srv *sseServer) removeClient(l int) {
 	delete(srv.clients, l)
 }
 
+func (srv *sseServer) announce(events ...string) {
+	for _, evt := range events {
+		srv.broadcast(sseEvent{event: evt})
+	}
+}
+
 func (srv *sseServer) broadcast(evt sseEvent) {
 	slog.Info("broadcasting event", "event", evt.event)
 	for _, feed := range srv.clients {
@@ -61,7 +69,7 @@ func (s *Server) sseHandler(w http.ResponseWriter, r *http.Request) {
 	for {
 		select {
 		case <-s.ctx.Done():
-			evt := sseEvent{event: "close", data: "<div></div>"}
+			evt := sseEvent{event: "close"}
 			slog.Info("sending sse close directive")
 			evt.Write(w)
 			return
@@ -85,14 +93,21 @@ type sseEvent struct {
 }
 
 func (e *sseEvent) Write(w http.ResponseWriter) error {
-	fmt.Fprint(w, "event: "+e.event+"\n")
+	if len(e.event) > 0 {
+		fmt.Fprint(w, "event: "+e.event+"\n")
+	}
 
-	if len(e.data) > 1 {
+	if len(e.data) > 0 {
 		// Place each data line with its own prefix
 		// This is to avoid newlines in the data from ending the message early
 		datas := strings.Split(e.data, "\n")
-		fmt.Fprint(w, "data: "+strings.Join(datas, "\ndata: ")+"\n\n")
+		fmt.Fprint(w, "data: "+strings.Join(datas, "\ndata: ")+"\n")
+	} else {
+		// Data MUST always be present to trigger events
+		fmt.Fprint(w, "data: \n")
 	}
+
+	fmt.Fprint(w, "\n")
 
 	f, ok := w.(http.Flusher)
 	if !ok {

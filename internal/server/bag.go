@@ -49,10 +49,7 @@ func (s *Server) bagAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	if err := s.indexBagEvent(r.Context()); err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
-		return
-	}
+	s.sseServer.announce(sseEventBag)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -98,10 +95,7 @@ func (s *Server) bagUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	if err := s.indexBagEvent(r.Context()); err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
-		return
-	}
+	s.sseServer.announce(sseEventBag)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -114,10 +108,7 @@ func (s *Server) bagDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	if err := s.indexBagEvent(r.Context()); err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
-		return
-	}
+	s.sseServer.announce(sseEventBag)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -131,14 +122,7 @@ func (s *Server) bagDoneHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	if err := s.indexBagEvent(r.Context()); err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
-		return
-	}
-	if err := s.indexListEvent(r.Context()); err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
-		return
-	}
+	s.sseServer.announce(sseEventBag, sseEventList)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }

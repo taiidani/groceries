@@ -35,20 +35,6 @@ func (s *Server) indexBagHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, html)
 }
 
-func (s *Server) indexBagEvent(ctx context.Context) error {
-	html, err := s.indexBag(ctx)
-	if err != nil {
-		return err
-	}
-
-	s.sseServer.broadcast(sseEvent{
-		event: "bag",
-		data:  html,
-	})
-
-	return nil
-}
-
 func (s *Server) indexBag(ctx context.Context) (string, error) {
 	type indexBagBag struct {
 		baseBag
@@ -82,20 +68,6 @@ func (s *Server) indexListHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, html)
-}
-
-func (s *Server) indexListEvent(ctx context.Context) error {
-	html, err := s.indexList(ctx)
-	if err != nil {
-		return err
-	}
-
-	s.sseServer.broadcast(sseEvent{
-		event: "list",
-		data:  html,
-	})
-
-	return nil
 }
 
 func (s *Server) indexList(ctx context.Context) (string, error) {
@@ -150,20 +122,6 @@ func (s *Server) indexCartHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, html)
-}
-
-func (s *Server) indexCartEvent(ctx context.Context) error {
-	html, err := s.indexCart(ctx)
-	if err != nil {
-		return err
-	}
-
-	s.sseServer.broadcast(sseEvent{
-		event: "cart",
-		data:  html,
-	})
-
-	return nil
 }
 
 func (s *Server) indexCart(ctx context.Context) (string, error) {

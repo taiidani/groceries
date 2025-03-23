@@ -59,10 +59,7 @@ func (s *Server) listDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	if err := s.indexListEvent(r.Context()); err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
-		return
-	}
+	s.sseServer.announce(sseEventList)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -81,10 +78,7 @@ func (s *Server) itemBagHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	if err := s.indexBagEvent(r.Context()); err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
-		return
-	}
+	s.sseServer.announce(sseEventBag)
 
 	http.Redirect(w, r, "/items", http.StatusFound)
 }
@@ -107,14 +101,7 @@ func (s *Server) itemDoneHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	if err := s.indexListEvent(r.Context()); err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
-		return
-	}
-	if err := s.indexCartEvent(r.Context()); err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
-		return
-	}
+	s.sseServer.announce(sseEventList, sseEventCart)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -127,14 +114,7 @@ func (s *Server) itemUnDoneHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	if err := s.indexListEvent(r.Context()); err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
-		return
-	}
-	if err := s.indexCartEvent(r.Context()); err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
-		return
-	}
+	s.sseServer.announce(sseEventList, sseEventCart)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -147,10 +127,7 @@ func (s *Server) finishHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	if err := s.indexCartEvent(r.Context()); err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
-		return
-	}
+	s.sseServer.announce(sseEventCart)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }

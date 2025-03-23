@@ -2,7 +2,7 @@
 
 <progress value="{{ .TotalDone }}" max="{{ .Total }}"></progress>
 
-<div id="checkout-items">
+<div>
 {{ range .DoneCategories }}
 {{ if .Items }}
     <details open="open">
@@ -12,7 +12,12 @@
         {{ range .Items }}
         <tr class="done" hx-vals='{"id": "{{.ID}}"}'>
             <td style="width: 1rem;">
-                <i class="bi bi-arrow-counterclockwise pointer"  hx-post="/list/undone" hx-swap="none" hx-indicator="closest article"></i>
+                <i class="bi bi-cart-dash-fill pointer"
+                    hx-post="/list/undone"
+                    hx-target="closest tr"
+                    hx-swap="delete"
+                    hx-indicator="closest article">
+                </i>
             </td>
             <td>
                 <strong>{{.Name}}</strong>
@@ -28,3 +33,15 @@
 {{ end }}
 {{ end }}
 </div>
+
+<footer>
+    <button class="primary"
+        hx-post="/list/finish"
+        hx-target="#shopping-list"
+        hx-select="#shopping-list"
+        hx-swap="outerHTML"
+        hx-indicator="closest article">
+            <i class="bi bi-cart-check"></i>
+            Check Out
+    </button>
+</footer>
