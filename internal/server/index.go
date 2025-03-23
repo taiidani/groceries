@@ -1,20 +1,12 @@
 package server
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/taiidani/groceries/internal/models"
 )
-
-type indexBag struct {
-	baseBag
-	Total          int
-	TotalDone      int
-	Categories     []models.Category
-	BagItems       []models.Item
-	ListCategories []categoryWithItems
-	DoneCategories []categoryWithItems
-}
 
 type categoryWithItems struct {
 	models.Category
@@ -22,40 +14,114 @@ type categoryWithItems struct {
 }
 
 func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
-	bag := indexBag{baseBag: s.newBag(r)}
+	type indexBag struct {
+		baseBag
+	}
 
-	categories, err := models.LoadCategories(r.Context())
+	bag := indexBag{baseBag: s.newBag(r.Context())}
+
+	template := "index.gohtml"
+	renderHtml(w, http.StatusOK, template, bag)
+}
+
+func (s *Server) indexBagHandler(w http.ResponseWriter, r *http.Request) {
+	html, err := s.indexBag(r.Context())
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintln(w, html)
+}
+
+func (s *Server) indexBagEvent(ctx context.Context) error {
+	html, err := s.indexBag(ctx)
+	if err != nil {
+		return err
+	}
+
+	s.sseServer.broadcast(sseEvent{
+		event: "bag",
+		data:  html,
+	})
+
+	return nil
+}
+
+func (s *Server) indexBag(ctx context.Context) (string, error) {
+	type indexBagBag struct {
+		baseBag
+		Categories []models.Category
+		BagItems   []models.Item
+	}
+
+	bag := indexBagBag{baseBag: s.newBag(ctx)}
+
+	categories, err := models.LoadCategories(ctx)
+	if err != nil {
+		return "", err
 	}
 	bag.Categories = categories
 
-	bagItems, err := models.LoadBag(r.Context())
+	bagItems, err := models.LoadBag(ctx)
+	if err != nil {
+		return "", err
+	}
+	bag.BagItems = bagItems
+
+	return returnHtml("index_bag.gohtml", bag), nil
+}
+
+func (s *Server) indexListHandler(w http.ResponseWriter, r *http.Request) {
+	html, err := s.indexList(r.Context())
 	if err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
 	}
-	bag.BagItems = bagItems
 
-	listItems, err := models.LoadList(r.Context())
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintln(w, html)
+}
+
+func (s *Server) indexListEvent(ctx context.Context) error {
+	html, err := s.indexList(ctx)
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
-		return
+		return err
+	}
+
+	s.sseServer.broadcast(sseEvent{
+		event: "list",
+		data:  html,
+	})
+
+	return nil
+}
+
+func (s *Server) indexList(ctx context.Context) (string, error) {
+	type indexListBag struct {
+		baseBag
+		ListCategories []categoryWithItems
+	}
+
+	bag := indexListBag{baseBag: s.newBag(ctx)}
+
+	categories, err := models.LoadCategories(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	listItems, err := models.LoadList(ctx)
+	if err != nil {
+		return "", err
 	}
 
 	for _, cat := range categories {
 		addList := []models.Item{}
-		addDone := []models.Item{}
 		for _, item := range listItems {
 			if item.CategoryID != cat.ID {
 				continue
-			} else if item.List.Done {
-				bag.Total++
-				bag.TotalDone++
-				addDone = append(addDone, item)
-			} else {
-				bag.Total++
+			} else if !item.List.Done {
 				addList = append(addList, item)
 			}
 		}
@@ -70,6 +136,78 @@ func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 				Items: addList,
 			})
 		}
+	}
+
+	return returnHtml("index_list.gohtml", bag), nil
+}
+
+func (s *Server) indexCartHandler(w http.ResponseWriter, r *http.Request) {
+	html, err := s.indexCart(r.Context())
+	if err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintln(w, html)
+}
+
+func (s *Server) indexCartEvent(ctx context.Context) error {
+	html, err := s.indexCart(ctx)
+	if err != nil {
+		return err
+	}
+
+	s.sseServer.broadcast(sseEvent{
+		event: "cart",
+		data:  html,
+	})
+
+	return nil
+}
+
+func (s *Server) indexCart(ctx context.Context) (string, error) {
+	type indexCartBag struct {
+		baseBag
+		Total          int
+		TotalDone      int
+		Categories     []models.Category
+		BagItems       []models.Item
+		DoneCategories []categoryWithItems
+	}
+
+	bag := indexCartBag{baseBag: s.newBag(ctx)}
+
+	categories, err := models.LoadCategories(ctx)
+	if err != nil {
+		return "", err
+	}
+	bag.Categories = categories
+
+	bagItems, err := models.LoadBag(ctx)
+	if err != nil {
+		return "", err
+	}
+	bag.BagItems = bagItems
+
+	listItems, err := models.LoadList(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	for _, cat := range categories {
+		addDone := []models.Item{}
+		for _, item := range listItems {
+			if item.CategoryID != cat.ID {
+				continue
+			} else if item.List.Done {
+				bag.Total++
+				bag.TotalDone++
+				addDone = append(addDone, item)
+			} else {
+				bag.Total++
+			}
+		}
 
 		if len(addDone) > 0 {
 			bag.DoneCategories = append(bag.DoneCategories, categoryWithItems{
@@ -83,6 +221,5 @@ func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	template := "index.gohtml"
-	renderHtml(w, http.StatusOK, template, bag)
+	return returnHtml("index_cart.gohtml", bag), nil
 }

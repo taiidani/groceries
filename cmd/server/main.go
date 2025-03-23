@@ -102,7 +102,7 @@ func initServer(ctx context.Context, cache cache.Cache) error {
 		log.Fatal("Required PORT environment variable not present")
 	}
 
-	srv := server.NewServer(cache, port)
+	srv := server.NewServer(ctx, cache, port)
 
 	go func() {
 		slog.Info("Server starting", "port", port)

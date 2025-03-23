@@ -13,7 +13,7 @@ type categoriesBag struct {
 }
 
 func (s *Server) categoriesHandler(w http.ResponseWriter, r *http.Request) {
-	bag := categoriesBag{baseBag: s.newBag(r)}
+	bag := categoriesBag{baseBag: s.newBag(r.Context())}
 
 	categories, err := models.LoadCategories(r.Context())
 	if err != nil {

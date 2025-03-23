@@ -1,0 +1,31 @@
+<header>Grocery List <span class="htmx-indicator" aria-busy="true" /></header>
+
+<div id="list-items">
+{{ range .ListCategories }}
+{{ if .Items }}
+    <details open="open">
+    <summary class="outline" title="{{.Description}}">{{ .Name }}</summary>
+    <table class="striped">
+        <tbody>
+        {{ range .Items }}
+        <tr hx-vals='{"id": "{{.ID}}"}'>
+            <td style="width: 1rem;">
+                <input type="checkbox" name="{{.ID}}" hx-post="/list/done" hx-swap="none" hx-indicator="closest article" value="checked" />
+            </td>
+            <td>
+                <strong>{{.Name}}</strong>
+                {{ if .List.Quantity }}
+                    <em>({{.List.Quantity}})</em>
+                {{ end }}
+            </td>
+            <td style="width: 1rem;">
+                <i class="bi bi-x-circle pointer" hx-post="/list/delete" hx-swap="none" hx-indicator="closest article"></i>
+            </td>
+        </tr>
+        {{ end }}
+        </tbody>
+    </table>
+    </details>
+{{ end }}
+{{ end }}
+</div>

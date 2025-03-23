@@ -18,7 +18,7 @@ type contextKey string
 var sessionKey contextKey = "session"
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
-	bag := s.newBag(r)
+	bag := s.newBag(r.Context())
 	template := "login.gohtml"
 	renderHtml(w, http.StatusOK, template, bag)
 }

@@ -13,7 +13,7 @@ type itemsBag struct {
 }
 
 func (s *Server) itemsHandler(w http.ResponseWriter, r *http.Request) {
-	bag := itemsBag{baseBag: s.newBag(r)}
+	bag := itemsBag{baseBag: s.newBag(r.Context())}
 
 	categories, err := models.LoadCategories(r.Context())
 	if err != nil {
@@ -58,6 +58,12 @@ func (s *Server) listDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Broadcast the change
+	if err := s.indexListEvent(r.Context()); err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
@@ -70,6 +76,12 @@ func (s *Server) itemBagHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = models.AddExistingItem(r.Context(), id)
 	if err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Broadcast the change
+	if err := s.indexBagEvent(r.Context()); err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
 	}
@@ -94,6 +106,16 @@ func (s *Server) itemDoneHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Broadcast the change
+	if err := s.indexListEvent(r.Context()); err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := s.indexCartEvent(r.Context()); err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
@@ -104,12 +126,28 @@ func (s *Server) itemUnDoneHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Broadcast the change
+	if err := s.indexListEvent(r.Context()); err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := s.indexCartEvent(r.Context()); err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func (s *Server) finishHandler(w http.ResponseWriter, r *http.Request) {
 	err := models.FinishShopping(r.Context())
 	if err != nil {
+		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Broadcast the change
+	if err := s.indexCartEvent(r.Context()); err != nil {
 		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
 		return
 	}

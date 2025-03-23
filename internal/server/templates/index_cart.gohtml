@@ -1,0 +1,30 @@
+<header>Shopping Cart <span class="htmx-indicator" aria-busy="true" /></header>
+
+<progress value="{{ .TotalDone }}" max="{{ .Total }}"></progress>
+
+<div id="checkout-items">
+{{ range .DoneCategories }}
+{{ if .Items }}
+    <details open="open">
+    <summary class="outline">{{ .Name }}</summary>
+    <table class="striped">
+        <tbody>
+        {{ range .Items }}
+        <tr class="done" hx-vals='{"id": "{{.ID}}"}'>
+            <td style="width: 1rem;">
+                <i class="bi bi-arrow-counterclockwise pointer"  hx-post="/list/undone" hx-swap="none" hx-indicator="closest article"></i>
+            </td>
+            <td>
+                <strong>{{.Name}}</strong>
+                {{ if .List.Quantity }}
+                    <em>({{.List.Quantity}})</em>
+                {{ end }}
+            </td>
+        </tr>
+        {{ end }}
+        </tbody>
+    </table>
+    </details>
+{{ end }}
+{{ end }}
+</div>
