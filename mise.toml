@@ -20,11 +20,11 @@ staticcheck = "latest"
 [tasks.build]
 description = "Build the server binary"
 env.CGO_ENABLED = "0"
-run = ["go build -o groceries cmd/server/main.go"]
+run = ["go build -o groceries"]
 
 [tasks.run]
 description = "Execute the app in development mode"
-run = ["docker compose up -d --wait", "go run cmd/server/main.go"]
+run = ["docker compose up -d --wait", "go run main.go"]
 
 [tasks.seed]
 description = "Populate the database with seeds"
