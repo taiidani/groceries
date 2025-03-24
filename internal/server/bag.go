@@ -13,7 +13,7 @@ import (
 func (s *Server) bagAddHandler(w http.ResponseWriter, r *http.Request) {
 	categories, err := models.LoadCategories(r.Context())
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -25,14 +25,14 @@ func (s *Server) bagAddHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if category == nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("provided category not found"))
+		errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("provided category not found"))
 		return
 	}
 
 	// Parse the name (quantity) into a name, quantity pair
 	name, quantity, err := parseItemName(r.FormValue("name"))
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -44,7 +44,7 @@ func (s *Server) bagAddHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = models.AddItem(r.Context(), newItem)
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -57,7 +57,7 @@ func (s *Server) bagAddHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) bagUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.FormValue("id"))
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("could not parse id: %w", err))
+		errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("could not parse id: %w", err))
 		return
 	}
 
@@ -66,13 +66,13 @@ func (s *Server) bagUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	if category != "" {
 		categoryID, err := strconv.Atoi(r.FormValue("category"))
 		if err != nil {
-			errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("could not parse category: %w", err))
+			errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("could not parse category: %w", err))
 			return
 		}
 
 		err = models.ItemChangeCategory(r.Context(), id, categoryID)
 		if err != nil {
-			errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("unable to update category: %w", err))
+			errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("unable to update category: %w", err))
 			return
 		}
 	}
@@ -83,13 +83,13 @@ func (s *Server) bagUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		// Parse the name (quantity) into a name, quantity pair
 		name, quantity, err := parseItemName(fullName)
 		if err != nil {
-			errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+			errorResponse(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
 		err = models.BagUpdateItemName(r.Context(), id, name, quantity)
 		if err != nil {
-			errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+			errorResponse(w, r, http.StatusInternalServerError, err)
 			return
 		}
 	}
@@ -103,7 +103,7 @@ func (s *Server) bagUpdateHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) bagDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	err := models.DeleteFromBag(r.Context(), r.FormValue("id"))
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("could not remove item from bag: %w", err))
+		errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("could not remove item from bag: %w", err))
 		return
 	}
 
@@ -117,7 +117,7 @@ func (s *Server) bagDeleteHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) bagDoneHandler(w http.ResponseWriter, r *http.Request) {
 	err := models.SaveBag(r.Context())
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 

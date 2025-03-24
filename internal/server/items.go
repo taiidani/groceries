@@ -17,13 +17,13 @@ func (s *Server) itemsHandler(w http.ResponseWriter, r *http.Request) {
 
 	categories, err := models.LoadCategories(r.Context())
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
 	items, err := models.LoadItems(r.Context())
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -54,7 +54,7 @@ func (s *Server) itemsHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) listDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	err := models.DeleteFromList(r.Context(), r.FormValue("id"))
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -67,13 +67,13 @@ func (s *Server) listDeleteHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) itemBagHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.FormValue("id"))
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
 	err = models.AddExistingItem(r.Context(), id)
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -86,7 +86,7 @@ func (s *Server) itemBagHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) itemDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	err := models.DeleteItem(r.Context(), r.FormValue("id"))
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -96,7 +96,7 @@ func (s *Server) itemDeleteHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) itemDoneHandler(w http.ResponseWriter, r *http.Request) {
 	err := models.MarkItemDone(r.Context(), r.FormValue("id"), true)
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -109,7 +109,7 @@ func (s *Server) itemDoneHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) itemUnDoneHandler(w http.ResponseWriter, r *http.Request) {
 	err := models.MarkItemDone(r.Context(), r.FormValue("id"), false)
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -122,7 +122,7 @@ func (s *Server) itemUnDoneHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) finishHandler(w http.ResponseWriter, r *http.Request) {
 	err := models.FinishShopping(r.Context())
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 

@@ -17,7 +17,7 @@ func (s *Server) categoriesHandler(w http.ResponseWriter, r *http.Request) {
 
 	categories, err := models.LoadCategories(r.Context())
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -35,19 +35,19 @@ func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Validate inputs
 	if len(newCategory.Name) < 3 {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("provided name needs to be at least 3 characters"))
+		errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("provided name needs to be at least 3 characters"))
 		return
 	}
 
 	// Check for existing category
 	existingCategories, err := models.LoadCategories(r.Context())
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("could not load categories"))
+		errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("could not load categories"))
 		return
 	}
 	for _, cat := range existingCategories {
 		if cat.ID == newCategory.ID {
-			errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("category already found"))
+			errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("category already found"))
 			return
 		}
 	}
@@ -55,7 +55,7 @@ func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 	// Add the new category
 	err = models.AddCategory(r.Context(), newCategory)
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -65,7 +65,7 @@ func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) categoryDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	err := models.DeleteCategory(r.Context(), r.FormValue("id"))
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 

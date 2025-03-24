@@ -27,7 +27,7 @@ func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) indexBagHandler(w http.ResponseWriter, r *http.Request) {
 	html, err := s.indexBag(r.Context())
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -62,7 +62,7 @@ func (s *Server) indexBag(ctx context.Context) (string, error) {
 func (s *Server) indexListHandler(w http.ResponseWriter, r *http.Request) {
 	html, err := s.indexList(r.Context())
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -116,7 +116,7 @@ func (s *Server) indexList(ctx context.Context) (string, error) {
 func (s *Server) indexCartHandler(w http.ResponseWriter, r *http.Request) {
 	html, err := s.indexCart(r.Context())
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 

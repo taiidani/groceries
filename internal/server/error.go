@@ -1,8 +1,8 @@
 package server
 
 import (
-	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -28,7 +28,7 @@ func (s *Server) errorNotFoundHandler(w http.ResponseWriter, r *http.Request) {
 	renderHtml(w, http.StatusNotFound, "error.gohtml", data)
 }
 
-func errorResponse(ctx context.Context, writer http.ResponseWriter, code int, err error) {
+func errorResponse(w http.ResponseWriter, r *http.Request, code int, err error) {
 	title := "Error"
 	switch code {
 	case http.StatusNotFound:
@@ -46,13 +46,20 @@ func errorResponse(ctx context.Context, writer http.ResponseWriter, code int, er
 	}
 
 	var hub *sentry.Hub
-	if sentry.HasHubOnContext(ctx) {
-		hub = sentry.GetHubFromContext(ctx)
+	if sentry.HasHubOnContext(r.Context()) {
+		hub = sentry.GetHubFromContext(r.Context())
 	} else {
 		hub = sentry.CurrentHub()
 	}
 	hub.CaptureException(err)
 
-	slog.Error("Displaying error page", "error", err)
-	renderHtml(writer, code, "error.gohtml", data)
+	if r.Header.Get("HX-Request") != "" {
+		slog.Error("Displaying error message", "error", err)
+		w.Header().Add("Content-Type", "text/plain")
+		w.WriteHeader(code)
+		fmt.Fprintln(w, err.Error())
+	} else {
+		slog.Error("Displaying error page", "error", err)
+		renderHtml(w, code, "error.gohtml", data)
+	}
 }

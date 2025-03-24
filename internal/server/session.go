@@ -32,7 +32,7 @@ func (s *Server) auth(w http.ResponseWriter, r *http.Request) {
 	sum := fmt.Sprintf("%x", hasher.Sum(nil))
 
 	if sum != expected {
-		errorResponse(r.Context(), w, http.StatusUnauthorized, errors.New("bad password"))
+		errorResponse(w, r, http.StatusUnauthorized, errors.New("bad password"))
 		return
 	}
 
@@ -40,7 +40,7 @@ func (s *Server) auth(w http.ResponseWriter, r *http.Request) {
 	sess := models.Session{}
 	cookie, err := authz.NewSession(r.Context(), sess, s.cache)
 	if err != nil {
-		errorResponse(r.Context(), w, http.StatusInternalServerError, fmt.Errorf("could not create session: %w", err))
+		errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("could not create session: %w", err))
 		return
 	}
 
