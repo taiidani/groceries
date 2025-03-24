@@ -32,6 +32,7 @@ func (s *Server) bagAddHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse the name (quantity) into a name, quantity pair
 	name, quantity, err := parseItemName(r.FormValue("name"))
 	if err != nil {
+		err = fmt.Errorf("could not parse item name: %w", err)
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -44,6 +45,7 @@ func (s *Server) bagAddHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = models.AddItem(r.Context(), newItem)
 	if err != nil {
+		err = fmt.Errorf("could not add item: %w", err)
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}

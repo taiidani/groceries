@@ -32,7 +32,7 @@ func insertWithID(ctx context.Context, tx *sql.Tx, query string, args ...any) (i
 
 	err := tx.QueryRowContext(ctx, query, args...).Scan(&id)
 	if err != nil {
-		return id, errors.Join(tx.Rollback(), err)
+		return id, err
 	}
 
 	return id, nil
