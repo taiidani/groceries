@@ -12,7 +12,7 @@ type BagItem struct {
 
 func LoadBag(ctx context.Context) ([]Item, error) {
 	rows, err := db.QueryContext(ctx, `
-SELECT item.id, item.name, item.category_id, item_bag.quantity AS bag_quantity
+SELECT item.id, item.name, item.category_id, category.name as category_name, item_bag.quantity AS bag_quantity
 FROM item_bag
 INNER JOIN item ON (item.id = item_bag.item_id)
 INNER JOIN category ON (item.category_id = category.id)
@@ -27,7 +27,7 @@ ORDER BY category.name, item.name`)
 		item := Item{
 			Bag: &BagItem{},
 		}
-		if err := rows.Scan(&item.ID, &item.Name, &item.CategoryID, &item.Bag.Quantity); err != nil {
+		if err := rows.Scan(&item.ID, &item.Name, &item.CategoryID, &item.categoryName, &item.Bag.Quantity); err != nil {
 			return nil, err
 		}
 		ret = append(ret, item)
@@ -70,12 +70,12 @@ func AddItem(ctx context.Context, item Item) error {
 	return tx.Commit()
 }
 
-func AddExistingItem(ctx context.Context, id int) error {
+func AddExistingItem(ctx context.Context, id int, quantity string) error {
 	if id == 0 {
 		return errors.New("not a valid item")
 	}
 
-	_, err := db.ExecContext(ctx, `INSERT INTO item_bag (item_id) VALUES ($1)`, id)
+	_, err := db.ExecContext(ctx, `INSERT INTO item_bag (item_id, quantity) VALUES ($1, $2)`, id, quantity)
 	return err
 }
 

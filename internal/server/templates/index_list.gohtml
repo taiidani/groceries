@@ -10,7 +10,7 @@
         {{ range .Items }}
         <tr hx-vals='{"id": "{{.ID}}"}'>
             <td style="width: 1rem;">
-                <i class="bi bi-cart-plus-fill pointer"
+                <i class="bi bi-check-square pointer"
                     name="{{.ID}}"
                     hx-post="/list/done"
                     hx-target="closest tr"

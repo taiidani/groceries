@@ -2,6 +2,24 @@
 
 <main class="container">
     <section>
+        <article id="itemAdder">
+            <header>Add New Item <span class="htmx-indicator" aria-busy="true" /></header>
+
+            <form method="POST" action="/item/add">
+                <fieldset role="group">
+                    <select name="category" aria-label="Category" required style="width: 30%">
+                        <option selected disabled value="">Category</option>
+                        {{ range .Categories }}
+                        <option value="{{.ID}}">{{.Name}}</option>
+                        {{ end }}
+                    </select>
+                    <input type="text" name="name" placeholder="Name" minlength="3" required />
+
+                    <button type="submit" class="primary"><i class="bi bi-plus-circle" alt="Add"></i></button>
+                </fieldset>
+            </form>
+        </article>
+
         <article id="list">
             <header>Items</header>
 

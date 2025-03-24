@@ -5,16 +5,21 @@ import (
 )
 
 type Item struct {
-	ID         int
-	CategoryID string
-	Name       string
-	Bag        *BagItem
-	List       *ListItem
+	ID           int
+	CategoryID   string
+	Name         string
+	Bag          *BagItem
+	List         *ListItem
+	categoryName string
+}
+
+func (i *Item) CategoryName() string {
+	return i.categoryName
 }
 
 func LoadItems(ctx context.Context) ([]Item, error) {
 	rows, err := db.QueryContext(ctx, `
-SELECT item.id, item.name, item.category_id,
+SELECT item.id, item.name, item.category_id, category.name AS category_name,
 	(SELECT TRUE FROM item_bag WHERE item_bag.item_id = item.id) AS in_bag,
 	(SELECT TRUE FROM item_list WHERE item_list.item_id = item.id) AS in_list
 FROM item
@@ -31,7 +36,7 @@ ORDER BY category.name, item.name`)
 		item := Item{}
 		var inBag *bool
 		var inList *bool
-		if err := rows.Scan(&item.ID, &item.Name, &item.CategoryID, &inBag, &inList); err != nil {
+		if err := rows.Scan(&item.ID, &item.Name, &item.CategoryID, &item.categoryName, &inBag, &inList); err != nil {
 			return nil, err
 		}
 
@@ -56,12 +61,13 @@ func GetItem(ctx context.Context, id string) (Item, error) {
 	var inBag *bool
 	var inList *bool
 	err := db.QueryRowContext(ctx, `
-SELECT id, category_id, name,
+SELECT id, category_id, name, category.name AS category_name,
 	(SELECT TRUE FROM item_bag WHERE item_bag.item_id = item.id) AS in_bag,
 	(SELECT TRUE FROM item_list WHERE item_list.item_id = item.id) AS in_list
 FROM item
+LEFT JOIN category ON (item.category_id = category.id)
 WHERE id = $1`, id).
-		Scan(&ret.ID, &ret.Name, &ret.CategoryID, &inBag, &inList)
+		Scan(&ret.ID, &ret.CategoryID, &ret.Name, &ret.categoryName, &inBag, &inList)
 
 	if inBag != nil {
 		ret.Bag = &BagItem{}

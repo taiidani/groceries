@@ -11,39 +11,13 @@ import (
 )
 
 func (s *Server) bagAddHandler(w http.ResponseWriter, r *http.Request) {
-	categories, err := models.LoadCategories(r.Context())
+	id, err := strconv.Atoi(r.FormValue("id"))
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	categoryID := r.FormValue("category")
-	var category *models.Category
-	for i, cat := range categories {
-		if cat.ID == categoryID {
-			category = &categories[i]
-		}
-	}
-	if category == nil {
-		errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("provided category not found"))
-		return
-	}
-
-	// Parse the name (quantity) into a name, quantity pair
-	name, quantity, err := parseItemName(r.FormValue("name"))
-	if err != nil {
-		err = fmt.Errorf("could not parse item name: %w", err)
-		errorResponse(w, r, http.StatusInternalServerError, err)
-		return
-	}
-
-	newItem := models.Item{
-		CategoryID: categoryID,
-		Name:       name,
-		Bag:        &models.BagItem{Quantity: quantity},
-	}
-
-	err = models.AddItem(r.Context(), newItem)
+	err = models.AddExistingItem(r.Context(), id, r.FormValue("quantity"))
 	if err != nil {
 		err = fmt.Errorf("could not add item: %w", err)
 		errorResponse(w, r, http.StatusInternalServerError, err)

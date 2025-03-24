@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -64,6 +65,43 @@ func (s *Server) listDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
+func (s *Server) itemAddHandler(w http.ResponseWriter, r *http.Request) {
+	categories, err := models.LoadCategories(r.Context())
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	categoryID := r.FormValue("category")
+	var category *models.Category
+	for i, cat := range categories {
+		if cat.ID == categoryID {
+			category = &categories[i]
+		}
+	}
+	if category == nil {
+		errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("provided category not found"))
+		return
+	}
+
+	newItem := models.Item{
+		CategoryID: categoryID,
+		Name:       r.FormValue("name"),
+	}
+
+	err = models.AddItem(r.Context(), newItem)
+	if err != nil {
+		err = fmt.Errorf("could not add item: %w", err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Broadcast the change
+	s.sseServer.announce(sseEventBag)
+
+	http.Redirect(w, r, "/items", http.StatusFound)
+}
+
 func (s *Server) itemBagHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.FormValue("id"))
 	if err != nil {
@@ -71,7 +109,7 @@ func (s *Server) itemBagHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = models.AddExistingItem(r.Context(), id)
+	err = models.AddExistingItem(r.Context(), id, "")
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return

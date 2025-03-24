@@ -11,7 +11,8 @@ type ListItem struct {
 
 func LoadList(ctx context.Context) ([]Item, error) {
 	rows, err := db.QueryContext(ctx, `
-SELECT item.id, item.name, item.category_id, item_list.quantity AS list_quantity, item_list.done AS list_done
+SELECT item.id, item.name, item.category_id, category.name AS category_name,
+	item_list.quantity AS list_quantity, item_list.done AS list_done
 FROM item_list
 INNER JOIN item ON (item.id = item_list.item_id)
 INNER JOIN category ON (item.category_id = category.id)
@@ -26,7 +27,7 @@ ORDER BY category.name, item.name`)
 		item := Item{
 			List: &ListItem{},
 		}
-		if err := rows.Scan(&item.ID, &item.Name, &item.CategoryID, &item.List.Quantity, &item.List.Done); err != nil {
+		if err := rows.Scan(&item.ID, &item.Name, &item.CategoryID, &item.categoryName, &item.List.Quantity, &item.List.Done); err != nil {
 			return nil, err
 		}
 		ret = append(ret, item)

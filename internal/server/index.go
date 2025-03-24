@@ -38,17 +38,17 @@ func (s *Server) indexBagHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) indexBag(ctx context.Context) (string, error) {
 	type indexBagBag struct {
 		baseBag
-		Categories []models.Category
-		BagItems   []models.Item
+		Items    []models.Item
+		BagItems []models.Item
 	}
 
 	bag := indexBagBag{baseBag: s.newBag(ctx)}
 
-	categories, err := models.LoadCategories(ctx)
+	items, err := models.LoadItems(ctx)
 	if err != nil {
 		return "", err
 	}
-	bag.Categories = categories
+	bag.Items = items
 
 	bagItems, err := models.LoadBag(ctx)
 	if err != nil {
