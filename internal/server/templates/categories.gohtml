@@ -18,7 +18,13 @@
                         <p class="soft">{{ .Description }}</p>
                     </td>
                     <td style="width: 2rem;">
-                        <i class="bi bi-x-circle pointer" hx-post="/category/delete" hx-target="#categories-items" hx-select="#categories-items" hx-swap="outerHTML"></i>
+                        <i class="bi bi-x-circle-fill pointer"
+                            hx-post="/category/delete"
+                            hx-target="#categories-items"
+                            hx-select="#categories-items"
+                            hx-swap="outerHTML"
+                            hx-confirm="Are you sure? This will fully delete the category!">
+                        </i>
                     </td>
                 </tr>
             {{ end }}

@@ -1,6 +1,9 @@
 package models
 
-import "context"
+import (
+	"context"
+	"errors"
+)
 
 type Category struct {
 	ID          string
@@ -42,11 +45,20 @@ func AddCategory(ctx context.Context, cat Category) error {
 }
 
 func DeleteCategory(ctx context.Context, id string) error {
-	_, err := db.ExecContext(ctx, "DELETE FROM item WHERE category_id = $1", id)
+	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
 
+	_, err = db.ExecContext(ctx, "DELETE FROM item WHERE category_id = $1", id)
+	if err != nil {
+		return errors.Join(tx.Rollback(), err)
+	}
+
 	_, err = db.ExecContext(ctx, "DELETE FROM category WHERE id = $1", id)
-	return err
+	if err != nil {
+		return errors.Join(tx.Rollback(), err)
+	}
+
+	return tx.Commit()
 }
