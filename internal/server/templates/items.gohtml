@@ -36,7 +36,7 @@
                         {{ else }}
                         <i class="bi bi-bag-plus pointer primary"  hx-post="/item/list/add" hx-target="#list" hx-select="#list" hx-swap="outerHTML"></i>
                         {{ end }}
-                        <strong>{{.Name}}</strong>
+                        <span>{{.Name}}</span>
                         {{ if .List }}
                             <span class="tag">in-list</span>
                         {{ else }}

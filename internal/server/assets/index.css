@@ -1,3 +1,7 @@
+:root {
+    --pico-font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+
 /* Light, default mode */
 :root:not([data-theme=dark]),
 [data-theme=light] {
@@ -6,6 +10,7 @@
     --secondary-color: #759ABF;
     --tertiary-color: #BF759A;
 
+    --logo: url("/assets/favicon.png");
     --text-color: #222;
     --link-color: var(--secondary-color);
     --background-color: #FFFFFF;
@@ -27,6 +32,7 @@
         --secondary-color: #394b5d;
         --tertiary-color: #6a4055;
 
+        --logo: url("/assets/apple-touch-icon.png");
         --text-color: #EEE;
         --link-color: var(--secondary-color);
         --background-color: #000000;
@@ -119,8 +125,11 @@ body>header nav a {
     color: var(--text-color);
 }
 
-body>header .logo img {
+body>header .logo {
+    background-image: var(--logo);
+    background-size: contain;
     height: 1.5rem;
+    width: 1.5rem;
 }
 
 #list .done {
@@ -142,7 +151,6 @@ body>header .logo img {
 .tag {
     display: inline-block;
     padding: 0 0.5rem;
-    font-weight: bold;
     background-color: var(--secondary-color);
     border-radius: 5px;
 }
