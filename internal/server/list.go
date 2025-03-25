@@ -34,7 +34,6 @@ func (s *Server) listDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	s.sseServer.announce(sseEventBag)
 	s.sseServer.announce(sseEventList)
 
 	http.Redirect(w, r, "/", http.StatusFound)

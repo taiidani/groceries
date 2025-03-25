@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"strings"
 
 	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/taiidani/groceries/internal/cache"
@@ -101,12 +100,6 @@ func renderHtml(w io.Writer, code int, file string, data any) {
 	if err != nil {
 		log.Error("Could not render template", "error", err)
 	}
-}
-
-func returnHtml(file string, data any) string {
-	w := &strings.Builder{}
-	renderHtml(w, 0, file, data)
-	return w.String()
 }
 
 func getTemplate() (*template.Template, error) {

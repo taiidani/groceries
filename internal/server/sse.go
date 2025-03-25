@@ -11,9 +11,14 @@ import (
 )
 
 const (
-	sseEventBag  = "bag"
+	// sseEventList is triggered when an item added to or removed from the list
 	sseEventList = "list"
+
+	// sseEventCart is triggered when an item added to or removed from the cart
 	sseEventCart = "cart"
+
+	// sseEventCategory is triggered when a category is added or removed
+	sseEventCategory = "category"
 )
 
 type sseServer struct {

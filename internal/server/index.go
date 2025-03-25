@@ -1,8 +1,6 @@
 package server
 
 import (
-	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/taiidani/groceries/internal/models"
@@ -25,27 +23,17 @@ func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) indexBagHandler(w http.ResponseWriter, r *http.Request) {
-	html, err := s.indexBag(r.Context())
-	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, html)
-}
-
-func (s *Server) indexBag(ctx context.Context) (string, error) {
 	type indexBagBag struct {
 		baseBag
 		Categories map[string][]models.Item
 	}
 
-	bag := indexBagBag{baseBag: s.newBag(ctx)}
+	bag := indexBagBag{baseBag: s.newBag(r.Context())}
 
-	items, err := models.LoadItems(ctx)
+	items, err := models.LoadItems(r.Context())
 	if err != nil {
-		return "", err
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
 	}
 
 	bag.Categories = map[string][]models.Item{}
@@ -55,36 +43,27 @@ func (s *Server) indexBag(ctx context.Context) (string, error) {
 		}
 	}
 
-	return returnHtml("index_bag.gohtml", bag), nil
+	renderHtml(w, http.StatusOK, "index_bag.gohtml", bag)
 }
 
 func (s *Server) indexListHandler(w http.ResponseWriter, r *http.Request) {
-	html, err := s.indexList(r.Context())
-	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, html)
-}
-
-func (s *Server) indexList(ctx context.Context) (string, error) {
 	type indexListBag struct {
 		baseBag
 		ListCategories []categoryWithItems
 	}
 
-	bag := indexListBag{baseBag: s.newBag(ctx)}
+	bag := indexListBag{baseBag: s.newBag(r.Context())}
 
-	categories, err := models.LoadCategories(ctx)
+	categories, err := models.LoadCategories(r.Context())
 	if err != nil {
-		return "", err
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
 	}
 
-	listItems, err := models.LoadList(ctx)
+	listItems, err := models.LoadList(r.Context())
 	if err != nil {
-		return "", err
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
 	}
 
 	for _, cat := range categories {
@@ -109,40 +88,29 @@ func (s *Server) indexList(ctx context.Context) (string, error) {
 		}
 	}
 
-	return returnHtml("index_list.gohtml", bag), nil
+	renderHtml(w, http.StatusOK, "index_list.gohtml", bag)
 }
 
 func (s *Server) indexCartHandler(w http.ResponseWriter, r *http.Request) {
-	html, err := s.indexCart(r.Context())
+	type indexCartBag struct {
+		baseBag
+		Total          int
+		TotalDone      int
+		DoneCategories []categoryWithItems
+	}
+
+	bag := indexCartBag{baseBag: s.newBag(r.Context())}
+
+	categories, err := models.LoadCategories(r.Context())
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, html)
-}
-
-func (s *Server) indexCart(ctx context.Context) (string, error) {
-	type indexCartBag struct {
-		baseBag
-		Total          int
-		TotalDone      int
-		Categories     []models.Category
-		DoneCategories []categoryWithItems
-	}
-
-	bag := indexCartBag{baseBag: s.newBag(ctx)}
-
-	categories, err := models.LoadCategories(ctx)
+	listItems, err := models.LoadList(r.Context())
 	if err != nil {
-		return "", err
-	}
-	bag.Categories = categories
-
-	listItems, err := models.LoadList(ctx)
-	if err != nil {
-		return "", err
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
 	}
 
 	for _, cat := range categories {
@@ -171,5 +139,5 @@ func (s *Server) indexCart(ctx context.Context) (string, error) {
 		}
 	}
 
-	return returnHtml("index_cart.gohtml", bag), nil
+	renderHtml(w, http.StatusOK, "index_cart.gohtml", bag)
 }

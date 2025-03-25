@@ -10,7 +10,8 @@ import (
 
 type itemsBag struct {
 	baseBag
-	Categories []categoryWithItems
+	Categories     []models.Category
+	ListCategories []categoryWithItems
 }
 
 func (s *Server) itemsHandler(w http.ResponseWriter, r *http.Request) {
@@ -21,6 +22,7 @@ func (s *Server) itemsHandler(w http.ResponseWriter, r *http.Request) {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
+	bag.Categories = categories
 
 	items, err := models.LoadItems(r.Context())
 	if err != nil {
@@ -37,7 +39,7 @@ func (s *Server) itemsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if len(add) > 0 {
-			bag.Categories = append(bag.Categories, categoryWithItems{
+			bag.ListCategories = append(bag.ListCategories, categoryWithItems{
 				Category: models.Category{
 					ID:          cat.ID,
 					Description: cat.Description,
@@ -84,7 +86,7 @@ func (s *Server) itemAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	s.sseServer.announce(sseEventBag)
+	s.sseServer.announce(sseEventList)
 
 	http.Redirect(w, r, "/items", http.StatusFound)
 }
@@ -103,7 +105,6 @@ func (s *Server) itemListAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	s.sseServer.announce(sseEventBag)
 	s.sseServer.announce(sseEventList)
 
 	http.Redirect(w, r, "/items", http.StatusFound)
@@ -117,7 +118,6 @@ func (s *Server) itemListDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	s.sseServer.announce(sseEventBag)
 	s.sseServer.announce(sseEventList)
 
 	http.Redirect(w, r, "/items", http.StatusFound)
@@ -129,6 +129,9 @@ func (s *Server) itemDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
+
+	// Broadcast the change
+	s.sseServer.announce(sseEventList)
 
 	http.Redirect(w, r, "/items", http.StatusFound)
 }
