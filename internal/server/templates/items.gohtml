@@ -5,7 +5,7 @@
         <article id="itemAdder">
             <header>Add New Item <span class="htmx-indicator" aria-busy="true" /></header>
 
-            <form method="POST" action="/item/add">
+            <form method="POST" action="/item/add" hx-boost="true">
                 <fieldset role="group">
                     <select name="category" aria-label="Category" required style="width: 30%">
                         <option selected disabled value="">Category</option>
@@ -20,7 +20,7 @@
             </form>
         </article>
 
-        <article id="list">
+        <article id="list" hx-get="/items" hx-select="#list" hx-swap="outerHTML" hx-trigger="sse:list">
             <header>Items <span class="htmx-indicator" aria-busy="true" /></header>
 
             <div id="list-items">
