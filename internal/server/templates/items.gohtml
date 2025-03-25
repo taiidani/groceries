@@ -21,7 +21,7 @@
         </article>
 
         <article id="list">
-            <header>Items</header>
+            <header>Items <span class="htmx-indicator" aria-busy="true" /></header>
 
             <div id="list-items">
             {{ range .Categories }}
@@ -31,13 +31,27 @@
                 <ul class="lite" hx-vals='{"category": "{{.ID}}"}'>
                     {{ range .Items }}
                     <li hx-vals='{"id": "{{.ID}}"}'>
-                        <i class="bi bi-bag-plus pointer primary"  hx-post="/item/bag" hx-target="#list" hx-select="#list" hx-swap="outerHTML"></i>
+                        {{ if .List }}
+                        <i class="bi bi-bag-dash pointer tertiary"  hx-post="/item/list/delete" hx-target="#list" hx-select="#list" hx-swap="outerHTML"></i>
+                        {{ else }}
+                        <i class="bi bi-bag-plus pointer primary"  hx-post="/item/list/add" hx-target="#list" hx-select="#list" hx-swap="outerHTML"></i>
+                        {{ end }}
                         <strong>{{.Name}}</strong>
-                        {{ if .Bag }}<span class="tag">in-bag</span>{{ end }}
-                        {{ if .List }}<span class="tag">in-list</span>{{ end }}
+                        {{ if .List }}
+                            <span class="tag">in-list</span>
+                        {{ else }}
+                            <div style="float: right;">
+                                <i class="bi bi-x-circle-fill pointer"
+                                hx-post="/item/delete"
+                                hx-target="closest li"
+                                hx-swap="delete"
+                                hx-confirm="Are you sure? This will fully delete the item!"
+                                hx-indicator="closest article">
+                                </i>
+                            </div>
+                        {{ end }}
                     </li>
                     {{ end }}
-                    </tbody>
                 </ul>
                 </details>
             {{ end }}

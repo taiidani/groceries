@@ -1,7 +1,7 @@
 <header>Add Items <span class="htmx-indicator" aria-busy="true" /></header>
 
 <form
-    hx-post="/bag/add"
+    hx-post="/list/add"
     hx-target="#itemAdder"
     hx-select="#itemAdder"
     hx-swap="outerHTML"
@@ -9,45 +9,16 @@
     <fieldset role="group">
         <select name="id" aria-label="Item" required>
             <option selected disabled value="">Item</option>
-            {{ range .Items }}
-            <option value="{{.ID}}">{{.Name}}</option>
+            {{ range $key, $items := .Categories}}
+            <optgroup label="{{$key}}">
+                {{ range $items }}
+                <option value="{{.ID}}">{{.Name}}</option>
+                {{ end }}
+            </optgroup>
             {{ end }}
         </select>
         <input type="text" name="quantity" placeholder="Quantity" />
 
-        <button type="submit" class="primary"><i class="bi bi-bag-plus" alt="Prepare"></i></button>
+        <button type="submit" class="primary"><i class="bi bi-bag-plus" alt="Add"></i></button>
     </fieldset>
 </form>
-
-<div id="bag" hx-get="/bag" hx-trigger="sse:bag" hx-target="#bag" hx-select="#bag" hx-swap="outerHTML">
-    {{ range .BagItems }}
-    <fieldset role="group" hx-vals='{"id": "{{.ID}}"}'>
-        <span style="text-wrap: nowrap; padding: 1em;">{{.CategoryName}}</span>
-        <input
-            name="name"
-            placeholder="Name (Quantity)"
-            minlength="3"
-            required
-            value="{{.Name}}{{ if .Bag.Quantity}} ({{.Bag.Quantity}}){{end}}"
-            hx-post="/bag/update"
-            hx-swap="none"
-            hx-indicator="closest article" />
-
-        <button name="action"
-            value="delete"
-            class="tertiary"
-            hx-post="/bag/delete"
-            hx-target="closest fieldset"
-            hx-swap="delete"
-            hx-indicator="closest article">
-            <i class="bi bi-bag-dash-fill pointer"></i>
-        </button>
-    </fieldset>
-    {{ end }}
-</div>
-
-<footer>
-    <form method="POST" action="/bag/done">
-        <button type="submit" class="secondary"><i class="bi bi-check"></i> Add To List</button>
-    </form>
-</footer>

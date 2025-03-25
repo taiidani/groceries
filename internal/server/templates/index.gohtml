@@ -2,7 +2,7 @@
 
 <main class="container" sse-connect="/sse" sse-close="close">
     <section>
-        <article id="itemAdder" hx-get="/bag" hx-trigger="load"></article>
+        <article id="itemAdder" hx-get="/bag" hx-trigger="load, sse:bag"></article>
     </section>
 
     <section id="shopping-list">

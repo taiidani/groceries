@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"errors"
 )
 
 type ListItem struct {
@@ -37,6 +38,15 @@ ORDER BY category.name, item.name`)
 	}
 
 	return ret, nil
+}
+
+func ListAddItem(ctx context.Context, id int, quantity string) error {
+	if id == 0 {
+		return errors.New("not a valid item")
+	}
+
+	_, err := db.ExecContext(ctx, `INSERT INTO item_list (item_id, quantity) VALUES ($1, $2)`, id, quantity)
+	return err
 }
 
 func MarkItemDone(ctx context.Context, id string, value bool) error {

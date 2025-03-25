@@ -24,7 +24,6 @@ INSERT INTO item (category_id, name) VALUES
 (1, 'Jolly Llama'),
 (2, 'Dried beets');
 
-
 INSERT INTO item_list (item_id, quantity, done) VALUES
 (1, '1 package', FALSE),
 (2, '', FALSE),
@@ -32,10 +31,6 @@ INSERT INTO item_list (item_id, quantity, done) VALUES
 (4, '1 cup', TRUE),
 (5, '1.5oz', FALSE),
 (6, '0.5lb', FALSE);
-
-INSERT INTO item_bag (item_id, quantity) VALUES
-(7, ''),
-(8, '1lb');
 -- +goose StatementEnd
 
 -- +goose Down

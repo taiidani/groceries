@@ -162,6 +162,20 @@ i.primary {
     border-radius: 5px;
 }
 
+i.secondary {
+    background-color: var(--secondary-color) !important;
+    color: var(--pico-primary-inverse);
+    padding: 0 0.5rem;
+    border-radius: 5px;
+}
+
+i.tertiary {
+    background-color: var(--tertiary-color) !important;
+    color: var(--pico-primary-inverse);
+    padding: 0 0.5rem;
+    border-radius: 5px;
+}
+
 .htmx-indicator {
     opacity: 0;
     transition: opacity 500ms ease-in;

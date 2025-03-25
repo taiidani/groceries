@@ -38,8 +38,7 @@ func (s *Server) indexBagHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) indexBag(ctx context.Context) (string, error) {
 	type indexBagBag struct {
 		baseBag
-		Items    []models.Item
-		BagItems []models.Item
+		Categories map[string][]models.Item
 	}
 
 	bag := indexBagBag{baseBag: s.newBag(ctx)}
@@ -48,13 +47,13 @@ func (s *Server) indexBag(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	bag.Items = items
 
-	bagItems, err := models.LoadBag(ctx)
-	if err != nil {
-		return "", err
+	bag.Categories = map[string][]models.Item{}
+	for _, item := range items {
+		if item.List == nil {
+			bag.Categories[item.CategoryName()] = append(bag.Categories[item.CategoryName()], item)
+		}
 	}
-	bag.BagItems = bagItems
 
 	return returnHtml("index_bag.gohtml", bag), nil
 }
@@ -130,7 +129,6 @@ func (s *Server) indexCart(ctx context.Context) (string, error) {
 		Total          int
 		TotalDone      int
 		Categories     []models.Category
-		BagItems       []models.Item
 		DoneCategories []categoryWithItems
 	}
 
@@ -141,12 +139,6 @@ func (s *Server) indexCart(ctx context.Context) (string, error) {
 		return "", err
 	}
 	bag.Categories = categories
-
-	bagItems, err := models.LoadBag(ctx)
-	if err != nil {
-		return "", err
-	}
-	bag.BagItems = bagItems
 
 	listItems, err := models.LoadList(ctx)
 	if err != nil {
