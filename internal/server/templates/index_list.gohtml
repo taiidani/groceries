@@ -10,13 +10,13 @@
         {{ range .Items }}
         <tr hx-vals='{"id": "{{.ID}}"}'>
             <td style="width: 1rem;">
-                <i class="bi bi-check-square pointer"
-                    name="{{.ID}}"
+                <button class="button primary"
                     hx-post="/list/done"
                     hx-target="closest tr"
                     hx-swap="delete"
                     hx-indicator="closest article">
-                </i>
+                    <i class="bi bi-check-square pointer"></i>
+                </button>
             </td>
             <td>
                 <span>{{.Name}}</span>
@@ -25,12 +25,13 @@
                 {{ end }}
             </td>
             <td style="width: 2rem; text-wrap: nowrap;">
-                <i class="bi bi-x-circle-fill pointer"
+                <button class="button tertiary"
                     hx-post="/list/delete"
                     hx-target="closest tr"
                     hx-swap="delete"
                     hx-indicator="closest article">
-                </i>
+                    <i class="bi bi-x-circle-fill pointer"></i>
+                </button>
             </td>
         </tr>
         {{ end }}

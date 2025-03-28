@@ -32,22 +32,35 @@
                     {{ range .Items }}
                     <li hx-vals='{"id": "{{.ID}}"}'>
                         {{ if .List }}
-                        <i class="bi bi-bag-dash pointer tertiary"  hx-post="/item/list/delete" hx-target="#list" hx-select="#list" hx-swap="outerHTML"></i>
+                        <button class="button tertiary"
+                            hx-post="/item/list/delete"
+                            hx-target="#list"
+                            hx-select="#list"
+                            hx-swap="outerHTML">
+                            <i class="bi bi-bag-dash"></i>
+                        </button>
                         {{ else }}
-                        <i class="bi bi-bag-plus pointer primary"  hx-post="/item/list/add" hx-target="#list" hx-select="#list" hx-swap="outerHTML"></i>
+                        <button class="button primary"
+                            hx-post="/item/list/add"
+                            hx-target="#list"
+                            hx-select="#list"
+                            hx-swap="outerHTML">
+                            <i class="bi bi-bag-plus pointer"></i>
+                        </button>
                         {{ end }}
                         <span>{{.Name}}</span>
                         {{ if .List }}
                             <span class="tag">in-list</span>
                         {{ else }}
                             <div style="float: right;">
-                                <i class="bi bi-x-circle-fill pointer"
-                                hx-post="/item/delete"
-                                hx-target="closest li"
-                                hx-swap="delete"
-                                hx-confirm="Are you sure? This will fully delete the item!"
-                                hx-indicator="closest article">
-                                </i>
+                                <button class="button tertiary"
+                                    hx-post="/item/delete"
+                                    hx-target="closest li"
+                                    hx-swap="delete"
+                                    hx-confirm="Are you sure? This will fully delete the item!"
+                                    hx-indicator="closest article">
+                                    <i class="bi bi-x-circle-fill pointer"></i>
+                                </button>
                             </div>
                         {{ end }}
                     </li>

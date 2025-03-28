@@ -1,19 +1,18 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/taiidani/groceries/internal/models"
 )
 
-type categoriesBag struct {
-	baseBag
-	Categories []models.Category
-}
-
 func (s *Server) categoriesHandler(w http.ResponseWriter, r *http.Request) {
-	bag := categoriesBag{baseBag: s.newBag(r.Context())}
+	type data struct {
+		baseBag
+		Categories []models.Category
+	}
+
+	bag := data{baseBag: s.newBag(r.Context())}
 
 	categories, err := models.LoadCategories(r.Context())
 	if err != nil {
@@ -27,6 +26,17 @@ func (s *Server) categoriesHandler(w http.ResponseWriter, r *http.Request) {
 	renderHtml(w, http.StatusOK, template, bag)
 }
 
+func (s *Server) categoryHandler(w http.ResponseWriter, r *http.Request) {
+	category, err := models.GetCategory(r.Context(), r.FormValue("id"))
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	template := "category.gohtml"
+	renderHtml(w, http.StatusOK, template, category)
+}
+
 func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 	newCategory := models.Category{
 		Name:        r.FormValue("name"),
@@ -34,26 +44,39 @@ func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate inputs
-	if len(newCategory.Name) < 3 {
-		errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("provided name needs to be at least 3 characters"))
+	if err := newCategory.Validate(r.Context()); err != nil {
+		errorResponse(w, r, http.StatusBadRequest, err)
 		return
-	}
-
-	// Check for existing category
-	existingCategories, err := models.LoadCategories(r.Context())
-	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("could not load categories"))
-		return
-	}
-	for _, cat := range existingCategories {
-		if cat.ID == newCategory.ID {
-			errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("category already found"))
-			return
-		}
 	}
 
 	// Add the new category
-	err = models.AddCategory(r.Context(), newCategory)
+	err := models.AddCategory(r.Context(), newCategory)
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Broadcast the change
+	s.sseServer.Publish(r.Context(), sseEventCategory, nil)
+
+	http.Redirect(w, r, "/categories", http.StatusFound)
+}
+
+func (s *Server) categoryEditHandler(w http.ResponseWriter, r *http.Request) {
+	newCategory := models.Category{
+		ID:          r.FormValue("id"),
+		Name:        r.FormValue("name"),
+		Description: r.FormValue("description"),
+	}
+
+	// Validate inputs
+	if err := newCategory.Validate(r.Context()); err != nil {
+		errorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	// Add the new category
+	err := models.EditCategory(r.Context(), newCategory)
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return

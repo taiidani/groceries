@@ -17,14 +17,20 @@
 
                         <p class="soft">{{ .Description }}</p>
                     </td>
-                    <td style="width: 2rem;">
-                        <i class="bi bi-x-circle-fill pointer"
+                    <td style="width: 4rem; text-wrap: nowrap;">
+                        <button class="button secondary edit"
+                            hx-get="/category"
+                            hx-target="#editCategoryForm">
+                            <i class="bi bi-pencil-square" alt="Edit"></i>
+                        </button>
+                        <button class="button tertiary"
                             hx-post="/category/delete"
                             hx-target="#categories-items"
                             hx-select="#categories-items"
                             hx-swap="outerHTML"
                             hx-confirm="Are you sure? This will fully delete the category!">
-                        </i>
+                            <i class="bi bi-x-circle-fill"></i>
+                        </button>
                     </td>
                 </tr>
             {{ end }}
@@ -33,13 +39,27 @@
         </div>
 
         <footer>
-            <form method="POST" action="/category/add">
-                <input type="text" name="name" placeholder="Category Name" minlength="3" maxlength="255" class="autofocus" required />
-                <input type="text" name="description" placeholder="Description" />
+             <form method="POST" action="/category/add">
+                {{ template "category.gohtml" }}
                 <button type="submit" class="primary"><i class="bi bi-folder-plus"></i> Add</button>
             </form>
         </footer>
     </article>
 </main>
+
+<dialog>
+  <article>
+    <header>
+        <h2>Edit Category</h2>
+    </header>
+    <form id="editCategoryForm" method="POST" action="/category">
+        {{ template "category.gohtml" }}
+    </form>
+    <footer>
+      <button class="secondary" role="cancel">Cancel</button>
+      <button class="primary" form="editCategoryForm"><i class="bi bi-pencil-square"></i> Confirm</button>
+    </footer>
+  </article>
+</dialog>
 
 {{ template "footer.gohtml" . }}

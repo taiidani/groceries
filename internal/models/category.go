@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"errors"
+	"fmt"
 )
 
 type Category struct {
@@ -10,6 +11,27 @@ type Category struct {
 	Name        string
 	Description string
 	ItemCount   int
+}
+
+func (c *Category) Validate(ctx context.Context) error {
+	if len(c.Name) < 3 {
+		return errors.New("provided name needs to be at least 3 characters")
+	}
+
+	// Check for existing category
+	if c.ID == "" {
+		existingCategories, err := LoadCategories(ctx)
+		if err != nil {
+			return fmt.Errorf("could not load categories: %w", err)
+		}
+		for _, cat := range existingCategories {
+			if cat.Name == c.Name {
+				return errors.New("category already found")
+			}
+		}
+	}
+
+	return nil
 }
 
 func LoadCategories(ctx context.Context) ([]Category, error) {
@@ -39,8 +61,34 @@ ORDER BY name`)
 	return ret, nil
 }
 
+func GetCategory(ctx context.Context, id string) (Category, error) {
+	row := db.QueryRowContext(ctx, `
+SELECT id, name, description,
+ (SELECT COUNT(id) FROM item WHERE item.category_id = category.id)
+FROM category
+WHERE id = $1
+ORDER BY name`, id)
+	if row.Err() != nil {
+		return Category{}, row.Err()
+	}
+
+	// Load the category
+	var cat Category
+	err := row.Scan(&cat.ID, &cat.Name, &cat.Description, &cat.ItemCount)
+	return cat, err
+}
+
 func AddCategory(ctx context.Context, cat Category) error {
 	_, err := db.ExecContext(ctx, "INSERT INTO category (name, description) VALUES ($1, $2)", cat.Name, cat.Description)
+	return err
+}
+
+func EditCategory(ctx context.Context, cat Category) error {
+	_, err := db.ExecContext(ctx, `
+UPDATE category SET
+	name = $2,
+	description = $3
+WHERE id = $1`, cat.ID, cat.Name, cat.Description)
 	return err
 }
 
