@@ -86,7 +86,7 @@ func (s *Server) itemAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	s.sseServer.announce(sseEventList)
+	s.sseServer.Publish(r.Context(), sseEventList, nil)
 
 	http.Redirect(w, r, "/items", http.StatusFound)
 }
@@ -105,7 +105,7 @@ func (s *Server) itemListAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	s.sseServer.announce(sseEventList)
+	s.sseServer.Publish(r.Context(), sseEventList, nil)
 
 	http.Redirect(w, r, "/items", http.StatusFound)
 }
@@ -118,7 +118,7 @@ func (s *Server) itemListDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	s.sseServer.announce(sseEventList)
+	s.sseServer.Publish(r.Context(), sseEventList, nil)
 
 	http.Redirect(w, r, "/items", http.StatusFound)
 }
@@ -131,7 +131,7 @@ func (s *Server) itemDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	s.sseServer.announce(sseEventList)
+	s.sseServer.Publish(r.Context(), sseEventList, nil)
 
 	http.Redirect(w, r, "/items", http.StatusFound)
 }

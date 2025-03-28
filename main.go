@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/go-redis/redis/v8"
 	"github.com/taiidani/groceries/internal/cache"
 	"github.com/taiidani/groceries/internal/models"
 	"github.com/taiidani/groceries/internal/server"
@@ -35,7 +36,7 @@ func main() {
 	initLogging()
 
 	// Set up the Redis/Memory database
-	cache := cache.New()
+	rds := cache.NewClient(ctx)
 
 	// Set up the relational database
 	err = models.InitDB(ctx)
@@ -50,7 +51,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		// Start the web UI
-		if err := initServer(ctx, cache); err != nil {
+		if err := initServer(ctx, rds); err != nil {
 			log.Fatal(err)
 		}
 	}()
@@ -96,13 +97,13 @@ func initSentry() (func(), error) {
 	}, nil
 }
 
-func initServer(ctx context.Context, cache cache.Cache) error {
+func initServer(ctx context.Context, rds *redis.Client) error {
 	port := os.Getenv("PORT")
 	if port == "" {
 		log.Fatal("Required PORT environment variable not present")
 	}
 
-	srv := server.NewServer(ctx, cache, port)
+	srv := server.NewServer(ctx, rds, port)
 
 	go func() {
 		slog.Info("Server starting", "port", port)

@@ -21,7 +21,7 @@ func (s *Server) listAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	s.sseServer.announce(sseEventList)
+	s.sseServer.Publish(r.Context(), sseEventList, nil)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -34,7 +34,7 @@ func (s *Server) listDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	s.sseServer.announce(sseEventList)
+	s.sseServer.Publish(r.Context(), sseEventList, nil)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -47,7 +47,8 @@ func (s *Server) listDoneHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	s.sseServer.announce(sseEventList, sseEventCart)
+	s.sseServer.Publish(r.Context(), sseEventList, nil)
+	s.sseServer.Publish(r.Context(), sseEventCart, nil)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -60,7 +61,8 @@ func (s *Server) listUnDoneHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	s.sseServer.announce(sseEventList, sseEventCart)
+	s.sseServer.Publish(r.Context(), sseEventList, nil)
+	s.sseServer.Publish(r.Context(), sseEventCart, nil)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -73,7 +75,7 @@ func (s *Server) finishHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	s.sseServer.announce(sseEventCart)
+	s.sseServer.Publish(r.Context(), sseEventCart, nil)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }

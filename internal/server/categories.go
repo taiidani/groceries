@@ -60,7 +60,7 @@ func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	s.sseServer.announce(sseEventCategory)
+	s.sseServer.Publish(r.Context(), sseEventCategory, nil)
 
 	http.Redirect(w, r, "/categories", http.StatusFound)
 }
@@ -73,7 +73,7 @@ func (s *Server) categoryDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Broadcast the change
-	s.sseServer.announce(sseEventCategory)
+	s.sseServer.Publish(r.Context(), sseEventCategory, nil)
 
 	http.Redirect(w, r, "/categories", http.StatusFound)
 }

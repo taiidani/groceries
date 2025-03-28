@@ -27,16 +27,14 @@ var (
 	ErrKeyNotFound = errors.New("key not found")
 )
 
-// db is a singleton holding either a Redis or Memory backed database
-var db Cache
+func NewRedisCache(client *redis.Client) Cache {
+	return &RedisStore{Client: client}
+}
 
-func New() Cache {
+func NewClient(ctx context.Context) *redis.Client {
 	host, ok := os.LookupEnv("REDIS_HOST")
 	if !ok {
-		// Default to a memory backend
-		slog.Warn("Redis persistence disabled")
-		db = &MemoryStore{Data: map[string][]byte{}}
-		return db
+		log.Fatalf("REDIS_HOST env var not found")
 	}
 
 	// Determine the address, whether it be HOST:PORT or HOST & PORT
@@ -60,11 +58,13 @@ func New() Cache {
 		opts.Password = pass
 	}
 
-	// Set the singleton db value to the Redis backend
-	db = &RedisStore{Client: redis.NewClient(opts)}
-	if err := db.Set(context.Background(), "client", "groceries", time.Hour*24); err != nil {
-		log.Fatalf("Unable to connect to Redis backend at %s: %s", addr, err)
+	client := redis.NewClient(opts)
+	ctxTimeout, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+	if cmd := client.Ping(ctxTimeout); cmd.Err() != nil {
+		log.Fatalf("Unable to connect to Redis backend at %s: %s", addr, cmd.Err())
 	}
 	slog.Info("Redis persistence configured", "addr", addr)
-	return db
+
+	return client
 }

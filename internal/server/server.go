@@ -11,7 +11,9 @@ import (
 	"os"
 
 	sentryhttp "github.com/getsentry/sentry-go/http"
+	"github.com/go-redis/redis/v8"
 	"github.com/taiidani/groceries/internal/cache"
+	"github.com/taiidani/groceries/internal/events"
 	"github.com/taiidani/groceries/internal/models"
 )
 
@@ -20,7 +22,7 @@ type Server struct {
 	cache     cache.Cache
 	publicURL string
 	port      string
-	sseServer *sseServer
+	sseServer events.PubSub
 	*http.Server
 }
 
@@ -30,7 +32,7 @@ var templates embed.FS
 // DevMode can be toggled to pull rendered files from the filesystem or the embedded FS.
 var DevMode = os.Getenv("DEV") == "true"
 
-func NewServer(ctx context.Context, cache cache.Cache, port string) *Server {
+func NewServer(ctx context.Context, redis *redis.Client, port string) *Server {
 	mux := http.NewServeMux()
 
 	publicURL := os.Getenv("PUBLIC_URL")
@@ -46,8 +48,8 @@ func NewServer(ctx context.Context, cache cache.Cache, port string) *Server {
 		ctx:       ctx,
 		publicURL: publicURL,
 		port:      port,
-		cache:     cache,
-		sseServer: newSSEServer(),
+		cache:     cache.NewRedisCache(redis),
+		sseServer: events.NewRedisPubSub(redis),
 	}
 	srv.addRoutes(mux)
 
