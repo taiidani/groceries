@@ -17,13 +17,22 @@ GOOSE_MIGRATION_DIR = "./internal/db/migrations"
 go = "1.24.1"
 staticcheck = "latest"
 
+[tasks.dependencies]
+description = "Download static assets for building into the binary"
+run = [
+    "curl --fail --silent --location --output internal/server/assets/htmx.dist.js https://unpkg.com/htmx.org@2.0.0",
+    "curl --fail --silent --location --output internal/server/assets/htmx-sse.dist.js https://unpkg.com/htmx-ext-sse@2.2.2",
+]
+
 [tasks.build]
 description = "Build the server binary"
+depends = ["dependencies"]
 env.CGO_ENABLED = "0"
 run = ["go build -o groceries"]
 
-[tasks.run]
+[tasks.default]
 description = "Execute the app in development mode"
+depends = ["dependencies"]
 run = ["docker compose up -d --wait", "go run main.go"]
 
 [tasks.seed]
