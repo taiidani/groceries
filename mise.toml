@@ -17,25 +17,40 @@ GOOSE_MIGRATION_DIR = "./internal/db/migrations"
 go = "1.24.1"
 staticcheck = "latest"
 
+[vars]
+filename = 'groceries'
+
+[tasks.default]
+description = "Execute the app in development mode"
+depends = ["build"]
+run = ["docker compose up -d --wait", "./{{vars.filename}}"]
+
+[tasks.build]
+description = "Build the server binary"
+depends = ["dependencies", "test", "lint"]
+env.CGO_ENABLED = "0"
+run = ["go build -o ./{{vars.filename}}"]
+
 [tasks.dependencies]
 description = "Download static assets for building into the binary"
 run = [
+    "go mod download",
     "curl --fail --silent --location --output internal/server/assets/htmx.dist.js https://unpkg.com/htmx.org@2.0.0",
     "curl --fail --silent --location --output internal/server/assets/htmx-sse.dist.js https://unpkg.com/htmx-ext-sse@2.2.2",
 ]
 
-[tasks.build]
-description = "Build the server binary"
+[tasks.test]
+description = "Unit tests"
 depends = ["dependencies"]
-env.CGO_ENABLED = "0"
-run = ["go build -o groceries"]
-
-[tasks.default]
-description = "Execute the app in development mode"
-depends = ["dependencies"]
-run = ["docker compose up -d --wait", "go run main.go"]
+env.DEV = "false"
+env.CGO_ENABLED = 1                                    # Required for -race
+run = ["go test -race -covermode=atomic -cover ./..."]
 
 [tasks.seed]
 description = "Populate the database with seeds"
 env.GOOSE_MIGRATION_DIR = "./internal/db/seeds"
 run = ["go tool goose --no-versioning up"]
+
+[tasks.lint]
+depends = ["dependencies"]
+run = ["go vet ./...", "staticcheck ./..."]
