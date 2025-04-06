@@ -11,4 +11,20 @@
     </section>
 </main>
 
+<dialog>
+  <article>
+    <header>
+        <h2>Edit List Item</h2>
+    </header>
+    <form id="editListItemForm" method="POST" action="/list/item">
+        {{ template "list_item.gohtml" }}
+    </form>
+    <footer>
+      <button class="secondary" role="cancel">Cancel</button>
+      <button class="primary" form="editListItemForm"><i class="bi bi-pencil-square"></i> Save</button>
+    </footer>
+  </article>
+</dialog>
+
+
 {{ template "footer.gohtml" . }}

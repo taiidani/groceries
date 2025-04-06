@@ -17,6 +17,10 @@ func (i *Item) CategoryName() string {
 	return i.categoryName
 }
 
+func (i *Item) Validate(ctx context.Context) error {
+	return nil
+}
+
 func LoadItems(ctx context.Context) ([]Item, error) {
 	rows, err := db.QueryContext(ctx, `
 SELECT item.id, item.name, item.category_id, category.name AS category_name,

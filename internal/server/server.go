@@ -74,6 +74,8 @@ func (s *Server) addRoutes(mux *http.ServeMux) {
 	mux.Handle("GET /bag", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.indexBagHandler))))
 
 	mux.Handle("GET /list", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.indexListHandler))))
+	mux.Handle("GET /list/item/{id}", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.listItemGetHandler))))
+	mux.Handle("POST /list/item", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.listItemSaveHandler))))
 	mux.Handle("POST /list/add", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.listAddHandler))))
 	mux.Handle("POST /list/done", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.listDoneHandler))))
 	mux.Handle("POST /list/undone", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.listUnDoneHandler))))

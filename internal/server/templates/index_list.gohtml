@@ -25,6 +25,11 @@
                 {{ end }}
             </td>
             <td style="width: 2rem; text-wrap: nowrap;">
+                <button class="button secondary edit"
+                    hx-get="/list/item/{{ .List.ID }}"
+                    hx-target="#editListItemForm">
+                    <i class="bi bi-pencil-square" alt="Edit"></i>
+                </button>
                 <button class="button tertiary"
                     hx-post="/list/delete"
                     hx-target="closest tr"
