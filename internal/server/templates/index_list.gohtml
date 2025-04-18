@@ -27,20 +27,20 @@
                 </summary>
                 <ul>
                     <li>
-                        <button class="button secondary edit"
+                        <a class="pointer edit"
                             hx-get="/list/item/{{ .List.ID }}"
                             hx-target="#editListItemForm">
-                            <i class="bi bi-pencil-square" alt="Edit"> Edit Quantity</i>
-                        </button>
+                            <i class="bi bi-hash" alt="Edit"></i> Edit Quantity
+                        </a>
                     </li>
                     <li>
-                        <button class="button tertiary"
+                        <a class="pointer"
                             hx-post="/list/delete"
                             hx-target="closest .item"
                             hx-swap="delete"
                             hx-indicator="closest article">
-                            <i class="bi bi-x-circle-fill pointer"> Remove from List</i>
-                        </button>
+                            <i class="bi bi-x-circle-fill pointer"></i> Remove from List
+                        </a>
                     </li>
             </details>
         </li>
