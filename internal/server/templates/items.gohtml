@@ -5,9 +5,13 @@
         <article id="itemAdder" hx-get="/items" hx-select="#itemAdder" hx-swap="outerHTML" hx-trigger="sse:category">
             <header>Add New Item <span class="htmx-indicator" aria-busy="true" /></header>
 
-            <form hx-post="/item/add" hx-target="#itemAdder" hx-select="#itemAdder" hx-swap="outerHTML">
-                {{ template "item.gohtml" .}}
+            <form id="addItemForm" hx-post="/item/add" hx-target="#itemAdder" hx-select="#itemAdder" hx-swap="outerHTML">
+                {{ template "item.gohtml"}}
             </form>
+
+            <footer>
+                <button type="submit" form="addItemForm" class="primary"><i class="bi bi-plus-circle"></i> Add</button>
+            </footer>
         </article>
 
         <article id="list" hx-get="/items" hx-disinherit="*" hx-select="#list" hx-swap="outerHTML" hx-trigger="sse:list">

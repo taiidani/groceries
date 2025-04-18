@@ -1,6 +1,7 @@
+{{ with .Category}}
 <input type="hidden"
     name="id"
-    value="{{ if .ID }}{{.ID}}{{ end }}"
+    value="{{.ID}}"
 />
 <input type="text"
     name="name"
@@ -9,10 +10,11 @@
     maxlength="255"
     required
     autofocus
-    value="{{ if .Name }}{{.Name}}{{ end }}"
+    value="{{.Name}}"
 />
 <input type="text"
     name="description"
     placeholder="Description"
-    value="{{ if .Description }}{{.Description}}{{ end }}"
+    value="{{.Description}}"
 />
+{{ end }}

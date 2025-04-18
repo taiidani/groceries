@@ -10,6 +10,7 @@ func (s *Server) categoriesHandler(w http.ResponseWriter, r *http.Request) {
 	type data struct {
 		baseBag
 		Categories []models.Category
+		Category   models.Category
 	}
 
 	bag := data{baseBag: s.newBag(r.Context())}
@@ -33,8 +34,12 @@ func (s *Server) categoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	bag := struct {
+		Category models.Category
+	}{Category: category}
+
 	template := "category.gohtml"
-	renderHtml(w, http.StatusOK, template, category)
+	renderHtml(w, http.StatusOK, template, bag)
 }
 
 func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
