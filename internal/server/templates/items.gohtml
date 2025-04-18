@@ -6,7 +6,7 @@
             <header>Add New Item <span class="htmx-indicator" aria-busy="true" /></header>
 
             <form id="addItemForm" hx-post="/item/add" hx-target="#itemAdder" hx-select="#itemAdder" hx-swap="outerHTML">
-                {{ template "item.gohtml"}}
+                {{ template "item.gohtml" .}}
             </form>
 
             <footer>

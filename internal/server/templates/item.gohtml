@@ -1,8 +1,8 @@
 {{$categoryID := .Item.CategoryID}}
 <fieldset role="group">
     <input type="hidden" name="id" value="{{.Item.ID}}" />
-    <select name="categoryID" aria-label="Item" required style="width: 30%">
-        <option {{if not $categoryID}}selected{{end}} disabled value="">Item</option>
+    <select name="categoryID" aria-label="Category" required style="width: 30%">
+        <option {{if not $categoryID}}selected{{end}} disabled value="">Category</option>
         {{ range .Categories }}
         <option value="{{.ID}}" {{if eq .ID $categoryID}}selected{{end}}>{{.Name}}</option>
         {{ end }}

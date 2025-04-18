@@ -86,7 +86,7 @@ func (s *Server) itemAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	categoryID := r.FormValue("category")
+	categoryID := r.FormValue("categoryID")
 	var category *models.Category
 	for i, cat := range categories {
 		if cat.ID == categoryID {

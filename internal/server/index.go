@@ -14,21 +14,10 @@ type categoryWithItems struct {
 func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 	type indexBag struct {
 		baseBag
-	}
-
-	bag := indexBag{baseBag: s.newBag(r.Context())}
-
-	template := "index.gohtml"
-	renderHtml(w, http.StatusOK, template, bag)
-}
-
-func (s *Server) indexBagHandler(w http.ResponseWriter, r *http.Request) {
-	type indexBagBag struct {
-		baseBag
 		Categories map[string][]models.Item
 	}
 
-	bag := indexBagBag{baseBag: s.newBag(r.Context())}
+	bag := indexBag{baseBag: s.newBag(r.Context())}
 
 	items, err := models.LoadItems(r.Context())
 	if err != nil {
@@ -43,7 +32,8 @@ func (s *Server) indexBagHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	renderHtml(w, http.StatusOK, "index_bag.gohtml", bag)
+	template := "index.gohtml"
+	renderHtml(w, http.StatusOK, template, bag)
 }
 
 func (s *Server) indexListHandler(w http.ResponseWriter, r *http.Request) {
