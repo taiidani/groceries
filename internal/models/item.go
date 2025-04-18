@@ -59,11 +59,11 @@ func GetItem(ctx context.Context, id string) (Item, error) {
 	ret := Item{}
 	var inList *bool
 	err := db.QueryRowContext(ctx, `
-SELECT id, category_id, name, category.name AS category_name,
+SELECT item.id, category_id, item.name, category.name AS category_name,
 	(SELECT TRUE FROM item_list WHERE item_list.item_id = item.id) AS in_list
 FROM item
 LEFT JOIN category ON (item.category_id = category.id)
-WHERE id = $1`, id).
+WHERE item.id = $1`, id).
 		Scan(&ret.ID, &ret.CategoryID, &ret.Name, &ret.categoryName, &inList)
 
 	if inList != nil {
@@ -96,6 +96,15 @@ func AddItem(ctx context.Context, item Item) error {
 	}
 
 	return tx.Commit()
+}
+
+func EditItem(ctx context.Context, i Item) error {
+	_, err := db.ExecContext(ctx, `
+UPDATE item SET
+	category_id = $2,
+	name = $3
+WHERE id = $1`, i.ID, i.CategoryID, i.Name)
+	return err
 }
 
 func DeleteItem(ctx context.Context, id string) error {

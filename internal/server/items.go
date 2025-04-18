@@ -12,6 +12,7 @@ type itemsBag struct {
 	baseBag
 	Categories     []models.Category
 	ListCategories []categoryWithItems
+	Item           models.Item
 }
 
 func (s *Server) itemsHandler(w http.ResponseWriter, r *http.Request) {
@@ -54,6 +55,30 @@ func (s *Server) itemsHandler(w http.ResponseWriter, r *http.Request) {
 	renderHtml(w, http.StatusOK, template, bag)
 }
 
+func (s *Server) itemHandler(w http.ResponseWriter, r *http.Request) {
+	bag := struct {
+		baseBag
+		Categories []models.Category
+		Item       models.Item
+	}{baseBag: s.newBag(r.Context())}
+
+	categories, err := models.LoadCategories(r.Context())
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	bag.Categories = categories
+
+	bag.Item, err = models.GetItem(r.Context(), r.PathValue("id"))
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	template := "item.gohtml"
+	renderHtml(w, http.StatusOK, template, bag)
+}
+
 func (s *Server) itemAddHandler(w http.ResponseWriter, r *http.Request) {
 	categories, err := models.LoadCategories(r.Context())
 	if err != nil {
@@ -81,6 +106,38 @@ func (s *Server) itemAddHandler(w http.ResponseWriter, r *http.Request) {
 	err = models.AddItem(r.Context(), newItem)
 	if err != nil {
 		err = fmt.Errorf("could not add item: %w", err)
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Broadcast the change
+	s.sseServer.Publish(r.Context(), sseEventList, nil)
+
+	http.Redirect(w, r, "/items", http.StatusFound)
+}
+
+func (s *Server) itemEditHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.FormValue("id"))
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	newItem := models.Item{
+		ID:         id,
+		CategoryID: r.FormValue("categoryID"),
+		Name:       r.FormValue("name"),
+	}
+
+	// Validate inputs
+	if err := newItem.Validate(r.Context()); err != nil {
+		errorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	// Add the new item
+	err = models.EditItem(r.Context(), newItem)
+	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}

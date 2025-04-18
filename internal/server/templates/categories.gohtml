@@ -1,8 +1,8 @@
 {{ template "header.gohtml" . }}
 
 <main class="container">
-    <article id="categories">
-        <header>Categories</header>
+    <article id="categories" hx-get="/categories" hx-disinherit="*" hx-select="#categories" hx-swap="outerHTML" hx-trigger="sse:list">
+        <header>Categories <span class="htmx-indicator" aria-busy="true" /></header>
 
         <div id="categories-items">
             <table>
@@ -19,7 +19,8 @@
                     </td>
                     <td style="width: 4rem; text-wrap: nowrap;">
                         <button class="button secondary edit"
-                            hx-get="/category"
+                            hx-get="/category/{{.ID}}"
+                            hx-indicator="closest article"
                             hx-target="#editCategoryForm">
                             <i class="bi bi-pencil-square" alt="Edit"></i>
                         </button>
@@ -28,6 +29,7 @@
                             hx-target="#categories-items"
                             hx-select="#categories-items"
                             hx-swap="outerHTML"
+                            hx-indicator="closest article"
                             hx-confirm="Are you sure? This will fully delete the category!">
                             <i class="bi bi-x-circle-fill"></i>
                         </button>

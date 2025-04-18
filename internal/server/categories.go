@@ -27,7 +27,7 @@ func (s *Server) categoriesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) categoryHandler(w http.ResponseWriter, r *http.Request) {
-	category, err := models.GetCategory(r.Context(), r.FormValue("id"))
+	category, err := models.GetCategory(r.Context(), r.PathValue("id"))
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return

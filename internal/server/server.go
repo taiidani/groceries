@@ -66,6 +66,8 @@ func (s *Server) addRoutes(mux *http.ServeMux) {
 	mux.Handle("GET /logout", sentryHandler.Handle(http.HandlerFunc(s.logout)))
 
 	mux.Handle("GET /items", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.itemsHandler))))
+	mux.Handle("GET /item/{id}", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.itemHandler))))
+	mux.Handle("POST /item", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.itemEditHandler))))
 	mux.Handle("POST /item/add", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.itemAddHandler))))
 	mux.Handle("POST /item/list/add", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.itemListAddHandler))))
 	mux.Handle("POST /item/list/delete", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.itemListDeleteHandler))))
@@ -85,7 +87,7 @@ func (s *Server) addRoutes(mux *http.ServeMux) {
 	mux.Handle("GET /cart", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.indexCartHandler))))
 
 	mux.Handle("GET /categories", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.categoriesHandler))))
-	mux.Handle("GET /category", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.categoryHandler))))
+	mux.Handle("GET /category/{id}", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.categoryHandler))))
 	mux.Handle("POST /category", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.categoryEditHandler))))
 	mux.Handle("POST /category/add", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.categoryAddHandler))))
 	mux.Handle("POST /category/delete", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.categoryDeleteHandler))))
