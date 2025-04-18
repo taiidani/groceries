@@ -16,10 +16,12 @@
                 <i class="bi bi-check-square pointer"></i>
             </button>
 
-            <span>{{.Name}}</span>
-            {{ if .List.Quantity }}
-                <em>({{.List.Quantity}})</em>
-            {{ end }}
+            <span class="name" title="{{.Name}}">
+                {{.Name}}
+                {{ if .List.Quantity }}
+                    <em>({{.List.Quantity}})</em>
+                {{ end }}
+            </span>
 
             <details class="dropdown" style="height: 1em; float: right;">
                 <summary role="button">

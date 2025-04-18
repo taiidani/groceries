@@ -42,10 +42,14 @@
                             <i class="bi bi-bag-plus pointer"></i>
                         </button>
                         {{ end }}
-                        <span>{{.Name}}</span>
-                        {{ if .List }}
-                            <span class="tag">in-list</span>
-                        {{ end }}
+
+                        <span class="name" title="{{.Name}}">
+                            {{.Name}}
+                            {{ if .List }}
+                                <span class="tag">in-list</span>
+                            {{ end }}
+                        </span>
+
                         <details class="dropdown" style="height: 1em; float: right;">
                             <summary role="button">
                                 <i class="bi bi-three-dots"></i>

@@ -161,7 +161,16 @@ ul.lite {
 
 ul.lite li {
     list-style: none;
+    text-wrap: nowrap;
 }
+
+.name {
+    display: inline-block;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    max-width: 20em;
+}
+
 
 i.primary {
     background-color: var(--primary-color) !important;
