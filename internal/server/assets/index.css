@@ -202,3 +202,7 @@ i.tertiary {
 .htmx-request .htmx-indicator {
     opacity: 1;
 }
+
+.hide {
+    display: none;
+}

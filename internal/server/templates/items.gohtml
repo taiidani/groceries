@@ -17,6 +17,10 @@
         <article id="list" hx-get="/items" hx-disinherit="*" hx-select="#list" hx-swap="outerHTML" hx-trigger="sse:list">
             <header>Items <span class="htmx-indicator" aria-busy="true" /></header>
 
+            <form role="search" search-target="#list-items">
+                <input name="search" type="search" placeholder="Search" />
+            </form>
+
             <div id="list-items">
             {{ range .ListCategories }}
             {{ if .Items }}
