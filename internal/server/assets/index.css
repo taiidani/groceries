@@ -168,7 +168,7 @@ ul.lite li {
     display: inline-block;
     text-overflow: ellipsis;
     overflow: hidden;
-    max-width: 20em;
+    max-width: 10rem;
 }
 
 
