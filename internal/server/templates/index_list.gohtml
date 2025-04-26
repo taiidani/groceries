@@ -10,7 +10,7 @@
         <li class="item" hx-vals='{"id": "{{.ID}}"}'>
             <button class="button primary"
                 hx-post="/list/done"
-                hx-target="closest tr"
+                hx-target="closest .item"
                 hx-swap="delete"
                 hx-indicator="closest article">
                 <i class="bi bi-check-square pointer"></i>
