@@ -1,6 +1,9 @@
 package server
 
 import (
+	"database/sql"
+	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -69,13 +72,33 @@ func (s *Server) listItemSaveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listAddHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.FormValue("id"))
-	if err != nil {
+	item, err := models.GetItemByName(r.Context(), r.FormValue("name"))
+	switch {
+	case err == nil:
+	case errors.Is(err, sql.ErrNoRows):
+		// The item doesn't exist yet. That's okay!
+		// Let's create a new one
+		newItem := models.Item{
+			Name:       r.FormValue("name"),
+			CategoryID: models.UncategorizedCategoryID,
+		}
+		err = models.AddItem(r.Context(), newItem)
+		if err != nil {
+			errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("unable to add item: %w", err))
+			return
+		}
+
+		item, err = models.GetItemByName(r.Context(), r.FormValue("name"))
+		if err != nil {
+			errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("unable to retrieve added item: %w", err))
+			return
+		}
+	default:
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	err = models.ListAddItem(r.Context(), id, r.FormValue("quantity"))
+	err = models.ListAddItem(r.Context(), item.ID, r.FormValue("quantity"))
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return

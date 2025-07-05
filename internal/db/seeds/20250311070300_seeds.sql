@@ -9,6 +9,9 @@ ALTER SEQUENCE item_id_seq RESTART WITH 1;
 DELETE FROM category;
 ALTER SEQUENCE category_id_seq RESTART WITH 1;
 
+-- Repeat the row added via the migrations
+INSERT INTO category (id, name, description) VALUES (0, 'Uncategorized', 'Default category for newly created items');
+
 INSERT INTO category (name, description) VALUES
 ('Produce', 'Frozen foods'),
 ('Bulk Foods', 'Mostly nuts'),

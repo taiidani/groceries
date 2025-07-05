@@ -73,6 +73,24 @@ WHERE item.id = $1`, id).
 	return ret, err
 }
 
+func GetItemByName(ctx context.Context, name string) (Item, error) {
+	ret := Item{}
+	var inList *bool
+	err := db.QueryRowContext(ctx, `
+SELECT item.id, category_id, item.name, category.name AS category_name,
+	(SELECT TRUE FROM item_list WHERE item_list.item_id = item.id) AS in_list
+FROM item
+LEFT JOIN category ON (item.category_id = category.id)
+WHERE item.name = $1`, name).
+		Scan(&ret.ID, &ret.CategoryID, &ret.Name, &ret.categoryName, &inList)
+
+	if inList != nil {
+		ret.List = &ListItem{}
+	}
+
+	return ret, err
+}
+
 func ItemChangeCategory(ctx context.Context, id int, categoryID int) error {
 	_, err := db.ExecContext(ctx, `UPDATE item SET category_id = $2 WHERE id = $1`, id, categoryID)
 	return err
