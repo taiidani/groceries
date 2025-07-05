@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"sort"
 
 	"github.com/taiidani/groceries/internal/models"
 )
@@ -12,9 +13,14 @@ type categoryWithItems struct {
 }
 
 func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
+	type itemWithCategory struct {
+		Category string
+		Name     string
+	}
+
 	type indexBag struct {
 		baseBag
-		Categories map[string][]models.Item
+		Items []itemWithCategory
 	}
 
 	bag := indexBag{baseBag: s.newBag(r.Context())}
@@ -25,12 +31,18 @@ func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bag.Categories = map[string][]models.Item{}
 	for _, item := range items {
 		if item.List == nil {
-			bag.Categories[item.CategoryName()] = append(bag.Categories[item.CategoryName()], item)
+			bag.Items = append(bag.Items, itemWithCategory{
+				Category: item.CategoryName(),
+				Name:     item.Name,
+			})
 		}
 	}
+
+	sort.Slice(bag.Items, func(i int, j int) bool {
+		return bag.Items[i].Name < bag.Items[j].Name
+	})
 
 	template := "index.gohtml"
 	renderHtml(w, http.StatusOK, template, bag)

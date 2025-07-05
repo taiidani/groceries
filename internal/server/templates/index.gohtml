@@ -15,10 +15,8 @@
                     <div style="min-width: 60%;">
                         <input type="text" list="list-add-items" autocomplete="off" minlength="3" name="name" aria-label="Item" placeholder="Item" required />
                         <datalist id="list-add-items">
-                            {{ range $key, $items := .Categories}}
-                            {{ range $items }}
-                            <option value="{{.Name}}" label="{{$key}} - {{.Name}}"></option>
-                            {{ end }} 
+                            {{ range .Items}}
+                            <option value="{{.Name}}" label="{{.Category}} - {{.Name}}"></option>
                             {{ end }}
                         </datalist>
                     </div>
