@@ -4,29 +4,29 @@
     <section>
         <article id="itemAdder">
           <header>Add Items <span class="htmx-indicator" aria-busy="true" /></header>
+            <form
+                id="itemAdderForm"
+                hx-post="/list/add"
+                hx-target="#itemAdder"
+                hx-select="#itemAdder"
+                hx-swap="outerHTML"
+                hx-indicator="closest article">
+                <fieldset role="group">
+                    <div style="min-width: 60%;">
+                        <input type="text" list="list-add-items" autocomplete="off" minlength="3" name="name" aria-label="Item" placeholder="Item" required />
+                        <datalist id="list-add-items">
+                            {{ range $key, $items := .Categories}}
+                            {{ range $items }}
+                            <option value="{{.Name}}" label="{{$key}} - {{.Name}}"></option>
+                            {{ end }} 
+                            {{ end }}
+                        </datalist>
+                    </div>
+                    <input type="text" name="quantity" placeholder="Quantity" />
 
-          <form
-              hx-post="/list/add"
-              hx-target="#itemAdder"
-              hx-select="#itemAdder"
-              hx-swap="outerHTML"
-              hx-indicator="closest article">
-              <fieldset role="group">
-                  <select name="id" aria-label="Item" required>
-                      <option selected disabled value="">Item</option>
-                      {{ range $key, $items := .Categories}}
-                      <optgroup label="{{$key}}">
-                          {{ range $items }}
-                          <option value="{{.ID}}">{{.Name}}</option>
-                          {{ end }}
-                      </optgroup>
-                      {{ end }}
-                  </select>
-                  <input type="text" name="quantity" placeholder="Quantity" />
-
-                  <button type="submit" class="primary"><i class="bi bi-bag-plus" alt="Add"></i></button>
-              </fieldset>
-          </form>
+                    <button type="submit" class="primary"><i class="bi bi-bag-plus" alt="Add"></i></button>
+                </fieldset>
+            </form>
         </article>
     </section>
 

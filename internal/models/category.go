@@ -13,6 +13,8 @@ type Category struct {
 	ItemCount   int
 }
 
+const UncategorizedCategoryID string = "0"
+
 func (c *Category) Validate(ctx context.Context) error {
 	if len(c.Name) < 3 {
 		return errors.New("provided name needs to be at least 3 characters")
