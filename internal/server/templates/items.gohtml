@@ -32,16 +32,16 @@
                         {{ if .List }}
                         <button class="button tertiary"
                             hx-post="/item/list/delete"
-                            hx-target="#list"
-                            hx-select="#list"
+                            hx-target="#list-items"
+                            hx-select="#list-items"
                             hx-swap="outerHTML">
                             <i class="bi bi-bag-dash"></i>
                         </button>
                         {{ else }}
                         <button class="button primary"
                             hx-post="/item/list/add"
-                            hx-target="#list"
-                            hx-select="#list"
+                            hx-target="#list-items"
+                            hx-select="#list-items"
                             hx-swap="outerHTML">
                             <i class="bi bi-bag-plus pointer"></i>
                         </button>
