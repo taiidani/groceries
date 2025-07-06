@@ -1,27 +1,30 @@
 :root {
-    --pico-font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+    --pico-font-family:
+        "Gill Sans", "Gill Sans MT", Calibri, "Trebuchet MS", sans-serif;
 }
 
 /* Light, default mode */
-:root:not([data-theme=dark]),
-[data-theme=light] {
+:root:not([data-theme="dark"]),
+[data-theme="light"] {
     /* Good old https://www.canva.com/colors/color-wheel/ */
-    --primary-color: #9ABF75;
-    --secondary-color: #759ABF;
-    --tertiary-color: #BF759A;
+    --primary-color: #9abf75;
+    --secondary-color: #759abf;
+    --tertiary-color: #bf759a;
 
     --logo: url("/assets/favicon.png");
     --text-color: #222;
     --link-color: var(--secondary-color);
-    --background-color: #FFFFFF;
-    --header-footer-background-color: #FFFFDD;
+    --background-color: #ffffff;
+    --header-footer-background-color: #ffffdd;
     --btn-primary-background: var(--primary-color);
     --btn-primary-border: var(--primary-color);
 
     --pico-color: var(--text-color);
     --pico-background-color: var(--background-color);
     --pico-card-background-color: var(--background-color);
-    --pico-card-sectioning-background-color: var(--header-footer-background-color);
+    --pico-card-sectioning-background-color: var(
+        --header-footer-background-color
+    );
 }
 
 /* Dark mode */
@@ -33,7 +36,7 @@
         --tertiary-color: #6a4055;
 
         --logo: url("/assets/apple-touch-icon.png");
-        --text-color: #EEE;
+        --text-color: #eee;
         --link-color: var(--secondary-color);
         --background-color: #000000;
         --header-footer-background-color: #000022;
@@ -43,7 +46,9 @@
         --pico-color: var(--text-color);
         --pico-background-color: var(--background-color);
         --pico-card-background-color: var(--background-color);
-        --pico-card-sectioning-background-color: var(--header-footer-background-color);
+        --pico-card-sectioning-background-color: var(
+            --header-footer-background-color
+        );
     }
 }
 
@@ -84,7 +89,6 @@ img.htmx-indicator {
     display: inline;
 }
 
-
 button {
     text-wrap: nowrap;
     cursor: pointer;
@@ -108,24 +112,24 @@ button.tertiary {
     --pico-color: var(--pico-primary-inverse);
 }
 
-body>header,
-body>footer {
+body > header,
+body > footer {
     background-color: var(--background-color);
     padding-top: 0;
     padding-bottom: 0;
     color: var(--text-color);
 }
 
-body>header nav li {
+body > header nav li {
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
 }
 
-body>header nav a {
+body > header nav a {
     color: var(--text-color);
 }
 
-body>header .logo {
+body > header .logo {
     background-image: var(--logo);
     background-size: contain;
     height: 1.5rem;
@@ -161,16 +165,18 @@ ul.lite {
 
 ul.lite li {
     list-style: none;
-    text-wrap: nowrap;
+    display: flex;
 }
 
-.name {
-    display: inline-block;
+ul.lite li .name {
+    flex-grow: 2;
+    padding: 0 1em;
     text-overflow: ellipsis;
-    overflow: hidden;
-    max-width: 10rem;
 }
 
+ul.lite .dropdown {
+    min-width: 5rem;
+}
 
 i.primary {
     background-color: var(--primary-color) !important;

@@ -7,29 +7,26 @@
 {{ if .Items }}
     <details open="open">
     <summary class="outline">{{ .Name }}</summary>
-    <table class="striped">
-        <tbody>
+    <ul class="lite">
         {{ range .Items }}
-        <tr class="done" hx-vals='{"id": "{{.ID}}"}'>
-            <td style="width: 1rem;">
-                <button class="button secondary"
-                    hx-post="/list/undone"
-                    hx-target="closest tr"
-                    hx-swap="delete"
-                    hx-indicator="closest article">
-                    <i class="bi bi-cart-dash-fill pointer"></i>
-                </button>
-            </td>
-            <td>
-                <span>{{.Name}}</span>
+        <li class="done" hx-vals='{"id": "{{.ID}}"}'>
+            <button class="button secondary"
+                hx-post="/list/undone"
+                hx-target="closest tr"
+                hx-swap="delete"
+                hx-indicator="closest article">
+                <i class="bi bi-cart-dash-fill pointer"></i>
+            </button>
+
+            <span class="name">
+                {{.Name}}
                 {{ if .List.Quantity }}
-                    <em>({{.List.Quantity}})</em>
+                    <br/><span class="soft">{{.List.Quantity}}</span>
                 {{ end }}
-            </td>
-        </tr>
+            </span>
+        </li>
         {{ end }}
-        </tbody>
-    </table>
+    </ul>
     </details>
 {{ end }}
 {{ end }}

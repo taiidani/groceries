@@ -1,4 +1,4 @@
-<header>Grocery List <span class="htmx-indicator" aria-busy="true" /></header>
+<header>Grocery List <span class="htmx-indicator" aria-busy="true"></span></header>
 
 <div id="list-items">
 {{ range .ListCategories }}
@@ -16,14 +16,14 @@
                 <i class="bi bi-check-square pointer"></i>
             </button>
 
-            <span class="name" title="{{.Name}}">
+            <span class="name">
                 {{.Name}}
                 {{ if .List.Quantity }}
-                    <em>({{.List.Quantity}})</em>
+                    <br/><span class="soft">{{.List.Quantity}}</span>
                 {{ end }}
             </span>
 
-            <details class="dropdown" style="height: 1em; float: right;">
+            <details class="dropdown">
                 <summary role="button">
                     <i class="bi bi-three-dots"></i>
                 </summary>

@@ -20,12 +20,13 @@
             <ul class="lite">
             {{ range .Categories }}
                 <li class="category" hx-vals='{"id": "{{.ID}}"}'>
-                    <span class="name" title="{{.Name}}">
+                    <span class="name">
                         {{ .Name }}
                         ({{ .ItemCount }} item{{ if ne .ItemCount 1 }}s{{end}})
+                        <br/><span class="soft">{{ .Description }}</span>
                     </span>
 
-                    <details class="dropdown" style="height: 1em; float: right;">
+                    <details class="dropdown">
                         <summary role="button">
                             <i class="bi bi-three-dots"></i>
                         </summary>
@@ -52,8 +53,6 @@
                             {{ end }}
                         </ul>
                     </details>
-
-                    <p class="soft">{{ .Description }}</p>
                 </li>
             {{ end }}
             </ul>
