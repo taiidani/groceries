@@ -3,7 +3,7 @@ module github.com/taiidani/groceries
 go 1.24
 
 require (
-	github.com/getsentry/sentry-go v0.34.0
+	github.com/getsentry/sentry-go v0.35.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.5
