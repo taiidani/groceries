@@ -24,7 +24,7 @@ func (s *Server) errorNotFoundHandler(w http.ResponseWriter, r *http.Request) {
 		Message: err,
 	}
 
-	slog.Error("Displaying error page", "error", err)
+	slog.Warn("Displaying error page", "error", err)
 	renderHtml(w, http.StatusNotFound, "error.gohtml", data)
 }
 
@@ -54,12 +54,12 @@ func errorResponse(w http.ResponseWriter, r *http.Request, code int, err error) 
 	hub.CaptureException(err)
 
 	if r.Header.Get("HX-Request") != "" {
-		slog.Error("Displaying error message", "error", err)
+		slog.Warn("Displaying error message", "error", err)
 		w.Header().Add("Content-Type", "text/plain")
 		w.WriteHeader(code)
 		fmt.Fprintln(w, err.Error())
 	} else {
-		slog.Error("Displaying error page", "error", err)
+		slog.Warn("Displaying error page", "error", err)
 		renderHtml(w, code, "error.gohtml", data)
 	}
 }
