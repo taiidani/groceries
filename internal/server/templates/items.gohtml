@@ -6,7 +6,17 @@
             <header>Add New Item <span class="htmx-indicator" aria-busy="true" /></header>
 
             <form id="addItemForm" hx-post="/item/add" hx-target="#itemAdder" hx-select="#itemAdder" hx-swap="outerHTML">
-                {{ template "item.gohtml" .}}
+                {{$categoryID := .Item.CategoryID}}
+                <fieldset role="group">
+                    <input type="hidden" name="id" value="{{.Item.ID}}" />
+                    <select name="categoryID" aria-label="Category" required style="width: 30%">
+                        <option {{if not $categoryID}}selected{{end}} disabled value="">Category</option>
+                        {{ range .Categories }}
+                        <option value="{{.ID}}" {{if eq .ID $categoryID}}selected{{end}}>{{.Name}}</option>
+                        {{ end }}
+                    </select>
+                    <input type="text" name="name" placeholder="Name" minlength="3" required value="{{.Item.Name}}" />
+                </fieldset>
             </form>
 
             <footer>
@@ -28,60 +38,15 @@
                 <summary class="outline" title="{{.Description}}">{{ .Name }}</summary>
                 <ul class="lite" hx-vals='{"category": "{{.ID}}"}'>
                     {{ range .Items }}
-                    <li class="item" hx-vals='{"id": "{{.ID}}"}'>
-                        {{ if .List }}
-                        <button class="button tertiary"
-                            hx-post="/item/list/delete"
-                            hx-target="#list-items"
-                            hx-select="#list-items"
-                            hx-swap="outerHTML">
-                            <i class="bi bi-bag-dash"></i>
-                        </button>
-                        {{ else }}
-                        <button class="button primary"
-                            hx-post="/item/list/add"
-                            hx-target="#list-items"
-                            hx-select="#list-items"
-                            hx-swap="outerHTML">
-                            <i class="bi bi-bag-plus pointer"></i>
-                        </button>
-                        {{ end }}
-
-                        <span class="name" title="{{.Name}}">
-                            {{.Name}}
+                    <li class="item">
+                        <span>
+                            <a class="name" href="/item/{{.ID}}">
+                                {{.Name}}
+                            </a>
                             {{ if .List }}
                                 <span class="tag">in-list</span>
                             {{ end }}
                         </span>
-
-                        <details class="dropdown">
-                            <summary role="button">
-                                <i class="bi bi-three-dots"></i>
-                            </summary>
-                            <ul>
-                                <li>
-                                    <a class="pointer edit"
-                                    hx-get="/item/{{.ID}}"
-                                    hx-indicator="closest article"
-                                    hx-swap="innerHTML"
-                                    hx-target="#editItemForm">
-                                    <i class="bi bi-pencil-square" alt="Edit"></i> Edit
-                                    </a>
-                                </li>
-                                {{ if not .List }}
-                                <li>
-                                    <a class="pointer"
-                                    hx-post="/item/delete"
-                                    hx-target="closest .item"
-                                    hx-swap="delete"
-                                    hx-confirm="Are you sure? This will fully delete the item!"
-                                    hx-indicator="closest article">
-                                    <i class="bi bi-x-circle-fill"></i> Delete
-                                    </a>
-                                </li>
-                                {{ end }}
-                            </ul>
-                        </details>
                     </li>
                     {{ end }}
                 </ul>
@@ -92,20 +57,5 @@
         </article>
     </section>
 </main>
-
-<dialog>
-  <article>
-    <header>
-        <h2>Edit Item</h2>
-    </header>
-    <form id="editItemForm" method="POST" action="/item">
-        {{ template "item.gohtml" }}
-    </form>
-    <footer>
-      <button class="secondary" role="cancel">Cancel</button>
-      <button class="primary" form="editItemForm"><i class="bi bi-pencil-square"></i> Save</button>
-    </footer>
-  </article>
-</dialog>
 
 {{ template "footer.gohtml" . }}

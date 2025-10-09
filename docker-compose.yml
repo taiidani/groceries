@@ -16,6 +16,7 @@ services:
     image: postgres:14
     environment:
       POSTGRES_PASSWORD: "root"
+      POSTGRES_DB: "groceries"
     ports:
       - target: 5432
         published: 5432

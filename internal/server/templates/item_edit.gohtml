@@ -1,0 +1,89 @@
+{{ template "header.gohtml" . }}
+
+<main class="container">
+    <section>
+        <article>
+            {{$categoryID := .Item.CategoryID}}
+
+            <header>
+                <h2>{{.Item.Name}}</h2>
+            </header>
+
+            <form id="editListItemForm" method="POST" action="/item">
+                <input type="hidden" name="redirect" value="{{.Redirect}}" />
+                <input type="hidden" name="id" value="{{ if .Item.ID }}{{.Item.ID}}{{ end }}" />
+
+                <fieldset>
+                    <legend><h3>Details</h3></legend>
+
+                    <label>Category<br/>
+                        <select name="categoryID" aria-label="Category" required style="width: 30%">
+                            <option {{if not $categoryID}}selected{{end}} disabled value="">Category</option>
+                            {{ range .Categories }}
+                            <option value="{{.ID}}" {{if eq .ID $categoryID}}selected{{end}}>{{.Name}}</option>
+                            {{ end }}
+                        </select>
+                    </label>
+
+                    <label>Name
+                        <input type="text" name="name" placeholder="Name" minlength="3" required value="{{.Item.Name}}" />
+                    </label>
+                </fieldset>
+
+                {{ if .Item.List }}
+                <fieldset>
+                    <legend>
+                        <h3>Grocery List</h3>
+                    </legend>
+
+                    <label>Quantity
+                        <input type="text"
+                            name="quantity"
+                            placeholder="Quantity"
+                            value="{{.Item.List.Quantity}}"
+                        />
+                    </label>
+                </fieldset>
+                {{ end }}
+            </form>
+
+            <footer>
+                <nav>
+                    <ul>
+                        <li>
+                            <button class="primary bi bi-pencil-square" form="editListItemForm"> Save</button>
+                            {{ if .Item.List }}
+                                <button class="secondary bi bi-bag-dash" form="removeFromListForm"> Remove</button>
+                            {{ else }}
+                                <button class="secondary bi bi-bag-plus" form="addToListForm"> Add</button>
+                            {{ end }}
+                        </li>
+                    </ul>
+
+                    <ul>
+                        <li>
+                            <button
+                                class="tertiary confirm bi bi-trash"
+                                role="delete"
+                                form="deleteItemForm"
+                                {{ if .Item.List }}disabled title="Remove this item from the list before deleting"{{end}}>
+                                    Delete
+                            </button>
+                        </li>
+                    </ul>
+            </footer>
+        </article>
+    </section>
+
+    <form id="removeFromListForm" action="/list/delete/{{.Item.ID}}" method="POST">
+        <input type="hidden" name="redirect" value="{{.Redirect}}" />
+    </form>
+    <form id="addToListForm" action="/list/add/{{.Item.ID}}" method="POST">
+        <input type="hidden" name="redirect" value="{{.Redirect}}" />
+    </form>
+    <form id="deleteItemForm" action="/item/delete/{{.Item.ID}}" method="POST">
+        <input type="hidden" name="redirect" value="{{.Redirect}}" />
+    </form>
+</main>
+
+{{ template "footer.gohtml" . }}

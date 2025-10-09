@@ -7,6 +7,7 @@ URL = "http://localhost:3000"
 DEV = "true"
 LOG_LEVEL = "info"
 
+REDIS_HOST = "localhost:6379"
 DB_TYPE = "postgres"
 DATABASE_URL = "postgresql://postgres:root@127.0.0.1:5432/{{vars.filename}}"
 GOOSE_DRIVER = "postgres"
@@ -22,12 +23,12 @@ filename = 'groceries'
 
 [tasks.default]
 description = "Execute the app in development mode"
-depends = ["build", "docker", "ensure_db"]
+depends = ["dependencies", "test", "lint", "build"]
 run = ["./{{vars.filename}}"]
 
 [tasks.build]
 description = "Build the server binary"
-depends = ["dependencies", "test", "lint"]
+depends = ["dependencies"]
 env.CGO_ENABLED = "0"
 run = ["go build -o ./{{vars.filename}}"]
 
@@ -46,14 +47,9 @@ env.DEV = "false"
 env.CGO_ENABLED = 1                                    # Required for -race
 run = ["go test -race -covermode=atomic -cover ./..."]
 
-[tasks.ensure_db]
-description = "Ensures that the db is created upon first launch of postgres"
-depends = ["docker"]
-run = "docker compose exec --env PGPASSWORD=root postgres createdb -U postgres {{vars.filename}} || true"
-
 [tasks.seed]
 description = "Populate the database with seeds"
-depends = ["docker", "ensure_db"]
+depends = []
 env.GOOSE_MIGRATION_DIR = "./internal/db/seeds"
 run = ["go tool goose --no-versioning up"]
 

@@ -10,90 +10,38 @@ import (
 	"github.com/taiidani/groceries/internal/models"
 )
 
-func (s *Server) listItemGetHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
-		return
-	}
-
-	type bag struct {
-		ID       int
-		Name     string
-		Quantity string
-	}
-	item, err := models.GetListItem(r.Context(), id)
-	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
-		return
-	}
-
-	data := bag{
-		ID:       item.ID,
-		Name:     item.Name,
-		Quantity: item.Quantity,
-	}
-
-	template := "list_item.gohtml"
-	renderHtml(w, http.StatusOK, template, data)
-}
-
-func (s *Server) listItemSaveHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.FormValue("id"))
-	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
-		return
-	}
-
-	item, err := models.GetListItem(r.Context(), id)
-	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
-		return
-	}
-	item.Quantity = r.FormValue("quantity")
-
-	// Validate inputs
-	if err := item.Validate(r.Context()); err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
-		return
-	}
-
-	// Update the item
-	err = models.EditListItemQuantity(r.Context(), item.ID, item.Quantity)
-	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
-		return
-	}
-
-	// Broadcast the change
-	s.sseServer.Publish(r.Context(), sseEventList, nil)
-
-	http.Redirect(w, r, "/", http.StatusFound)
-}
-
 func (s *Server) listAddHandler(w http.ResponseWriter, r *http.Request) {
-	item, err := models.GetItemByName(r.Context(), r.FormValue("name"))
+	var item models.Item
+	var err error
 	switch {
-	case err == nil:
-	case errors.Is(err, sql.ErrNoRows):
-		// The item doesn't exist yet. That's okay!
-		// Let's create a new one
-		newItem := models.Item{
-			Name:       r.FormValue("name"),
-			CategoryID: models.UncategorizedCategoryID,
+	case r.FormValue("name") != "":
+		item, err = models.GetItemByName(r.Context(), r.FormValue("name"))
+		if errors.Is(err, sql.ErrNoRows) {
+			// The item doesn't exist yet. That's okay!
+			// Let's create a new one
+			item = models.Item{
+				Name:       r.FormValue("name"),
+				CategoryID: models.UncategorizedCategoryID,
+			}
+			err = models.AddItem(r.Context(), item)
+			if err != nil {
+				errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("unable to add item: %w", err))
+				return
+			}
+
+			item, err = models.GetItemByName(r.Context(), r.FormValue("name"))
 		}
-		err = models.AddItem(r.Context(), newItem)
-		if err != nil {
-			errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("unable to add item: %w", err))
+	case r.PathValue("id") != "":
+		id, convErr := strconv.Atoi(r.PathValue("id"))
+		if convErr != nil {
+			errorResponse(w, r, http.StatusBadRequest, convErr)
 			return
 		}
 
-		item, err = models.GetItemByName(r.Context(), r.FormValue("name"))
-		if err != nil {
-			errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("unable to retrieve added item: %w", err))
-			return
-		}
-	default:
+		item, err = models.GetItem(r.Context(), id)
+	}
+
+	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -107,11 +55,11 @@ func (s *Server) listAddHandler(w http.ResponseWriter, r *http.Request) {
 	// Broadcast the change
 	s.sseServer.Publish(r.Context(), sseEventList, nil)
 
-	http.Redirect(w, r, "/", http.StatusFound)
+	http.Redirect(w, r, fmt.Sprintf("/item/%d", item.ID), http.StatusFound)
 }
 
 func (s *Server) listDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	err := models.DeleteFromList(r.Context(), r.FormValue("id"))
+	err := models.DeleteFromList(r.Context(), r.PathValue("id"))
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
@@ -120,7 +68,7 @@ func (s *Server) listDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	// Broadcast the change
 	s.sseServer.Publish(r.Context(), sseEventList, nil)
 
-	http.Redirect(w, r, "/", http.StatusFound)
+	http.Redirect(w, r, "/item/"+r.PathValue("id"), http.StatusFound)
 }
 
 func (s *Server) listDoneHandler(w http.ResponseWriter, r *http.Request) {

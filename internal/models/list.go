@@ -6,10 +6,11 @@ import (
 )
 
 type ListItem struct {
-	ID       int
-	ItemID   int
-	Quantity string
-	Done     bool
+	ID         int
+	ItemID     int
+	CategoryID string
+	Quantity   string
+	Done       bool
 
 	Name string
 }
@@ -54,7 +55,7 @@ func GetListItem(ctx context.Context, id int) (*ListItem, error) {
 	}
 
 	row := db.QueryRowContext(ctx, `
-SELECT item_list.id, item_list.item_id, item.name, item_list.quantity, item_list.done
+SELECT item_list.id, item_list.item_id, item.name, item.category_id, item_list.quantity, item_list.done
 FROM item_list
 INNER JOIN item ON (item_list.item_id = item.id)
 WHERE item_list.id = $1`, id)
@@ -63,7 +64,7 @@ WHERE item_list.id = $1`, id)
 	}
 
 	ret := &ListItem{}
-	if err := row.Scan(&ret.ID, &ret.ItemID, &ret.Name, &ret.Quantity, &ret.Done); err != nil {
+	if err := row.Scan(&ret.ID, &ret.ItemID, &ret.Name, &ret.CategoryID, &ret.Quantity, &ret.Done); err != nil {
 		return nil, err
 	}
 
@@ -76,11 +77,6 @@ func ListAddItem(ctx context.Context, id int, quantity string) error {
 	}
 
 	_, err := db.ExecContext(ctx, `INSERT INTO item_list (item_id, quantity) VALUES ($1, $2)`, id, quantity)
-	return err
-}
-
-func EditListItemQuantity(ctx context.Context, id int, quantity string) error {
-	_, err := db.ExecContext(ctx, `UPDATE item_list SET quantity = $2 WHERE id = $1`, id, quantity)
 	return err
 }
 

@@ -18,7 +18,12 @@ func (i *Item) CategoryName() string {
 }
 
 func (i *Item) Validate(ctx context.Context) error {
-	return nil
+	var err error
+	if i.List != nil {
+		err = errors.Join(err, i.List.Validate(ctx))
+	}
+
+	return err
 }
 
 func LoadItems(ctx context.Context) ([]Item, error) {
@@ -55,19 +60,22 @@ ORDER BY category.name, item.name`)
 	return ret, nil
 }
 
-func GetItem(ctx context.Context, id string) (Item, error) {
+func GetItem(ctx context.Context, id int) (Item, error) {
 	ret := Item{}
-	var inList *bool
+	var listID *int
 	err := db.QueryRowContext(ctx, `
-SELECT item.id, category_id, item.name, category.name AS category_name,
-	(SELECT TRUE FROM item_list WHERE item_list.item_id = item.id) AS in_list
+SELECT item.id, item.category_id, item.name, category.name AS category_name, item_list.id AS list_id
 FROM item
 LEFT JOIN category ON (item.category_id = category.id)
+LEFT JOIN item_list ON (item_list.item_id = item.id)
 WHERE item.id = $1`, id).
-		Scan(&ret.ID, &ret.CategoryID, &ret.Name, &ret.categoryName, &inList)
+		Scan(&ret.ID, &ret.CategoryID, &ret.Name, &ret.categoryName, &listID)
+	if err != nil {
+		return ret, err
+	}
 
-	if inList != nil {
-		ret.List = &ListItem{}
+	if listID != nil {
+		ret.List, err = GetListItem(ctx, *listID)
 	}
 
 	return ret, err
@@ -77,7 +85,7 @@ func GetItemByName(ctx context.Context, name string) (Item, error) {
 	ret := Item{}
 	var inList *bool
 	err := db.QueryRowContext(ctx, `
-SELECT item.id, category_id, item.name, category.name AS category_name,
+SELECT item.id, item.category_id, item.name, category.name AS category_name,
 	(SELECT TRUE FROM item_list WHERE item_list.item_id = item.id) AS in_list
 FROM item
 LEFT JOIN category ON (item.category_id = category.id)
@@ -117,12 +125,31 @@ func AddItem(ctx context.Context, item Item) error {
 }
 
 func EditItem(ctx context.Context, i Item) error {
-	_, err := db.ExecContext(ctx, `
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
+	_, err = db.ExecContext(ctx, `
 UPDATE item SET
 	category_id = $2,
 	name = $3
 WHERE id = $1`, i.ID, i.CategoryID, i.Name)
-	return err
+	if err != nil {
+		return errors.Join(tx.Rollback(), err)
+	}
+
+	if i.List != nil {
+		_, err := db.ExecContext(ctx, `
+UPDATE item_list SET
+	quantity = $2
+WHERE id = $1`, i.List.ID, i.List.Quantity)
+		if err != nil {
+			return errors.Join(tx.Rollback(), err)
+		}
+	}
+
+	return tx.Commit()
 }
 
 func DeleteItem(ctx context.Context, id string) error {

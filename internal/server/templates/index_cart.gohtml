@@ -19,7 +19,7 @@
             </button>
 
             <span class="name">
-                {{.Name}}
+                <a alt="Edit" href="/item/{{ .ID }}?redirect=/">{{.Name}}</a>
                 {{ if .List.Quantity }}
                     <br/><span class="soft">{{.List.Quantity}}</span>
                 {{ end }}

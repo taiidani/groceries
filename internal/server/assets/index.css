@@ -37,7 +37,7 @@
 
         --logo: url("/assets/apple-touch-icon.png");
         --text-color: #eee;
-        --link-color: var(--secondary-color);
+        --link-color: #eef;
         --background-color: #000000;
         --header-footer-background-color: #000022;
         --btn-primary-background: var(--primary-color);
@@ -63,13 +63,13 @@ body {
 a {
     color: var(--link-color);
     text-decoration: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
 }
 
-a:hover {
-    text-decoration: underline;
-}
-
-button a:hover {
+a button a:hover {
     text-decoration: none;
 }
 
@@ -81,35 +81,37 @@ img.htmx-indicator {
     display: none;
 }
 
-.htmx-request .htmx-indicator {
-    display: inline;
-}
+.htmx-request {
+    .htmx-indicator {
+        display: inline;
+    }
 
-.htmx-request.htmx-indicator {
-    display: inline;
+    &.htmx-indicator {
+        display: inline;
+    }
 }
 
 button {
     text-wrap: nowrap;
     cursor: pointer;
-}
 
-button.primary {
-    --pico-background-color: var(--primary-color) !important;
-    --pico-border-color: var(--btn-primary-border);
-    --pico-color: var(--pico-primary-inverse);
-}
+    &.primary {
+        --pico-background-color: var(--primary-color) !important;
+        --pico-border-color: var(--btn-primary-border);
+        --pico-color: var(--pico-primary-inverse);
+    }
 
-button.secondary {
-    --pico-background-color: var(--secondary-color) !important;
-    --pico-border-color: var(--btn-primary-border);
-    --pico-color: var(--pico-primary-inverse);
-}
+    &.secondary {
+        --pico-background-color: var(--secondary-color) !important;
+        --pico-border-color: var(--btn-primary-border);
+        --pico-color: var(--pico-primary-inverse);
+    }
 
-button.tertiary {
-    --pico-background-color: var(--tertiary-color) !important;
-    --pico-border-color: var(--btn-primary-border);
-    --pico-color: var(--pico-primary-inverse);
+    &.tertiary {
+        --pico-background-color: var(--tertiary-color) !important;
+        --pico-border-color: var(--btn-primary-border);
+        --pico-color: var(--pico-primary-inverse);
+    }
 }
 
 body > header,
@@ -161,42 +163,44 @@ body > header .logo {
 
 ul.lite {
     padding-left: 0;
+
+    li {
+        list-style: none;
+        display: flex;
+
+        .name {
+            flex-grow: 2;
+            padding: 0 1em;
+            text-overflow: ellipsis;
+        }
+    }
+
+    .dropdown {
+        min-width: 5rem;
+    }
 }
 
-ul.lite li {
-    list-style: none;
-    display: flex;
-}
+i {
+    &.primary {
+        background-color: var(--primary-color) !important;
+        color: var(--pico-primary-inverse);
+        padding: 0 0.5rem;
+        border-radius: 5px;
+    }
 
-ul.lite li .name {
-    flex-grow: 2;
-    padding: 0 1em;
-    text-overflow: ellipsis;
-}
+    &.secondary {
+        background-color: var(--secondary-color) !important;
+        color: var(--pico-primary-inverse);
+        padding: 0 0.5rem;
+        border-radius: 5px;
+    }
 
-ul.lite .dropdown {
-    min-width: 5rem;
-}
-
-i.primary {
-    background-color: var(--primary-color) !important;
-    color: var(--pico-primary-inverse);
-    padding: 0 0.5rem;
-    border-radius: 5px;
-}
-
-i.secondary {
-    background-color: var(--secondary-color) !important;
-    color: var(--pico-primary-inverse);
-    padding: 0 0.5rem;
-    border-radius: 5px;
-}
-
-i.tertiary {
-    background-color: var(--tertiary-color) !important;
-    color: var(--pico-primary-inverse);
-    padding: 0 0.5rem;
-    border-radius: 5px;
+    &.tertiary {
+        background-color: var(--tertiary-color) !important;
+        color: var(--pico-primary-inverse);
+        padding: 0 0.5rem;
+        border-radius: 5px;
+    }
 }
 
 .htmx-indicator {
@@ -210,5 +214,5 @@ i.tertiary {
 }
 
 .hide {
-    display: none;
+    display: none !important;
 }
