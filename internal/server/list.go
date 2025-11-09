@@ -55,7 +55,11 @@ func (s *Server) listAddHandler(w http.ResponseWriter, r *http.Request) {
 	// Broadcast the change
 	s.sseServer.Publish(r.Context(), sseEventList, nil)
 
-	http.Redirect(w, r, fmt.Sprintf("/item/%d", item.ID), http.StatusFound)
+	redirect := r.FormValue("redirect")
+	if redirect == "" {
+		redirect = fmt.Sprintf("/item/%d", item.ID)
+	}
+	http.Redirect(w, r, redirect, http.StatusFound)
 }
 
 func (s *Server) listDeleteHandler(w http.ResponseWriter, r *http.Request) {

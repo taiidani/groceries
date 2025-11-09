@@ -4,13 +4,9 @@
     <section>
         <article id="itemAdder">
           <header>Add Items <span class="htmx-indicator" aria-busy="true" /></header>
-            <form
-                id="itemAdderForm"
-                hx-post="/list/add"
-                hx-target="#itemAdder"
-                hx-select="#itemAdder"
-                hx-swap="outerHTML"
-                hx-indicator="closest article">
+            <form id="itemAdderForm" method="post" action="/list/add">
+                <input type="hidden" name="redirect" value="/" />
+
                 <fieldset role="group">
                     <div style="min-width: 50%;">
                         <input type="text" list="list-add-items" autocomplete="off" minlength="3" name="name" aria-label="Item" placeholder="Item" required />
