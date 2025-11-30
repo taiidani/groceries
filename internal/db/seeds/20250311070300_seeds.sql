@@ -1,5 +1,7 @@
 -- +goose Up
 -- +goose StatementBegin
+DELETE FROM "user";
+ALTER SEQUENCE user_id_seq RESTART WITH 1;
 DELETE FROM item_bag;
 ALTER SEQUENCE item_bag_id_seq RESTART WITH 1;
 DELETE FROM item_list;
