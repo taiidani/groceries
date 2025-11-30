@@ -65,6 +65,11 @@ func (s *Server) addRoutes(mux *http.ServeMux) {
 	mux.Handle("GET /login", sentryHandler.Handle(http.HandlerFunc(s.login)))
 	mux.Handle("GET /logout", sentryHandler.Handle(http.HandlerFunc(s.logout)))
 
+	mux.Handle("POST /admin/user/add", sentryHandler.Handle(s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.userAddHandler)))))
+	mux.Handle("POST /admin/user/delete/{id}", sentryHandler.Handle(s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.userDeleteHandler)))))
+	mux.Handle("POST /admin/user", sentryHandler.Handle(s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.userUpdateHandler)))))
+	mux.Handle("GET /admin", sentryHandler.Handle(s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.adminHandler)))))
+
 	mux.Handle("GET /items", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.itemsHandler))))
 	mux.Handle("GET /item/{id}", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.itemHandler))))
 	mux.Handle("POST /item", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.itemEditHandler))))
@@ -124,6 +129,7 @@ func getTemplate() (*template.Template, error) {
 
 type baseBag struct {
 	Session *models.Session
+	User    *models.User
 }
 
 func (s *Server) newBag(ctx context.Context) baseBag {
@@ -131,6 +137,10 @@ func (s *Server) newBag(ctx context.Context) baseBag {
 
 	if sess, ok := ctx.Value(sessionKey).(*models.Session); ok {
 		ret.Session = sess
+	}
+
+	if user, ok := ctx.Value(userKey).(*models.User); ok {
+		ret.User = user
 	}
 
 	return ret

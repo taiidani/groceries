@@ -90,6 +90,10 @@ INSERT INTO item_list (item_id, quantity, done) VALUES
 (4, '1 cup', TRUE),
 (5, '1.5oz', FALSE),
 (6, '0.5lb', FALSE);
+
+INSERT INTO "user" (id, name, admin) VALUES
+(1, 'admin', TRUE),
+(2, 'user', FALSE);
 -- +goose StatementEnd
 
 -- +goose Down

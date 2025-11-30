@@ -28,6 +28,9 @@
             </ul>
             {{ if .Session }}
             <ul>
+                {{ if .User }}
+                    <li><i class="bi bi-person"></i> {{ .User.Name }}</li>
+                {{ end }}
                 <li><a href="/logout"><button class="secondary"><i class="bi bi-door-closed"></i> Logout</button></a></li>
             </ul>
             {{ end }}

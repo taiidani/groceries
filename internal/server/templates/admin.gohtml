@@ -1,0 +1,54 @@
+{{ template "header.gohtml" . }}
+
+<main class="container">
+    <section>
+        <article id="userAdder">
+            <header>Add New User <span class="htmx-indicator" aria-busy="true" /></header>
+
+            <form id="addUserForm" method="post" action="/admin/user/add">
+                <input type="text" name="name" placeholder="Name" minlength="3" required value="" />
+
+                <label>
+                    <input type="checkbox" name="admin" />Admin
+                </label>
+            </form>
+
+            <footer>
+                <button type="submit" form="addUserForm" class="primary"><i class="bi bi-plus-circle"></i> Add</button>
+            </footer>
+        </article>
+
+        <article id="list">
+            <header>Users <span class="htmx-indicator" aria-busy="true" /></header>
+
+            <div id="list-users">
+            <table class="lite">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Admin</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                {{ range .Users }}
+                    <tr class="user">
+                        <td><strong>{{.Name}}</strong></td>
+                        <td>{{ if .Admin }}Yes{{ else }}No{{ end }}</td>
+                        <td>
+                            <button class="button tertiary"
+                                    hx-post="/admin/user/delete/{{.ID}}"
+                                    hx-target="closest tr"
+                                    hx-swap="delete"
+                                    hx-indicator="closest article">
+                                <i class="bi bi-x pointer"></i>
+                            </button>
+                        </td>
+                    </tr>
+                {{ end }}
+            </table>
+            </div>
+        </article>
+    </section>
+</main>
+
+{{ template "footer.gohtml" . }}
