@@ -12,7 +12,7 @@
         <li class="done" hx-vals='{"id": "{{.ID}}"}'>
             <button class="button secondary"
                 hx-post="/list/undone"
-                hx-target="closest tr"
+                hx-target="closest .done"
                 hx-swap="delete"
                 hx-indicator="closest article">
                 <i class="bi bi-cart-dash-fill pointer"></i>
