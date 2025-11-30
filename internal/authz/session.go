@@ -12,7 +12,7 @@ import (
 	"github.com/taiidani/groceries/internal/models"
 )
 
-const defaultSessionExpiration = time.Duration(time.Hour * 168)
+const defaultSessionExpiration = time.Duration(time.Hour * 720)
 
 func NewSession(ctx context.Context, sess models.Session, backend cache.Cache) (*http.Cookie, error) {
 	sessionKey := uuid.New().String()

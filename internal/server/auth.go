@@ -9,11 +9,6 @@ import (
 	"github.com/taiidani/groceries/internal/models"
 )
 
-type contextKey string
-
-var sessionKey contextKey = "session"
-var userKey contextKey = "user"
-
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	bag := s.newBag(r.Context())
 	template := "login.gohtml"

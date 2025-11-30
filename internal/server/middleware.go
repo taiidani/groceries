@@ -10,6 +10,11 @@ import (
 	"github.com/taiidani/groceries/internal/models"
 )
 
+type contextKey string
+
+var sessionKey contextKey = "session"
+var userKey contextKey = "user"
+
 func (s *Server) adminMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get the user from the context
