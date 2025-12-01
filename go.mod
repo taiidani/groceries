@@ -3,12 +3,12 @@ module github.com/taiidani/groceries
 go 1.24
 
 require (
-	github.com/getsentry/sentry-go v0.35.3
-	github.com/getsentry/sentry-go/slog v0.35.3
+	github.com/getsentry/sentry-go v0.40.0
+	github.com/getsentry/sentry-go/slog v0.40.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.7.6
-	github.com/pressly/goose/v3 v3.25.0
+	github.com/pressly/goose/v3 v3.26.0
 )
 
 require (
