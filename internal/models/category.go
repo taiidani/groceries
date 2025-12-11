@@ -91,7 +91,7 @@ ORDER BY name`, id)
 		return cat, err
 	}
 
-	if cat.StoreID != 0 {
+	if cat.StoreID != UncategorizedStoreID {
 		store, err := GetStore(ctx, cat.StoreID)
 		if err != nil {
 			return cat, err

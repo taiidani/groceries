@@ -17,11 +17,14 @@ ALTER SEQUENCE "group_id_seq" RESTART WITH 1;
 DELETE FROM "user";
 ALTER SEQUENCE user_id_seq RESTART WITH 1;
 
-INSERT INTO store (name) VALUES ('New Seasons');
-INSERT INTO store (name) VALUES ('Trader Joe''s');
+-- Repeat the row added via the migrations
+INSERT INTO store (id, name) VALUES (0, 'Uncategorized');
+INSERT INTO store (name) VALUES
+('New Seasons'),
+('Trader Joe''s');
 
 -- Repeat the row added via the migrations
-INSERT INTO category (id, name, store_id, description) VALUES (0, 'Uncategorized', 1, 'Default category for newly created items');
+INSERT INTO category (id, name, store_id, description) VALUES (0, 'Uncategorized', 0, 'Default category for newly created items');
 
 INSERT INTO category (name, store_id, description) VALUES
 ('Produce', 1, 'Only the freshest'),
@@ -30,6 +33,9 @@ INSERT INTO category (name, store_id, description) VALUES
 ('Household Items', 2, '');
 
 INSERT INTO item (category_id, name) VALUES
+(0, 'Free will'),
+(0, 'Love & Peace'),
+(0, 'Kindness'),
 (1, 'Breakfast sausage'),
 (1, 'Tofu'),
 (1, 'Pizza'),
@@ -95,12 +101,13 @@ INSERT INTO item (category_id, name) VALUES
 (1, 'Romaine lettuce');
 
 INSERT INTO item_list (item_id, quantity, done) VALUES
-(1, '1 package', FALSE),
-(2, '', FALSE),
-(3, '2', FALSE),
-(4, '1 cup', TRUE),
-(5, '1.5oz', FALSE),
-(6, '0.5lb', FALSE);
+(1, '', FALSE),
+(4, '1 package', FALSE),
+(5, '', FALSE),
+(6, '2', FALSE),
+(7, '1 cup', TRUE),
+(8, '1.5oz', FALSE),
+(9, '0.5lb', FALSE);
 
 INSERT INTO "group" (name) VALUES ('Smiths');
 INSERT INTO "group" (name) VALUES ('Jones');

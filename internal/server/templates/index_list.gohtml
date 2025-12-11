@@ -1,31 +1,34 @@
 <header>Grocery List <span class="htmx-indicator" aria-busy="true"></span></header>
 
 <div id="list-items">
-{{ range .ListCategories }}
-{{ if .Items }}
-    <details open="open">
-    <summary class="outline" title="{{.Description}}">{{ .Name }}</summary>
-    <ul class="lite">
-        {{ range .Items }}
-        <li class="item" hx-vals='{"id": "{{.ID}}"}'>
-            <button class="button primary"
-                hx-post="/list/done"
-                hx-target="closest .item"
-                hx-swap="delete"
-                hx-indicator="closest article">
-                <i class="bi bi-check-square pointer"></i>
-            </button>
+{{ range .List }}
+    <h2>{{ .Name }}</h2>
+    {{ range .Categories }}
+    {{ if .Items }}
+        <details open="open">
+        <summary class="outline" title="{{.Description}}">{{ .Name }}</summary>
+        <ul class="lite">
+            {{ range .Items }}
+            <li class="item" hx-vals='{"id": "{{.ID}}"}'>
+                <button class="button primary"
+                    hx-post="/list/done"
+                    hx-target="closest .item"
+                    hx-swap="delete"
+                    hx-indicator="closest article">
+                    <i class="bi bi-check-square pointer"></i>
+                </button>
 
-            <span class="name">
-                <a alt="Edit" href="/item/{{ .ID }}?redirect=/">{{.Name}}</a>
-                {{ if .List.Quantity }}
-                    <br/><span class="soft">{{.List.Quantity}}</span>
-                {{ end }}
-            </span>
-        </li>
-        {{ end }}
-    </ul>
-    </details>
-{{ end }}
+                <span class="name">
+                    <a alt="Edit" href="/item/{{ .ID }}?redirect=/">{{.Name}}</a>
+                    {{ if .List.Quantity }}
+                        <br/><span class="soft">{{.List.Quantity}}</span>
+                    {{ end }}
+                </span>
+            </li>
+            {{ end }}
+        </ul>
+        </details>
+    {{ end }}
+    {{ end }}
 {{ end }}
 </div>

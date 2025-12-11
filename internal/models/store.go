@@ -11,6 +11,8 @@ type Store struct {
 	Name string
 }
 
+const UncategorizedStoreID int = 0
+
 func (c *Store) Validate(ctx context.Context) error {
 	if len(c.Name) < 3 {
 		return errors.New("provided name needs to be at least 3 characters")

@@ -7,6 +7,11 @@ import (
 	"github.com/taiidani/groceries/internal/models"
 )
 
+type storeWithCategories struct {
+	models.Store
+	Categories []categoryWithItems
+}
+
 type categoryWithItems struct {
 	models.Category
 	Items []models.Item
@@ -51,10 +56,16 @@ func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) indexListHandler(w http.ResponseWriter, r *http.Request) {
 	type indexListBag struct {
 		baseBag
-		ListCategories []categoryWithItems
+		List []storeWithCategories
 	}
 
 	bag := indexListBag{baseBag: s.newBag(r.Context())}
+
+	stores, err := models.LoadStores(r.Context())
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
 
 	categories, err := models.LoadCategories(r.Context())
 	if err != nil {
@@ -68,25 +79,36 @@ func (s *Server) indexListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, cat := range categories {
-		addList := []models.Item{}
-		for _, item := range listItems {
-			if item.CategoryID != cat.ID {
+	for _, store := range stores {
+		addStore := storeWithCategories{Store: store}
+
+		for _, cat := range categories {
+			if cat.StoreID != addStore.Store.ID {
 				continue
-			} else if !item.List.Done {
-				addList = append(addList, item)
+			}
+
+			addItem := []models.Item{}
+			for _, item := range listItems {
+				if item.CategoryID != cat.ID {
+					continue
+				}
+				if item.List.Done {
+					continue
+				}
+
+				addItem = append(addItem, item)
+			}
+
+			if len(addItem) > 0 {
+				addStore.Categories = append(addStore.Categories, categoryWithItems{
+					Category: cat,
+					Items:    addItem,
+				})
 			}
 		}
 
-		if len(addList) > 0 {
-			bag.ListCategories = append(bag.ListCategories, categoryWithItems{
-				Category: models.Category{
-					ID:          cat.ID,
-					Description: cat.Description,
-					Name:        cat.Name,
-				},
-				Items: addList,
-			})
+		if len(addStore.Categories) > 0 {
+			bag.List = append(bag.List, addStore)
 		}
 	}
 
