@@ -8,6 +8,8 @@ import (
 
 type Category struct {
 	ID          string
+	StoreID     int
+	Store       *Store
 	Name        string
 	Description string
 	ItemCount   int
@@ -38,7 +40,7 @@ func (c *Category) Validate(ctx context.Context) error {
 
 func LoadCategories(ctx context.Context) ([]Category, error) {
 	rows, err := db.QueryContext(ctx, `
-SELECT id, name, description, (SELECT COUNT(id) FROM item WHERE item.category_id = category.id)
+SELECT id, store_id, name, description, (SELECT COUNT(id) FROM item WHERE item.category_id = category.id)
 FROM category
 ORDER BY name`)
 	if err != nil {
@@ -50,8 +52,16 @@ ORDER BY name`)
 	for rows.Next() {
 		// Load the category
 		var cat Category
-		if err := rows.Scan(&cat.ID, &cat.Name, &cat.Description, &cat.ItemCount); err != nil {
+		if err := rows.Scan(&cat.ID, &cat.StoreID, &cat.Name, &cat.Description, &cat.ItemCount); err != nil {
 			return nil, err
+		}
+
+		if cat.StoreID != 0 {
+			store, err := GetStore(ctx, cat.StoreID)
+			if err != nil {
+				return nil, err
+			}
+			cat.Store = &store
 		}
 
 		ret = append(ret, cat)
@@ -63,9 +73,9 @@ ORDER BY name`)
 	return ret, nil
 }
 
-func GetCategory(ctx context.Context, id string) (Category, error) {
+func GetCategory(ctx context.Context, id int) (Category, error) {
 	row := db.QueryRowContext(ctx, `
-SELECT id, name, description,
+SELECT id, store_id, name, description,
  (SELECT COUNT(id) FROM item WHERE item.category_id = category.id)
 FROM category
 WHERE id = $1
@@ -76,12 +86,24 @@ ORDER BY name`, id)
 
 	// Load the category
 	var cat Category
-	err := row.Scan(&cat.ID, &cat.Name, &cat.Description, &cat.ItemCount)
+	err := row.Scan(&cat.ID, &cat.StoreID, &cat.Name, &cat.Description, &cat.ItemCount)
+	if err != nil {
+		return cat, err
+	}
+
+	if cat.StoreID != 0 {
+		store, err := GetStore(ctx, cat.StoreID)
+		if err != nil {
+			return cat, err
+		}
+		cat.Store = &store
+	}
+
 	return cat, err
 }
 
 func AddCategory(ctx context.Context, cat Category) error {
-	_, err := db.ExecContext(ctx, "INSERT INTO category (name, description) VALUES ($1, $2)", cat.Name, cat.Description)
+	_, err := db.ExecContext(ctx, "INSERT INTO category (name, store_id, description) VALUES ($1, $2, $3)", cat.Name, cat.StoreID, cat.Description)
 	return err
 }
 
@@ -89,12 +111,25 @@ func EditCategory(ctx context.Context, cat Category) error {
 	_, err := db.ExecContext(ctx, `
 UPDATE category SET
 	name = $2,
-	description = $3
-WHERE id = $1`, cat.ID, cat.Name, cat.Description)
+	store_id = $3,
+	description = $4
+WHERE id = $1`, cat.ID, cat.Name, cat.StoreID, cat.Description)
 	return err
 }
 
 func DeleteCategory(ctx context.Context, id string) error {
+	// Prevent deletion if category is still in use
+	items, err := LoadItems(ctx)
+	if err != nil {
+		return fmt.Errorf("could not enumerate item categories: %w", err)
+	}
+
+	for _, item := range items {
+		if item.CategoryID == id {
+			return errors.New("category is still in use")
+		}
+	}
+
 	tx, err := db.Begin()
 	if err != nil {
 		return err

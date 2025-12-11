@@ -1,7 +1,5 @@
 -- +goose Up
 -- +goose StatementBegin
-DELETE FROM "user";
-ALTER SEQUENCE user_id_seq RESTART WITH 1;
 DELETE FROM item_bag;
 ALTER SEQUENCE item_bag_id_seq RESTART WITH 1;
 DELETE FROM item_list;
@@ -10,15 +8,26 @@ DELETE FROM item;
 ALTER SEQUENCE item_id_seq RESTART WITH 1;
 DELETE FROM category;
 ALTER SEQUENCE category_id_seq RESTART WITH 1;
+DELETE FROM "store";
+ALTER SEQUENCE "store_id_seq" RESTART WITH 1;
+DELETE FROM "user_group";
+ALTER SEQUENCE "user_group_id_seq" RESTART WITH 1;
+DELETE FROM "group";
+ALTER SEQUENCE "group_id_seq" RESTART WITH 1;
+DELETE FROM "user";
+ALTER SEQUENCE user_id_seq RESTART WITH 1;
+
+INSERT INTO store (name) VALUES ('New Seasons');
+INSERT INTO store (name) VALUES ('Trader Joe''s');
 
 -- Repeat the row added via the migrations
-INSERT INTO category (id, name, description) VALUES (0, 'Uncategorized', 'Default category for newly created items');
+INSERT INTO category (id, name, store_id, description) VALUES (0, 'Uncategorized', 1, 'Default category for newly created items');
 
-INSERT INTO category (name, description) VALUES
-('Produce', 'Only the freshest'),
-('Bulk Foods', 'Mostly nuts'),
-('Exotic Pets', 'Not a frequented aisle'),
-('Household Items', '');
+INSERT INTO category (name, store_id, description) VALUES
+('Produce', 1, 'Only the freshest'),
+('Bulk Foods', 1, 'Mostly nuts'),
+('Exotic Pets', 2, 'Not a frequented aisle'),
+('Household Items', 2, '');
 
 INSERT INTO item (category_id, name) VALUES
 (1, 'Breakfast sausage'),
@@ -93,9 +102,15 @@ INSERT INTO item_list (item_id, quantity, done) VALUES
 (5, '1.5oz', FALSE),
 (6, '0.5lb', FALSE);
 
+INSERT INTO "group" (name) VALUES ('Smiths');
+INSERT INTO "group" (name) VALUES ('Jones');
+
 INSERT INTO "user" (id, name, admin) VALUES
 (1, 'admin', TRUE),
 (2, 'user', FALSE);
+
+INSERT INTO "user_group" (user_id, group_id) VALUES (1, 1);
+INSERT INTO "user_group" (user_id, group_id) VALUES (2, 2);
 -- +goose StatementEnd
 
 -- +goose Down

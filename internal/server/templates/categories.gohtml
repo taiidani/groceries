@@ -4,8 +4,25 @@
     <article id="categoryAdder">
         <header>Add New Category <span class="htmx-indicator" aria-busy="true" /></header>
 
-        <form id="addCategoryForm" hx-post="/category/add" hx-target="#categoryAdder" hx-select="#categoryAdder" hx-swap="outerHTML">
-            {{ template "category.gohtml" .}}
+        <form id="addCategoryForm" method="post" action="/category/add">
+            <input type="text"
+                name="name"
+                placeholder="Category Name"
+                minlength="3"
+                maxlength="255"
+                required
+            />
+            <select name="storeID" aria-label="Store" required>
+                <option disabled value="">Store</option>
+                {{ range .Stores }}
+                <option value="{{.ID}}">{{.Name}}</option>
+                {{ end }}
+            </select>
+
+            <input type="text"
+                name="description"
+                placeholder="Description"
+            />
         </form>
 
         <footer>
@@ -13,66 +30,23 @@
         </footer>
     </article>
 
-    <article id="categories" hx-get="/categories" hx-disinherit="*" hx-select="#categories" hx-swap="outerHTML" hx-trigger="sse:category">
+    <article>
         <header>Categories <span class="htmx-indicator" aria-busy="true" /></header>
 
         <div id="categories-items">
             <ul class="lite">
             {{ range .Categories }}
-                <li class="category" hx-vals='{"id": "{{.ID}}"}'>
+                <li class="category">
                     <span class="name">
-                        {{ .Name }}
+                        <strong><a href="/category/{{.ID}}">{{ .Name }}</a></strong>
                         ({{ .ItemCount }} item{{ if ne .ItemCount 1 }}s{{end}})
-                        <br/><span class="soft">{{ .Description }}</span>
+                        <br/><em>{{ .Description }}</em>
                     </span>
-
-                    <details class="dropdown">
-                        <summary role="button">
-                            <i class="bi bi-three-dots"></i>
-                        </summary>
-                        <ul>
-                            <li>
-                                <a class="pointer edit"
-                                hx-get="/category/{{.ID}}"
-                                hx-indicator="closest article"
-                                hx-target="#editCategoryForm">
-                                <i class="bi bi-pencil-square" alt="Edit"></i> Edit
-                                </a>
-                            </li>
-                            {{ if eq .ItemCount 0 }}
-                            <li>
-                                <a class="pointer"
-                                hx-post="/category/delete"
-                                hx-target="closest .category"
-                                hx-swap="delete"
-                                hx-confirm="Are you sure? This will fully delete the category!"
-                                hx-indicator="closest article">
-                                <i class="bi bi-x-circle-fill"></i> Delete
-                                </a>
-                            </li>
-                            {{ end }}
-                        </ul>
-                    </details>
                 </li>
             {{ end }}
             </ul>
         </div>
     </article>
 </main>
-
-<dialog>
-  <article>
-    <header>
-        <h2>Edit Category</h2>
-    </header>
-    <form id="editCategoryForm" method="POST" action="/category">
-        {{ template "category.gohtml" }}
-    </form>
-    <footer>
-      <button class="secondary" role="cancel">Cancel</button>
-      <button class="primary" form="editCategoryForm"><i class="bi bi-pencil-square"></i> Save</button>
-    </footer>
-  </article>
-</dialog>
 
 {{ template "footer.gohtml" . }}

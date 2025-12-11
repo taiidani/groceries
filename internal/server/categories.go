@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/taiidani/groceries/internal/models"
 )
@@ -10,6 +11,7 @@ func (s *Server) categoriesHandler(w http.ResponseWriter, r *http.Request) {
 	type data struct {
 		baseBag
 		Categories []models.Category
+		Stores     []models.Store
 		Category   models.Category
 	}
 
@@ -23,28 +25,57 @@ func (s *Server) categoriesHandler(w http.ResponseWriter, r *http.Request) {
 
 	bag.Categories = categories
 
-	template := "categories.gohtml"
-	renderHtml(w, http.StatusOK, template, bag)
-}
-
-func (s *Server) categoryHandler(w http.ResponseWriter, r *http.Request) {
-	category, err := models.GetCategory(r.Context(), r.PathValue("id"))
+	bag.Stores, err = models.LoadStores(r.Context())
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	bag := struct {
+	template := "categories.gohtml"
+	renderHtml(w, http.StatusOK, template, bag)
+}
+
+func (s *Server) categoryHandler(w http.ResponseWriter, r *http.Request) {
+	type data struct {
+		baseBag
 		Category models.Category
-	}{Category: category}
+		Stores   []models.Store
+	}
+
+	bag := data{baseBag: s.newBag(r.Context())}
+
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		errorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	bag.Category, err = models.GetCategory(r.Context(), id)
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	bag.Stores, err = models.LoadStores(r.Context())
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
 
 	template := "category.gohtml"
 	renderHtml(w, http.StatusOK, template, bag)
 }
 
 func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
+	storeID, err := strconv.Atoi(r.FormValue("storeID"))
+	if err != nil {
+		errorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
 	newCategory := models.Category{
 		Name:        r.FormValue("name"),
+		StoreID:     storeID,
 		Description: r.FormValue("description"),
 	}
 
@@ -55,7 +86,7 @@ func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add the new category
-	err := models.AddCategory(r.Context(), newCategory)
+	err = models.AddCategory(r.Context(), newCategory)
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
@@ -68,9 +99,16 @@ func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) categoryEditHandler(w http.ResponseWriter, r *http.Request) {
+	storeID, err := strconv.Atoi(r.FormValue("storeID"))
+	if err != nil {
+		errorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
 	newCategory := models.Category{
 		ID:          r.FormValue("id"),
 		Name:        r.FormValue("name"),
+		StoreID:     storeID,
 		Description: r.FormValue("description"),
 	}
 
@@ -81,7 +119,7 @@ func (s *Server) categoryEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add the new category
-	err := models.EditCategory(r.Context(), newCategory)
+	err = models.EditCategory(r.Context(), newCategory)
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return

@@ -1,0 +1,51 @@
+{{ template "header.gohtml" . }}
+
+<main class="container">
+    <section>
+        <article>
+            <header>
+                <h2>{{.Store.Name}}</h2>
+            </header>
+
+            <form id="editStoreForm" method="POST" action="/store">
+                <input type="hidden" name="redirect" value="{{.Redirect}}" />
+                <input type="hidden" name="id" value="{{ if .Store.ID }}{{.Store.ID}}{{ end }}" />
+
+                <fieldset>
+                    <legend><h3>Details</h3></legend>
+
+                    <label>Name
+                        <input type="text" name="name" placeholder="Name" minlength="3" required value="{{.Store.Name}}" />
+                    </label>
+                </fieldset>
+            </form>
+
+            <footer>
+                <nav>
+                    <ul>
+                        <li>
+                            <button class="primary bi bi-pencil-square" form="editStoreForm"> Save</button>
+                        </li>
+                    </ul>
+
+                    <ul>
+                        <li>
+                            <button
+                                class="tertiary confirm bi bi-trash"
+                                role="delete"
+                                form="deleteStoreForm">
+                                    Delete
+                            </button>
+                        </li>
+                    </ul>
+            </footer>
+        </article>
+    </section>
+
+    <form id="deleteStoreForm" action="/store/delete" method="POST">
+        <input type="hidden" name="id" value="{{.Store.ID}}" />
+        <input type="hidden" name="redirect" value="{{.Redirect}}" />
+    </form>
+</main>
+
+{{ template "footer.gohtml" . }}

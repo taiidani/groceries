@@ -1,20 +1,66 @@
-{{ with .Category}}
-<input type="hidden"
-    name="id"
-    value="{{.ID}}"
-/>
-<input type="text"
-    name="name"
-    placeholder="Category Name"
-    minlength="3"
-    maxlength="255"
-    required
-    autofocus
-    value="{{.Name}}"
-/>
-<input type="text"
-    name="description"
-    placeholder="Description"
-    value="{{.Description}}"
-/>
-{{ end }}
+{{ template "header.gohtml" . }}
+
+<main class="container">
+    <section>
+        <article>
+            {{$storeID := .Category.StoreID}}
+
+            <header>
+                <h2>{{.Category.Name}}</h2>
+            </header>
+
+            <form id="editCategoryForm" method="POST" action="/category">
+                <input type="hidden" name="redirect" value="{{.Redirect}}" />
+                <input type="hidden" name="id" value="{{.Category.ID}}" />
+
+                <fieldset>
+                    <legend><h3>Details</h3></legend>
+
+                    <label>Store<br/>
+                        <select name="storeID" aria-label="Store" required style="width: 30%">
+                            <option {{if not $storeID}}selected{{end}} disabled value="">Store</option>
+                            {{ range .Stores }}
+                            <option value="{{.ID}}" {{if eq .ID $storeID}}selected{{end}}>{{.Name}}</option>
+                            {{ end }}
+                        </select>
+                    </label>
+
+                    <label>Name
+                        <input type="text" name="name" placeholder="Name" minlength="3" required value="{{.Category.Name}}" />
+                    </label>
+
+                    <label>Description
+                        <input type="text"  name="description" placeholder="Description" value="{{.Category.Description}}"  />
+                    </label>
+                </fieldset>
+            </form>
+
+            <footer>
+                <nav>
+                    <ul>
+                        <li>
+                            <button class="primary bi bi-pencil-square" form="editCategoryForm"> Save</button>
+                        </li>
+                    </ul>
+
+                    <ul>
+                        <li>
+                            <button
+                                class="tertiary confirm bi bi-trash"
+                                role="delete"
+                                form="deleteCategoryForm">
+                                    Delete
+                            </button>
+                        </li>
+                    </ul>
+            </footer>
+        </article>
+    </section>
+
+    <form id="deleteCategoryForm" action="/category/delete" method="POST">
+        <input type="hidden" name="id" value="{{.Category.ID}}" />
+        <input type="hidden" name="redirect" value="{{.Redirect}}" />
+    </form>
+</main>
+
+{{ template "footer.gohtml" . }}

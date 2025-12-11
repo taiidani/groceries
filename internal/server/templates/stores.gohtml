@@ -1,0 +1,39 @@
+{{ template "header.gohtml" . }}
+
+<main class="container">
+    <article id="storeAdder">
+        <header>Add New Store <span class="htmx-indicator" aria-busy="true" /></header>
+
+        <form id="addStoreForm" method="post" action="/store/add">
+            <input type="text"
+                name="name"
+                placeholder="Store Name"
+                minlength="3"
+                maxlength="255"
+                required
+            />
+        </form>
+
+        <footer>
+            <button type="submit" form="addStoreForm" class="primary"><i class="bi bi-folder-plus"></i> Add</button>
+        </footer>
+    </article>
+
+    <article>
+        <header>Stores <span class="htmx-indicator" aria-busy="true" /></header>
+
+        <div id="stores-items">
+            <ul class="lite">
+            {{ range .Stores }}
+                <li class="store">
+                    <span class="name">
+                        <a href="/store/{{ .ID }}">{{ .Name }}</a>
+                    </span>
+                </li>
+            {{ end }}
+            </ul>
+        </div>
+    </article>
+</main>
+
+{{ template "footer.gohtml" . }}

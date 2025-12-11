@@ -12,8 +12,11 @@ import (
 
 type contextKey string
 
-var sessionKey contextKey = "session"
-var userKey contextKey = "user"
+var (
+	sessionKey  contextKey = "session"
+	userKey     contextKey = "user"
+	redirectKey contextKey = "session"
+)
 
 func (s *Server) adminMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -56,6 +59,18 @@ func (s *Server) sessionMiddleware(next http.Handler) http.Handler {
 		}
 
 		ctx = context.WithValue(ctx, userKey, &user)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (s *Server) redirectMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL == nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), redirectKey, r.URL.Query().Get("redirect"))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
