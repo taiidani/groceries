@@ -44,7 +44,7 @@ jobs:
 
   upload:
     uses: taiidani/deploy-action/.github/workflows/publish-binary.yml@main
-    needs: [build, test]
+    needs: [build, lint, test]
     with:
       filename: "${{ needs.build.outputs.filename }}"
 
