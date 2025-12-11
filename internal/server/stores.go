@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
@@ -115,4 +116,73 @@ func (s *Server) storeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/stores", http.StatusFound)
+}
+
+type storeWithCategories struct {
+	models.Store
+	Categories []categoryWithItems
+}
+
+type categoryWithItems struct {
+	models.Category
+	Items []models.Item
+}
+
+type storeHierarchyInput struct {
+	ExcludeEmptyGroupings bool
+	ExcludeDoneItems      bool
+}
+
+func loadStoreHierarchy(ctx context.Context, input storeHierarchyInput) ([]storeWithCategories, error) {
+	ret := []storeWithCategories{}
+
+	stores, err := models.LoadStores(ctx)
+	if err != nil {
+		return ret, err
+	}
+
+	categories, err := models.LoadCategories(ctx)
+	if err != nil {
+		return ret, err
+	}
+
+	listItems, err := models.LoadList(ctx)
+	if err != nil {
+		return ret, err
+	}
+
+	for _, store := range stores {
+		addStore := storeWithCategories{Store: store}
+
+		for _, cat := range categories {
+			if cat.StoreID != addStore.Store.ID {
+				continue
+			}
+
+			addItem := []models.Item{}
+			for _, item := range listItems {
+				if item.CategoryID != cat.ID {
+					continue
+				}
+				if input.ExcludeDoneItems && item.List.Done {
+					continue
+				}
+
+				addItem = append(addItem, item)
+			}
+
+			if !input.ExcludeEmptyGroupings || len(addItem) > 0 {
+				addStore.Categories = append(addStore.Categories, categoryWithItems{
+					Category: cat,
+					Items:    addItem,
+				})
+			}
+		}
+
+		if !input.ExcludeEmptyGroupings || len(addStore.Categories) > 0 {
+			ret = append(ret, addStore)
+		}
+	}
+
+	return ret, nil
 }

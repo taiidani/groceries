@@ -34,17 +34,21 @@
         <header>Categories <span class="htmx-indicator" aria-busy="true" /></header>
 
         <div id="categories-items">
-            <ul class="lite">
             {{ range .Categories }}
-                <li class="category">
-                    <span class="name">
-                        <strong><a href="/category/{{.ID}}">{{ .Name }}</a></strong>
-                        ({{ .ItemCount }} item{{ if ne .ItemCount 1 }}s{{end}})
-                        <br/><em>{{ .Description }}</em>
-                    </span>
-                </li>
+                <h2>{{ .Name }}</h2>
+
+                <ul class="lite">
+                {{ range .Categories }}
+                    <li class="category">
+                        <span class="name">
+                            <strong><a href="/category/{{.ID}}">{{ .Name }}</a></strong>
+                            ({{ .ItemCount }} item{{ if ne .ItemCount 1 }}s{{end}})
+                            <br/><em>{{ .Description }}</em>
+                        </span>
+                    </li>
+                {{ end }}
+                </ul>
             {{ end }}
-            </ul>
         </div>
     </article>
 </main>

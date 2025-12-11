@@ -10,20 +10,19 @@ import (
 func (s *Server) categoriesHandler(w http.ResponseWriter, r *http.Request) {
 	type data struct {
 		baseBag
-		Categories []models.Category
+		Categories []storeWithCategories
 		Stores     []models.Store
 		Category   models.Category
 	}
 
 	bag := data{baseBag: s.newBag(r.Context())}
 
-	categories, err := models.LoadCategories(r.Context())
+	var err error
+	bag.Categories, err = loadStoreHierarchy(r.Context(), storeHierarchyInput{})
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
-
-	bag.Categories = categories
 
 	bag.Stores, err = models.LoadStores(r.Context())
 	if err != nil {

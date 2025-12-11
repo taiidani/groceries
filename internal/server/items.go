@@ -12,45 +12,27 @@ import (
 
 type itemsBag struct {
 	baseBag
-	Categories     []models.Category
-	ListCategories []categoryWithItems
-	Item           models.Item
+	Stores     []storeWithCategories
+	Categories []models.Category
+	Item       models.Item
 }
 
 func (s *Server) itemsHandler(w http.ResponseWriter, r *http.Request) {
 	bag := itemsBag{baseBag: s.newBag(r.Context())}
 
-	categories, err := models.LoadCategories(r.Context())
-	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
-		return
-	}
-	bag.Categories = categories
-
-	items, err := models.LoadItems(r.Context())
+	var err error
+	bag.Categories, err = models.LoadCategories(r.Context())
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	for _, cat := range categories {
-		add := []models.Item{}
-		for _, item := range items {
-			if item.CategoryID == cat.ID {
-				add = append(add, item)
-			}
-		}
-
-		if len(add) > 0 {
-			bag.ListCategories = append(bag.ListCategories, categoryWithItems{
-				Category: models.Category{
-					ID:          cat.ID,
-					Description: cat.Description,
-					Name:        cat.Name,
-				},
-				Items: add,
-			})
-		}
+	bag.Stores, err = loadStoreHierarchy(r.Context(), storeHierarchyInput{
+		ExcludeEmptyGroupings: true,
+	})
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
 	}
 
 	template := "items.gohtml"

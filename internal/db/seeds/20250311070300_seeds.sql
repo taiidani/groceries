@@ -28,9 +28,9 @@ INSERT INTO category (id, name, store_id, description) VALUES (0, 'Uncategorized
 
 INSERT INTO category (name, store_id, description) VALUES
 ('Produce', 1, 'Only the freshest'),
-('Bulk Foods', 1, 'Mostly nuts'),
+('Bulk Foods', 2, 'Mostly nuts'),
 ('Exotic Pets', 2, 'Not a frequented aisle'),
-('Household Items', 2, '');
+('Household Items', 1, '');
 
 INSERT INTO item (category_id, name) VALUES
 (0, 'Free will'),

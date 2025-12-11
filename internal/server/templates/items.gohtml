@@ -32,26 +32,30 @@
             </form>
 
             <div id="list-items" hx-get="/items" hx-disinherit="*" hx-select="#list-items" hx-swap="outerHTML" hx-trigger="sse:list">
-            {{ range .ListCategories }}
-            {{ if .Items }}
-                <details open="open">
-                <summary class="outline" title="{{.Description}}">{{ .Name }}</summary>
-                <ul class="lite" hx-vals='{"category": "{{.ID}}"}'>
-                    {{ range .Items }}
-                    <li class="item">
-                        <span>
-                            <a class="name" href="/item/{{.ID}}">
-                                {{.Name}}
-                            </a>
-                            {{ if .List }}
-                                <span class="tag">in-list</span>
-                            {{ end }}
-                        </span>
-                    </li>
-                    {{ end }}
-                </ul>
-                </details>
-            {{ end }}
+            {{ range .Stores }}
+                <h2>{{ .Name }}</h2>
+
+                {{ range .Categories }}
+                {{ if .Items }}
+                    <details open="open">
+                    <summary class="outline" title="{{.Description}}">{{ .Name }}</summary>
+                    <ul class="lite" hx-vals='{"category": "{{.ID}}"}'>
+                        {{ range .Items }}
+                        <li class="item">
+                            <span>
+                                <a class="name" href="/item/{{.ID}}">
+                                    {{.Name}}
+                                </a>
+                                {{ if .List }}
+                                    <span class="tag">in-list</span>
+                                {{ end }}
+                            </span>
+                        </li>
+                        {{ end }}
+                    </ul>
+                    </details>
+                {{ end }}
+                {{ end }}
             {{ end }}
             </div>
         </article>

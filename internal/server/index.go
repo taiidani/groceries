@@ -7,16 +7,6 @@ import (
 	"github.com/taiidani/groceries/internal/models"
 )
 
-type storeWithCategories struct {
-	models.Store
-	Categories []categoryWithItems
-}
-
-type categoryWithItems struct {
-	models.Category
-	Items []models.Item
-}
-
 func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 	type itemWithCategory struct {
 		Category string
@@ -61,55 +51,14 @@ func (s *Server) indexListHandler(w http.ResponseWriter, r *http.Request) {
 
 	bag := indexListBag{baseBag: s.newBag(r.Context())}
 
-	stores, err := models.LoadStores(r.Context())
+	var err error
+	bag.List, err = loadStoreHierarchy(r.Context(), storeHierarchyInput{
+		ExcludeDoneItems:      true,
+		ExcludeEmptyGroupings: true,
+	})
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
-	}
-
-	categories, err := models.LoadCategories(r.Context())
-	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
-		return
-	}
-
-	listItems, err := models.LoadList(r.Context())
-	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
-		return
-	}
-
-	for _, store := range stores {
-		addStore := storeWithCategories{Store: store}
-
-		for _, cat := range categories {
-			if cat.StoreID != addStore.Store.ID {
-				continue
-			}
-
-			addItem := []models.Item{}
-			for _, item := range listItems {
-				if item.CategoryID != cat.ID {
-					continue
-				}
-				if item.List.Done {
-					continue
-				}
-
-				addItem = append(addItem, item)
-			}
-
-			if len(addItem) > 0 {
-				addStore.Categories = append(addStore.Categories, categoryWithItems{
-					Category: cat,
-					Items:    addItem,
-				})
-			}
-		}
-
-		if len(addStore.Categories) > 0 {
-			bag.List = append(bag.List, addStore)
-		}
 	}
 
 	renderHtml(w, http.StatusOK, "index_list.gohtml", bag)
