@@ -131,6 +131,7 @@ type categoryWithItems struct {
 type storeHierarchyInput struct {
 	ExcludeEmptyGroupings bool
 	ExcludeDoneItems      bool
+	OnlyListItems         bool
 }
 
 func loadStoreHierarchy(ctx context.Context, input storeHierarchyInput) ([]storeWithCategories, error) {
@@ -146,7 +147,12 @@ func loadStoreHierarchy(ctx context.Context, input storeHierarchyInput) ([]store
 		return ret, err
 	}
 
-	listItems, err := models.LoadList(ctx)
+	var items []models.Item
+	if input.OnlyListItems {
+		items, err = models.LoadList(ctx)
+	} else {
+		items, err = models.LoadItems(ctx)
+	}
 	if err != nil {
 		return ret, err
 	}
@@ -160,7 +166,7 @@ func loadStoreHierarchy(ctx context.Context, input storeHierarchyInput) ([]store
 			}
 
 			addItem := []models.Item{}
-			for _, item := range listItems {
+			for _, item := range items {
 				if item.CategoryID != cat.ID {
 					continue
 				}

@@ -53,6 +53,7 @@ func (s *Server) indexListHandler(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 	bag.List, err = loadStoreHierarchy(r.Context(), storeHierarchyInput{
+		OnlyListItems:         true,
 		ExcludeDoneItems:      true,
 		ExcludeEmptyGroupings: true,
 	})
