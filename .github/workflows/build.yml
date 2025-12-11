@@ -28,20 +28,19 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: jdx/mise-action@v3
+      - run: mise run lint
+
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: jdx/mise-action@v3
-
-      - name: Vet
-        run: go vet ./...
-
-      - name: Staticcheck
-        run: staticcheck ./...
-
-      - name: Test
-        run: go test -race -covermode=atomic ./...
+      - run: mise run test
 
   upload:
     uses: taiidani/deploy-action/.github/workflows/publish-binary.yml@main
