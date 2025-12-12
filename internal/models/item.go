@@ -3,11 +3,12 @@ package models
 import (
 	"context"
 	"errors"
+	"fmt"
 )
 
 type Item struct {
 	ID           int
-	CategoryID   string
+	CategoryID   int
 	Name         string
 	List         *ListItem
 	categoryName string
@@ -17,13 +18,22 @@ func (i *Item) CategoryName() string {
 	return i.categoryName
 }
 
+func (i *Item) Category(ctx context.Context) (Category, error) {
+	return GetCategory(ctx, i.CategoryID)
+}
+
 func (i *Item) Validate(ctx context.Context) error {
-	var err error
-	if i.List != nil {
-		err = errors.Join(err, i.List.Validate(ctx))
+	var vErr error
+
+	if _, err := GetCategory(ctx, i.CategoryID); err != nil {
+		vErr = errors.Join(vErr, fmt.Errorf("category not found: %w", err))
 	}
 
-	return err
+	if i.List != nil {
+		vErr = errors.Join(vErr, i.List.Validate(ctx))
+	}
+
+	return vErr
 }
 
 func LoadItems(ctx context.Context) ([]Item, error) {
@@ -104,17 +114,21 @@ func ItemChangeCategory(ctx context.Context, id int, categoryID int) error {
 	return err
 }
 
-func AddItem(ctx context.Context, item Item) error {
+func AddItem(ctx context.Context, i Item) error {
+	if err := i.Validate(ctx); err != nil {
+		return fmt.Errorf("invalid item: %w", err)
+	}
+
 	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
 
-	if item.ID == 0 {
+	if i.ID == 0 {
 		_, err = insertWithID(ctx, tx,
 			`INSERT INTO item (category_id, name) VALUES ($1, $2) RETURNING id`,
-			item.CategoryID,
-			item.Name,
+			i.CategoryID,
+			i.Name,
 		)
 		if err != nil {
 			return errors.Join(tx.Rollback(), err)
@@ -125,6 +139,10 @@ func AddItem(ctx context.Context, item Item) error {
 }
 
 func EditItem(ctx context.Context, i Item) error {
+	if err := i.Validate(ctx); err != nil {
+		return fmt.Errorf("invalid item: %w", err)
+	}
+
 	tx, err := db.Begin()
 	if err != nil {
 		return err

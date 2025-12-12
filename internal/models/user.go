@@ -16,12 +16,12 @@ type User struct {
 }
 
 func (u *User) Validate(ctx context.Context) error {
-	var err error
+	var vErr error
 	if u.Name == "" {
-		err = errors.Join(err, errors.New("username must be valid"))
+		vErr = errors.Join(vErr, errors.New("username must be valid"))
 	}
 
-	return err
+	return vErr
 }
 
 func LoadUsers(ctx context.Context) ([]User, error) {
@@ -90,20 +90,24 @@ WHERE u.name = $1`, name).
 	return ret, err
 }
 
-func AddUser(ctx context.Context, user User) error {
+func AddUser(ctx context.Context, u User) error {
+	if err := u.Validate(ctx); err != nil {
+		return fmt.Errorf("invalid user: %w", err)
+	}
+
 	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
 
-	if user.ID != 0 {
+	if u.ID != 0 {
 		return errors.New("resource already had an id assigned")
 	}
 
-	user.ID, err = insertWithID(ctx, tx,
+	u.ID, err = insertWithID(ctx, tx,
 		`INSERT INTO "user" (name, admin) VALUES ($1, $2) RETURNING id`,
-		user.Name,
-		user.Admin,
+		u.Name,
+		u.Admin,
 	)
 	if err != nil {
 		return errors.Join(tx.Rollback(), err)
@@ -113,6 +117,10 @@ func AddUser(ctx context.Context, user User) error {
 }
 
 func EditUser(ctx context.Context, u User) error {
+	if err := u.Validate(ctx); err != nil {
+		return fmt.Errorf("invalid user: %w", err)
+	}
+
 	tx, err := db.Begin()
 	if err != nil {
 		return err
@@ -130,7 +138,7 @@ WHERE id = $1`, u.ID, u.Name, u.Admin)
 	return tx.Commit()
 }
 
-func DeleteUser(ctx context.Context, id string) error {
+func DeleteUser(ctx context.Context, id int) error {
 	_, err := db.ExecContext(ctx, `DELETE FROM "user" WHERE id = $1`, id)
 	return err
 }

@@ -7,35 +7,60 @@ import (
 )
 
 type Category struct {
-	ID          string
+	ID          int
 	StoreID     int
-	Store       *Store
 	Name        string
 	Description string
 	ItemCount   int
 }
 
-const UncategorizedCategoryID string = "0"
+const UncategorizedCategoryID int = 0
+
+func (c *Category) Store(ctx context.Context) (Store, error) {
+	return GetStore(ctx, c.StoreID)
+}
+
+func (c *Category) Items(ctx context.Context) ([]Item, error) {
+	items, err := LoadItems(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var ret []Item
+	for _, item := range items {
+		if item.CategoryID == c.ID {
+			ret = append(ret, item)
+		}
+	}
+
+	return ret, nil
+}
 
 func (c *Category) Validate(ctx context.Context) error {
+	var vErr error
+
 	if len(c.Name) < 3 {
-		return errors.New("provided name needs to be at least 3 characters")
+		vErr = errors.Join(vErr, errors.New("provided name needs to be at least 3 characters"))
+	}
+
+	if _, err := GetStore(ctx, c.StoreID); err != nil {
+		vErr = errors.Join(vErr, fmt.Errorf("store not found: %w", err))
 	}
 
 	// Check for existing category
-	if c.ID == "" {
-		existingCategories, err := LoadCategories(ctx)
-		if err != nil {
-			return fmt.Errorf("could not load categories: %w", err)
-		}
-		for _, cat := range existingCategories {
-			if cat.Name == c.Name {
-				return errors.New("category already found")
+	if c.ID == 0 {
+		if existingCategories, err := LoadCategories(ctx); err != nil {
+			vErr = errors.Join(vErr, fmt.Errorf("could not load categories: %w", err))
+		} else {
+			for _, cat := range existingCategories {
+				if cat.Name == c.Name {
+					vErr = errors.Join(vErr, errors.New("category already exists"))
+				}
 			}
 		}
 	}
 
-	return nil
+	return vErr
 }
 
 func LoadCategories(ctx context.Context) ([]Category, error) {
@@ -54,14 +79,6 @@ ORDER BY name`)
 		var cat Category
 		if err := rows.Scan(&cat.ID, &cat.StoreID, &cat.Name, &cat.Description, &cat.ItemCount); err != nil {
 			return nil, err
-		}
-
-		if cat.StoreID != 0 {
-			store, err := GetStore(ctx, cat.StoreID)
-			if err != nil {
-				return nil, err
-			}
-			cat.Store = &store
 		}
 
 		ret = append(ret, cat)
@@ -91,23 +108,23 @@ ORDER BY name`, id)
 		return cat, err
 	}
 
-	if cat.StoreID != UncategorizedStoreID {
-		store, err := GetStore(ctx, cat.StoreID)
-		if err != nil {
-			return cat, err
-		}
-		cat.Store = &store
-	}
-
 	return cat, err
 }
 
 func AddCategory(ctx context.Context, cat Category) error {
+	if err := cat.Validate(ctx); err != nil {
+		return fmt.Errorf("invalid category: %w", err)
+	}
+
 	_, err := db.ExecContext(ctx, "INSERT INTO category (name, store_id, description) VALUES ($1, $2, $3)", cat.Name, cat.StoreID, cat.Description)
 	return err
 }
 
 func EditCategory(ctx context.Context, cat Category) error {
+	if err := cat.Validate(ctx); err != nil {
+		return fmt.Errorf("invalid category: %w", err)
+	}
+
 	_, err := db.ExecContext(ctx, `
 UPDATE category SET
 	name = $2,
@@ -117,7 +134,7 @@ WHERE id = $1`, cat.ID, cat.Name, cat.StoreID, cat.Description)
 	return err
 }
 
-func DeleteCategory(ctx context.Context, id string) error {
+func DeleteCategory(ctx context.Context, id int) error {
 	// Prevent deletion if category is still in use
 	items, err := LoadItems(ctx)
 	if err != nil {

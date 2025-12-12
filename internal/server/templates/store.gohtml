@@ -28,6 +28,7 @@
                         </li>
                     </ul>
 
+                    {{ if not .Categories }}
                     <ul>
                         <li>
                             <button
@@ -38,8 +39,21 @@
                             </button>
                         </li>
                     </ul>
+                    {{ end }}
             </footer>
         </article>
+
+        {{ if .Categories }}
+        <article>
+            <header>Categories <span class="htmx-indicator" aria-busy="true" /></header>
+
+            <ul class="lite">
+                {{ range .Categories }}
+                <li><a href="/category/{{.ID}}">{{.Name}}</a></li>
+                {{ end }}
+            </ul>
+        </article>
+        {{ end }}
     </section>
 
     <form id="deleteStoreForm" action="/store/delete" method="POST">

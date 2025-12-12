@@ -14,24 +14,26 @@ type Store struct {
 const UncategorizedStoreID int = 0
 
 func (c *Store) Validate(ctx context.Context) error {
+	var vErr error
+
 	if len(c.Name) < 3 {
-		return errors.New("provided name needs to be at least 3 characters")
+		vErr = errors.Join(vErr, errors.New("provided name needs to be at least 3 characters"))
 	}
 
 	// Check for existing Store
 	if c.ID == 0 {
 		existing, err := LoadStores(ctx)
 		if err != nil {
-			return fmt.Errorf("could not load stores: %w", err)
+			vErr = errors.Join(vErr, fmt.Errorf("could not load stores: %w", err))
 		}
 		for _, data := range existing {
 			if data.Name == c.Name {
-				return errors.New("store already found")
+				vErr = errors.Join(vErr, errors.New("store already found"))
 			}
 		}
 	}
 
-	return nil
+	return vErr
 }
 
 func LoadStores(ctx context.Context) ([]Store, error) {
@@ -77,11 +79,19 @@ WHERE id = $1`, id)
 }
 
 func AddStore(ctx context.Context, data Store) error {
+	if err := data.Validate(ctx); err != nil {
+		return fmt.Errorf("invalid store: %w", err)
+	}
+
 	_, err := db.ExecContext(ctx, "INSERT INTO store (name) VALUES ($1)", data.Name)
 	return err
 }
 
 func EditStore(ctx context.Context, data Store) error {
+	if err := data.Validate(ctx); err != nil {
+		return fmt.Errorf("invalid store: %w", err)
+	}
+
 	_, err := db.ExecContext(ctx, `
 UPDATE store SET
 	name = $2
@@ -113,4 +123,20 @@ func DeleteStore(ctx context.Context, id int) error {
 	}
 
 	return tx.Commit()
+}
+
+func (s *Store) Categories(ctx context.Context) ([]Category, error) {
+	categories, err := LoadCategories(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var ret []Category
+	for _, category := range categories {
+		if category.StoreID == s.ID {
+			ret = append(ret, category)
+		}
+	}
+
+	return ret, nil
 }

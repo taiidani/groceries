@@ -12,24 +12,15 @@ import (
 
 type itemsBag struct {
 	baseBag
-	Stores     []storeWithCategories
-	Categories []models.Category
-	Item       models.Item
+	Stores []storeWithCategories
+	Item   models.Item
 }
 
 func (s *Server) itemsHandler(w http.ResponseWriter, r *http.Request) {
 	bag := itemsBag{baseBag: s.newBag(r.Context())}
 
 	var err error
-	bag.Categories, err = models.LoadCategories(r.Context())
-	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
-		return
-	}
-
-	bag.Stores, err = loadStoreHierarchy(r.Context(), storeHierarchyInput{
-		ExcludeEmptyGroupings: true,
-	})
+	bag.Stores, err = loadStoreHierarchy(r.Context(), storeHierarchyInput{})
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
@@ -78,21 +69,9 @@ func (s *Server) itemHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) itemAddHandler(w http.ResponseWriter, r *http.Request) {
-	categories, err := models.LoadCategories(r.Context())
+	categoryID, err := strconv.Atoi(r.FormValue("categoryID"))
 	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
-		return
-	}
-
-	categoryID := r.FormValue("categoryID")
-	var category *models.Category
-	for i, cat := range categories {
-		if cat.ID == categoryID {
-			category = &categories[i]
-		}
-	}
-	if category == nil {
-		errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("provided category not found"))
+		errorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
@@ -131,16 +110,15 @@ func (s *Server) itemEditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item.CategoryID = r.FormValue("categoryID")
+	item.CategoryID, err = strconv.Atoi(r.FormValue("categoryID"))
+	if err != nil {
+		errorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
 	item.Name = r.FormValue("name")
 	if item.List != nil {
 		item.List.Quantity = r.FormValue("quantity")
-	}
-
-	// Validate inputs
-	if err := item.Validate(r.Context()); err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
-		return
 	}
 
 	// Add the new item

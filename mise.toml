@@ -28,6 +28,8 @@ run = ["./{{vars.filename}}"]
 [tasks.build]
 description = "Build the server binary"
 depends = ["dependencies"]
+sources = ["internal/**/*.go", "main.go", "go.*"]
+outputs = ["./{{vars.filename}}"]
 env.CGO_ENABLED = "0"
 run = ["go build -o ./{{vars.filename}}"]
 

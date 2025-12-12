@@ -32,7 +32,8 @@ func (s *Server) storesHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) storeHandler(w http.ResponseWriter, r *http.Request) {
 	type data struct {
 		baseBag
-		Store models.Store
+		Store      models.Store
+		Categories []models.Category
 	}
 
 	bag := data{baseBag: s.newBag(r.Context())}
@@ -49,6 +50,12 @@ func (s *Server) storeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	bag.Categories, err = bag.Store.Categories(r.Context())
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
 	template := "store.gohtml"
 	renderHtml(w, http.StatusOK, template, bag)
 }
@@ -56,12 +63,6 @@ func (s *Server) storeHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) storeAddHandler(w http.ResponseWriter, r *http.Request) {
 	newStore := models.Store{
 		Name: r.FormValue("name"),
-	}
-
-	// Validate inputs
-	if err := newStore.Validate(r.Context()); err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
-		return
 	}
 
 	// Add the new Store
@@ -84,12 +85,6 @@ func (s *Server) storeEditHandler(w http.ResponseWriter, r *http.Request) {
 	newStore := models.Store{
 		ID:   id,
 		Name: r.FormValue("name"),
-	}
-
-	// Validate inputs
-	if err := newStore.Validate(r.Context()); err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
-		return
 	}
 
 	// Add the new Store

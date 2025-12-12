@@ -12,24 +12,13 @@ type Group struct {
 }
 
 func (c *Group) Validate(ctx context.Context) error {
+	var vErr error
+
 	if len(c.Name) < 3 {
-		return errors.New("provided name needs to be at least 3 characters")
+		vErr = errors.Join(vErr, errors.New("provided name needs to be at least 3 characters"))
 	}
 
-	// Check for existing Group
-	if c.ID == 0 {
-		existing, err := LoadGroups(ctx)
-		if err != nil {
-			return fmt.Errorf("could not load groups: %w", err)
-		}
-		for _, data := range existing {
-			if data.Name == c.Name {
-				return errors.New("group already found")
-			}
-		}
-	}
-
-	return nil
+	return vErr
 }
 
 func LoadGroups(ctx context.Context) ([]Group, error) {

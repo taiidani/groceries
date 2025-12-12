@@ -77,7 +77,13 @@ func (s *Server) userAddHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) userDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	err := models.DeleteUser(r.Context(), r.PathValue("id"))
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = models.DeleteUser(r.Context(), id)
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return

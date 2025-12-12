@@ -38,6 +38,7 @@ func (s *Server) categoryHandler(w http.ResponseWriter, r *http.Request) {
 	type data struct {
 		baseBag
 		Category models.Category
+		Items    []models.Item
 		Stores   []models.Store
 	}
 
@@ -50,6 +51,12 @@ func (s *Server) categoryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	bag.Category, err = models.GetCategory(r.Context(), id)
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	bag.Items, err = bag.Category.Items(r.Context())
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
@@ -78,12 +85,6 @@ func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 		Description: r.FormValue("description"),
 	}
 
-	// Validate inputs
-	if err := newCategory.Validate(r.Context()); err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
-		return
-	}
-
 	// Add the new category
 	err = models.AddCategory(r.Context(), newCategory)
 	if err != nil {
@@ -98,6 +99,12 @@ func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) categoryEditHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.FormValue("id"))
+	if err != nil {
+		errorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
 	storeID, err := strconv.Atoi(r.FormValue("storeID"))
 	if err != nil {
 		errorResponse(w, r, http.StatusBadRequest, err)
@@ -105,16 +112,10 @@ func (s *Server) categoryEditHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newCategory := models.Category{
-		ID:          r.FormValue("id"),
+		ID:          id,
 		Name:        r.FormValue("name"),
 		StoreID:     storeID,
 		Description: r.FormValue("description"),
-	}
-
-	// Validate inputs
-	if err := newCategory.Validate(r.Context()); err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
-		return
 	}
 
 	// Add the new category
@@ -131,7 +132,13 @@ func (s *Server) categoryEditHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) categoryDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	err := models.DeleteCategory(r.Context(), r.FormValue("id"))
+	id, err := strconv.Atoi(r.FormValue("id"))
+	if err != nil {
+		errorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	err = models.DeleteCategory(r.Context(), id)
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
