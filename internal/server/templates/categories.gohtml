@@ -1,43 +1,55 @@
 {{ template "header.gohtml" . }}
 
-<main class="container">
-    <article id="categoryAdder">
-        <header>Add New Category <span class="htmx-indicator" aria-busy="true" /></header>
+<main class="responsive">
+    <article id="categoryAdder" class="large-blur">
+        <header><h5><i>add</i> Add New Category <span class="loading-indicator" aria-busy="true" /></h5></header>
 
         <form id="addCategoryForm" method="post" action="/category/add">
-            <input type="text"
-                name="name"
-                placeholder="Category Name"
-                minlength="3"
-                maxlength="255"
-                required
-            />
-            <select name="storeID" aria-label="Store" required>
-                <option disabled value="">Store</option>
-                {{ range .Stores }}
-                <option value="{{.ID}}">{{.Name}}</option>
-                {{ end }}
-            </select>
+            <div class="field label border">
+                <input type="text"
+                    name="name"
+                    placeholder="Category Name"
+                    minlength="3"
+                    maxlength="255"
+                    required
+                />
+                <label for="name">Category Name</label>
+            </div>
 
-            <input type="text"
-                name="description"
-                placeholder="Description"
-            />
+            <div class="field label border suffix">
+                <select name="storeID" aria-label="Store" required>
+                    <option disabled value="">Store</option>
+                    {{ range .Stores }}
+                    <option value="{{.ID}}">{{.Name}}</option>
+                    {{ end }}
+                </select>
+                <label for="storeID">Store</label>
+                <i>arrow_drop_down</i>
+            </div>
+
+            <div class="field label border">
+                <input type="text"
+                    name="description"
+                    placeholder="Description"
+                />
+                <label for="description">Description</label>
+            </div>
+
         </form>
 
         <footer>
-            <button type="submit" form="addCategoryForm" class="primary"><i class="bi bi-folder-plus"></i> Add</button>
+            <button type="submit" form="addCategoryForm" class="primary"><i>add</i> Add</button>
         </footer>
     </article>
 
-    <article>
-        <header>Categories <span class="htmx-indicator" aria-busy="true" /></header>
+    <article class="large-blur">
+        <header><h5><i>category</i> Categories <span class="loading-indicator" aria-busy="true" /></h5></header>
 
         <div id="categories-items">
             {{ range .Categories }}
-                <h2>{{ .Name }}</h2>
+                <h6>{{ .Name }}</h6>
 
-                <ul class="lite">
+                <ul>
                 {{ range .Categories }}
                     <li class="category">
                         <span class="name">

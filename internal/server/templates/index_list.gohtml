@@ -1,28 +1,28 @@
-<header>Grocery List <span class="htmx-indicator" aria-busy="true"></span></header>
+<header><h5><i>shopping_cart</i> Grocery List <span class="loading-indicator" aria-busy="true"></span></h5></header>
+
+<progress value="{{ .TotalDone }}" max="{{ .Total }}"></progress>
 
 <div id="list-items">
 {{ range .List }}
-    <h2>{{ .Name }}</h2>
+    <h6>{{ .Name }}</h6>
     {{ range .Categories }}
     {{ if .Items }}
         <details open="open">
-        <summary class="outline" title="{{.Description}}">{{ .Name }}</summary>
-        <ul class="lite">
+        <summary title="{{.Description}}"><strong>{{ .Name }}</strong></summary>
+        <ul class="list border">
             {{ range .Items }}
             <li class="item" hx-vals='{"id": "{{.ID}}"}'>
-                <button class="button primary"
+                <button class="circle"
                     hx-post="/list/done"
                     hx-target="closest .item"
                     hx-swap="delete"
                     hx-indicator="closest article">
-                    <i class="bi bi-check-square pointer"></i>
+                    <i>add_shopping_cart</i>
                 </button>
 
                 <span class="name">
                     <a alt="Edit" href="/item/{{ .ID }}?redirect=/">{{.Name}}</a>
-                    {{ if .List.Quantity }}
-                        <br/><span class="soft">{{.List.Quantity}}</span>
-                    {{ end }}
+                    <div><em>{{ if .List.Quantity }}{{.List.Quantity}}{{ end }}</em></div>
                 </span>
             </li>
             {{ end }}

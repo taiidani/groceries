@@ -1,28 +1,24 @@
-<header>Shopping Cart <span class="htmx-indicator" aria-busy="true" /></header>
-
-<progress value="{{ .TotalDone }}" max="{{ .Total }}"></progress>
+<header><h5><i>shopping_cart</i> Shopping Cart <span class="loading-indicator" aria-busy="true" /></h5></header>
 
 <div>
 {{ range .DoneCategories }}
 {{ if .Items }}
     <details open="open">
-    <summary class="outline">{{ .Name }}</summary>
-    <ul class="lite">
+    <summary class="outline"><strong>{{ .Name }}</strong></summary>
+    <ul class="list border">
         {{ range .Items }}
         <li class="done" hx-vals='{"id": "{{.ID}}"}'>
-            <button class="button secondary"
+            <button class="circle tertiary"
                 hx-post="/list/undone"
                 hx-target="closest .done"
                 hx-swap="delete"
                 hx-indicator="closest article">
-                <i class="bi bi-cart-dash-fill pointer"></i>
+                <i>remove_shopping_cart</i>
             </button>
 
             <span class="name">
                 <a alt="Edit" href="/item/{{ .ID }}?redirect=/">{{.Name}}</a>
-                {{ if .List.Quantity }}
-                    <br/><span class="soft">{{.List.Quantity}}</span>
-                {{ end }}
+                <div><em>{{ if .List.Quantity }}{{.List.Quantity}}{{ end }}</em></div>
             </span>
         </li>
         {{ end }}
@@ -33,13 +29,13 @@
 </div>
 
 <footer>
-    <button class="primary"
+    <button
         hx-post="/list/finish"
         hx-target="#shopping-list"
         hx-select="#shopping-list"
         hx-swap="outerHTML"
         hx-indicator="closest article">
-            <i class="bi bi-cart-check"></i>
+            <i>check</i>
             Check Out
     </button>
 </footer>

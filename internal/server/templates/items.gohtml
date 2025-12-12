@@ -1,15 +1,16 @@
 {{ template "header.gohtml" . }}
 
-<main class="container">
+<main class="responsive">
     <section>
-        <article id="itemAdder" hx-get="/items" hx-select="#itemAdder" hx-swap="outerHTML" hx-trigger="sse:category">
-            <header>Add New Item <span class="htmx-indicator" aria-busy="true" /></header>
+        <article id="itemAdder" class="large-blur" hx-get="/items" hx-select="#itemAdder" hx-swap="outerHTML" hx-trigger="sse:category">
+            <header><h5><i>add</i> Add New Item <span class="loading-indicator" aria-busy="true" /></h5></header>
 
             <form id="addItemForm" hx-post="/item/add" hx-target="#itemAdder" hx-select="#itemAdder" hx-swap="outerHTML">
                 {{$categoryID := .Item.CategoryID}}
-                <fieldset role="group">
-                    <input type="hidden" name="id" value="{{.Item.ID}}" />
-                    <select name="categoryID" aria-label="Category" required style="width: 30%">
+                <input type="hidden" name="id" value="{{.Item.ID}}" />
+
+                <div class="field label border suffix">
+                    <select name="categoryID" aria-label="Category">
                         <option {{if not $categoryID}}selected{{end}} disabled value="">Category</option>
                         {{ range .Stores }}
                         <optgroup label="{{ .Name }}">
@@ -19,32 +20,44 @@
                         </optgroup>
                         {{ end }}
                     </select>
+                    <label for="categoryID">Category</label>
+                    <i>arrow_drop_down</i>
+                </div>
+
+                <div class="field label border">
                     <input type="text" name="name" placeholder="Name" minlength="3" required value="{{.Item.Name}}" />
-                </fieldset>
+                    <label for="name">Name</label>
+                </div>
             </form>
 
             <footer>
-                <button type="submit" form="addItemForm" class="primary"><i class="bi bi-plus-circle"></i> Add</button>
+                <button type="submit" form="addItemForm"><i>add</i> Add</button>
             </footer>
         </article>
 
-        <article id="list">
-            <header>Items <span class="htmx-indicator" aria-busy="true" /></header>
+        <article id="list" class="large-blur">
+            <header><h5><i>grocery</i> Items <span class="loading-indicator" aria-busy="true" /></h5></header>
 
             <form role="search" search-target="#list-items">
-                <input name="search" type="search" placeholder="Search" />
+                <div class="field label suffix border round">
+                    <input name="search" type="search" placeholder="Search" />
+                    <label for="search">Search</label>
+                    <i class="front">search</i>
+                </div>
             </form>
+
+            <br/>
 
             <div id="list-items" hx-get="/items" hx-disinherit="*" hx-select="#list-items" hx-swap="outerHTML" hx-trigger="sse:list">
             {{ range .Stores }}
                 {{ if .Categories }}
-                <h2>{{ .Name }}</h2>
+                <h6>{{ .Name }}</h6>
 
                 {{ range .Categories }}
                     {{ if .Items }}
                     <details open="open">
-                    <summary class="outline" title="{{.Description}}">{{ .Name }}</summary>
-                    <ul class="lite" hx-vals='{"category": "{{.ID}}"}'>
+                    <summary class="outline" title="{{.Description}}"><strong>{{ .Name }}</strong></summary>
+                    <ul hx-vals='{"category": "{{.ID}}"}'>
                         {{ range .Items }}
                         <li class="item">
                             <span>

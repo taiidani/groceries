@@ -1,20 +1,27 @@
 {{ template "header.gohtml" .}}
 
-<main class="container">
+<main class="responsive">
     <section>
-        <article>
-            <header>Login</header>
+        <article class="large-blur">
+            <header><h5><i>login</i> Login</h5></header>
+
             <p>Log in for access to this site.</p>
 
-            <p>
-                <form method="POST" action="/auth">
-                    <fieldset role="group">
-                        <input type="text" name="username" placeholder="Username" autofocus required />
-                        <input type="password" name="password" placeholder="Password" required />
-                        <button type="submit">Login</button>
-                    </fieldset>
-                </form>
-            </p>
+            <form id="loginForm" method="POST" action="/auth">
+                <div class="field label border">
+                    <input type="text" name="username" placeholder="Username" autofocus required />
+                    <label for="username">Username</label>
+                </div>
+
+                <div class="field label border">
+                    <input type="password" name="password" placeholder="Password" required />
+                    <label for="password">Password</label>
+                </div>
+            </form>
+
+            <footer>
+                    <button form="loginForm" type="submit"><i>login</i> Login</button>
+            </footer>
         </article>
     </section>
 </main>

@@ -46,7 +46,9 @@ func (s *Server) indexHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) indexListHandler(w http.ResponseWriter, r *http.Request) {
 	type indexListBag struct {
 		baseBag
-		List []storeWithCategories
+		Total     int
+		TotalDone int
+		List      []storeWithCategories
 	}
 
 	bag := indexListBag{baseBag: s.newBag(r.Context())}
@@ -62,14 +64,37 @@ func (s *Server) indexListHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	categories, err := models.LoadCategories(r.Context())
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	listItems, err := models.LoadList(r.Context())
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	for _, cat := range categories {
+		for _, item := range listItems {
+			if item.CategoryID != cat.ID {
+				continue
+			} else if item.List.Done {
+				bag.Total++
+				bag.TotalDone++
+			} else {
+				bag.Total++
+			}
+		}
+	}
+
 	renderHtml(w, http.StatusOK, "index_list.gohtml", bag)
 }
 
 func (s *Server) indexCartHandler(w http.ResponseWriter, r *http.Request) {
 	type indexCartBag struct {
 		baseBag
-		Total          int
-		TotalDone      int
 		DoneCategories []categoryWithItems
 	}
 
@@ -93,11 +118,7 @@ func (s *Server) indexCartHandler(w http.ResponseWriter, r *http.Request) {
 			if item.CategoryID != cat.ID {
 				continue
 			} else if item.List.Done {
-				bag.Total++
-				bag.TotalDone++
 				addDone = append(addDone, item)
-			} else {
-				bag.Total++
 			}
 		}
 

@@ -1,68 +1,60 @@
 {{ template "header.gohtml" . }}
 
-<main class="container">
+<main class="responsive">
     <section>
-        <article>
+        <article class="large-blur">
             {{$storeID := .Category.StoreID}}
-
-            <header>
-                <h2>{{.Category.Name}}</h2>
-            </header>
+            <header><h5><i>category</i> {{.Category.Name}}</h5></header>
 
             <form id="editCategoryForm" method="POST" action="/category">
                 <input type="hidden" name="redirect" value="{{.Redirect}}" />
                 <input type="hidden" name="id" value="{{.Category.ID}}" />
 
-                <fieldset>
-                    <legend><h3>Details</h3></legend>
+                <div class="field label border suffix">
+                    <select name="storeID" aria-label="Store" required>
+                        <option {{if not $storeID}}selected{{end}} disabled value="">Store</option>
+                        {{ range .Stores }}
+                        <option value="{{.ID}}" {{if eq .ID $storeID}}selected{{end}}>{{.Name}}</option>
+                        {{ end }}
+                    </select>
+                    <label for="storeID">Store</label>
+                    <i>arrow_drop_down</i>
+                </div>
 
-                    <label>Store<br/>
-                        <select name="storeID" aria-label="Store" required style="width: 30%">
-                            <option {{if not $storeID}}selected{{end}} disabled value="">Store</option>
-                            {{ range .Stores }}
-                            <option value="{{.ID}}" {{if eq .ID $storeID}}selected{{end}}>{{.Name}}</option>
-                            {{ end }}
-                        </select>
-                    </label>
+                <div class="field label border">
+                    <input type="text" name="name" placeholder="Name" minlength="3" required value="{{.Category.Name}}" />
+                    <label for="name">Name</label>
+                </div>
 
-                    <label>Name
-                        <input type="text" name="name" placeholder="Name" minlength="3" required value="{{.Category.Name}}" />
-                    </label>
-
-                    <label>Description
-                        <input type="text"  name="description" placeholder="Description" value="{{.Category.Description}}"  />
-                    </label>
-                </fieldset>
+                <div class="field label border">
+                    <input type="text" name="description" placeholder="Description" value="{{.Category.Description}}"  />
+                    <label for="description">Description</label>
+                </div>
             </form>
 
             <footer>
                 <nav>
-                    <ul>
-                        <li>
-                            <button class="primary bi bi-pencil-square" form="editCategoryForm"> Save</button>
-                        </li>
-                    </ul>
+                    <button form="editCategoryForm"><i>save</i> Save</button>
+                    <span class="max"></span>
 
                     {{ if not .Items }}
-                    <ul>
-                        <li>
-                            <button
-                                class="tertiary confirm bi bi-trash"
-                                role="delete"
-                                form="deleteCategoryForm">
-                                    Delete
-                            </button>
-                        </li>
-                    </ul>
+                    <button
+                        class="error"
+                        role="delete"
+                        form="deleteCategoryForm">
+                            <i>delete</i>
+                            Delete
+                    </button>
                     {{ end }}
+                </nav>
             </footer>
         </article>
 
         {{ if .Items }}
-        <article>
-            <header>Items <span class="htmx-indicator" aria-busy="true" /></header>
+        <article class="large-blur">
+            <header><h5><i>grocery</i> Items <span class="loading-indicator" aria-busy="true" /></h5></header>
 
-            <ul class="lite">
+            <ul>
                 {{ range .Items }}
                 <li><a href="/item/{{.ID}}">{{.Name}}</a></li>
                 {{ end }}

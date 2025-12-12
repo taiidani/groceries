@@ -1,33 +1,34 @@
 {{ template "header.gohtml" . }}
 
-<main class="container">
+<main class="responsive">
     <section>
-        <article>
+        <article class="large-blur">
             {{$categoryID := .Item.CategoryID}}
 
-            <header>
-                <h2>{{.Item.Name}}</h2>
-            </header>
+            <header><h5><i>grocery</i> {{.Item.Name}}</h5></header>
 
             <form id="editListItemForm" method="POST" action="/item">
                 <input type="hidden" name="redirect" value="{{.Redirect}}" />
-                <input type="hidden" name="id" value="{{ if .Item.ID }}{{.Item.ID}}{{ end }}" />
+                <input type="hidden" name="id" value="{{.Item.ID}}" />
 
                 <fieldset>
                     <legend><h3>Details</h3></legend>
 
-                    <label>Category<br/>
-                        <select name="categoryID" aria-label="Category" required style="width: 30%">
+                    <div class="field label suffix border">
+                        <select name="categoryID" aria-label="Category">
                             <option {{if not $categoryID}}selected{{end}} disabled value="">Category</option>
                             {{ range .Categories }}
                             <option value="{{.ID}}" {{if eq .ID $categoryID}}selected{{end}}>{{.Name}}</option>
                             {{ end }}
                         </select>
-                    </label>
+                        <label for="categoryID">Category</label>
+                        <i>arrow_drop_down</i>
+                    </div>
 
-                    <label>Name
+                    <div class="field label border">
                         <input type="text" name="name" placeholder="Name" minlength="3" required value="{{.Item.Name}}" />
-                    </label>
+                        <label for="name">Name</label>
+                    </div>
                 </fieldset>
 
                 {{ if .Item.List }}
@@ -36,41 +37,36 @@
                         <h3>Grocery List</h3>
                     </legend>
 
-                    <label>Quantity
+                    <div class="field label border">
                         <input type="text"
                             name="quantity"
                             placeholder="Quantity"
                             value="{{.Item.List.Quantity}}"
                         />
-                    </label>
+                        <label for="quantity">Quantity</label>
+                    </div>
                 </fieldset>
                 {{ end }}
             </form>
 
             <footer>
                 <nav>
-                    <ul>
-                        <li>
-                            <button class="primary bi bi-pencil-square" form="editListItemForm"> Save</button>
-                            {{ if .Item.List }}
-                                <button class="secondary bi bi-bag-dash" form="removeFromListForm"> Remove</button>
-                            {{ else }}
-                                <button class="secondary bi bi-bag-plus" form="addToListForm"> Add</button>
-                            {{ end }}
-                        </li>
-                    </ul>
+                    <button form="editListItemForm"><i>save</i> Save</button>
+                    {{ if .Item.List }}
+                        <button form="removeFromListForm"><i>remove</i> Remove</button>
+                    {{ else }}
+                        <button class="secondary" form="addToListForm"><i>add</i> Add</button>
+                    {{ end }}
+                    <span class="max"></span>
 
-                    <ul>
-                        <li>
-                            <button
-                                class="tertiary confirm bi bi-trash"
-                                role="delete"
-                                form="deleteItemForm"
-                                {{ if .Item.List }}disabled title="Remove this item from the list before deleting"{{end}}>
-                                    Delete
-                            </button>
-                        </li>
-                    </ul>
+                    <button
+                        class="error"
+                        role="delete"
+                        form="deleteItemForm"
+                        {{ if .Item.List }}disabled title="Remove this item from the list before deleting"{{end}}>
+                            <i>delete</i> Delete
+                    </button>
+                </nav>
             </footer>
         </article>
     </section>

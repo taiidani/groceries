@@ -1,7 +1,7 @@
 {{ template "header.gohtml" . }}
 
-<main class="container">
-    <article>
+<main class="responsive">
+    <article class="large-blur">
         <h2>{{ if .Title }}{{ .Title }}{{ else }}Error{{ end }}</h2>
 
         <code>{{ .Message }}</code>

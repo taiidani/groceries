@@ -1,32 +1,36 @@
 {{ template "header.gohtml" . }}
 
-<main class="container">
+<main class="responsive">
     <section>
-        <article id="itemAdder">
-          <header>Add Items <span class="htmx-indicator" aria-busy="true" /></header>
+        <article id="itemAdder" class="large-blur">
+          <header><h5><i>add</i> Add Items <span class="loading-indicator" aria-busy="true" /></h5></header>
             <form id="itemAdderForm" method="post" action="/list/add">
                 <input type="hidden" name="redirect" value="/" />
 
-                <fieldset role="group">
-                    <div style="min-width: 50%;">
-                        <input type="text" list="list-add-items" autocomplete="off" minlength="3" name="name" aria-label="Item" placeholder="Item" required />
-                        <datalist id="list-add-items">
-                            {{ range .Items}}
-                            <option value="{{.Name}}" label="{{.Category}} - {{.Name}}"></option>
-                            {{ end }}
-                        </datalist>
-                    </div>
-                    <input type="text" name="quantity" placeholder="Quantity" />
+                <div class="field label border">
+                    <input type="text" list="list-add-items" autocomplete="off" minlength="3" name="name" id="name" aria-label="Item" placeholder="Name" required />
+                    <label for="name">Name</label>
+                    <datalist id="list-add-items">
+                        {{ range .Items}}
+                        <option value="{{.Name}}" label="{{.Category}} - {{.Name}}"></option>
+                        {{ end }}
+                    </datalist>
+                </div>
 
-                    <button type="submit" class="primary"><i class="bi bi-bag-plus" alt="Add"></i></button>
-                </fieldset>
+                <div class="field label border">
+                    <input type="text" name="quantity" id="quantity" placeholder="Quantity" />
+                    <label for="quantity">Quantity</label>
+                </div>
             </form>
+            <footer>
+                <button form="itemAdderForm" type="submit"><i alt="Add">add</i> Add</button>
+            </footer>
         </article>
     </section>
 
     <section id="shopping-list">
-        <article id="list" hx-get="/list" hx-trigger="load, sse:list"></article>
-        <article id="cart" hx-get="/cart" hx-trigger="load, sse:cart"></article>
+        <article id="list" class="large-blur" hx-get="/list" hx-trigger="load, sse:list"></article>
+        <article id="cart" class="large-blur" hx-get="/cart" hx-trigger="load, sse:cart"></article>
     </section>
 </main>
 

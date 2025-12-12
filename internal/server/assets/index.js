@@ -13,23 +13,6 @@ if (itemAdderForm) {
   });
 }
 
-// Modal dialogs
-document.querySelectorAll("dialog").forEach(function (dialog) {
-  dialog.addEventListener("htmx:afterSwap", function (evt) {
-    dialog.showModal();
-  });
-
-  dialog.addEventListener("click", function (evt) {
-    if (evt.target.getAttribute("role") == "cancel") {
-      dialog.close();
-    }
-  });
-
-  dialog.addEventListener("submit", function (evt) {
-    dialog.close();
-  });
-});
-
 // Item adder form
 if (itemAdderForm) {
   itemAdderForm.name.addEventListener("keydown", function (evt) {
