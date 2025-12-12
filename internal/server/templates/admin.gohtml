@@ -2,7 +2,7 @@
 
 <main class="container">
     <section>
-        <article id="userAdder">
+        <article>
             <header>Add New User <span class="htmx-indicator" aria-busy="true" /></header>
 
             <form id="addUserForm" method="post" action="/admin/user/add">
@@ -18,10 +18,10 @@
             </footer>
         </article>
 
-        <article id="list">
+        <article>
             <header>Users <span class="htmx-indicator" aria-busy="true" /></header>
 
-            <div id="list-users">
+            <div>
             <table class="lite">
                 <thead>
                     <tr>
@@ -34,6 +34,47 @@
                     <tr class="user">
                         <td><strong>{{.Name}}</strong></td>
                         <td>{{ if .Admin }}Yes{{ else }}No{{ end }}</td>
+                        <td>
+                            <button class="button tertiary"
+                                    hx-post="/admin/user/delete/{{.ID}}"
+                                    hx-target="closest tr"
+                                    hx-swap="delete"
+                                    hx-indicator="closest article">
+                                <i class="bi bi-x pointer"></i>
+                            </button>
+                        </td>
+                    </tr>
+                {{ end }}
+            </table>
+            </div>
+        </article>
+
+        <article>
+            <header>Add New Group <span class="htmx-indicator" aria-busy="true" /></header>
+
+            <form id="addGroupForm" method="post" action="/admin/group/add">
+                <input type="text" name="name" placeholder="Name" minlength="3" required value="" />
+            </form>
+
+            <footer>
+                <button type="submit" form="addGroupForm" class="primary"><i class="bi bi-plus-circle"></i> Add</button>
+            </footer>
+        </article>
+
+        <article>
+            <header>Groups <span class="htmx-indicator" aria-busy="true" /></header>
+
+            <div>
+            <table class="lite">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                {{ range .Groups }}
+                    <tr class="user">
+                        <td><strong>{{.Name}}</strong></td>
                         <td>
                             <button class="button tertiary"
                                     hx-post="/admin/user/delete/{{.ID}}"
