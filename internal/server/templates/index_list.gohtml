@@ -1,6 +1,9 @@
-<header><h5><i>shopping_cart</i> Grocery List <span class="loading-indicator" aria-busy="true"></span></h5></header>
-
-<progress value="{{ .TotalDone }}" max="{{ .Total }}"></progress>
+<header>
+    <h5>
+        <span class="max"><i>shopping_cart</i> Grocery List </span></span>
+        <progress class="wavy" value="{{ .TotalDone }}" max="{{ .Total }}"></progress>
+    </h5>
+</header>
 
 <div id="list-items">
 {{ range .List }}
