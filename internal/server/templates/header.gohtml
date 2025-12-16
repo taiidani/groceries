@@ -22,10 +22,19 @@
 <body hx-ext="sse" sse-connect="/sse" sse-close="close">
     <header class="fill">
         <nav>
-            <button class="transparent"><a href="/"><i>shopping_cart</i> Groceries</a></button>
-            <button class="transparent"><a href="/items"><i>grocery</i> Items</a></button>
-            <button class="transparent"><a href="/categories"><i>category</i> Categories</a></button>
-            <button class="transparent"><a href="/stores"><i>store</i> Stores</a></button>
+            <button class="transparent s m">
+                <i>menu</i>
+                <menu class="no-wrap">
+                    <li><a href="/"><i>shopping_cart</i> Groceries</a></li>
+                    <li><a href="/items"><i>grocery</i> Items</a></li>
+                    <li><a href="/categories"><i>category</i> Categories</a></li>
+                    <li><a href="/stores"><i>store</i> Stores</a></li>
+                </menu>
+            </button>
+            <button class="transparent l"><a href="/"><i>shopping_cart</i> Groceries</a></button>
+            <button class="transparent l"><a href="/items"><i>grocery</i> Items</a></button>
+            <button class="transparent l"><a href="/categories"><i>category</i> Categories</a></button>
+            <button class="transparent l"><a href="/stores"><i>store</i> Stores</a></button>
             <span class="max"></span>
 
             {{ if .Session }}
