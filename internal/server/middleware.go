@@ -15,7 +15,7 @@ type contextKey string
 var (
 	sessionKey  contextKey = "session"
 	userKey     contextKey = "user"
-	redirectKey contextKey = "session"
+	redirectKey contextKey = "redirect"
 )
 
 func (s *Server) adminMiddleware(next http.Handler) http.Handler {
