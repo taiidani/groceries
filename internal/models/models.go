@@ -1,3 +1,6 @@
+// Package models provides data models and database operations for the groceries application.
+// It includes models for users, groups, items, categories, stores, and shopping lists,
+// along with their associated database CRUD operations.
 package models
 
 import (

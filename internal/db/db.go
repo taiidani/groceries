@@ -1,3 +1,5 @@
+// Package db provides database connection and schema migration functionality.
+// It uses PostgreSQL with embedded migrations managed by goose.
 package db
 
 import (

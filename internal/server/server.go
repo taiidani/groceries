@@ -1,3 +1,6 @@
+// Package server provides the HTTP server implementation for the groceries application.
+// It handles routing, middleware, template rendering, and HTTP handlers for all application endpoints
+// including authentication, shopping lists, items, categories, stores, and admin functionality.
 package server
 
 import (

@@ -1,3 +1,6 @@
+// Package cache provides a unified cache interface with Redis implementation.
+// It supports setting and retrieving values with expiration times, and can be configured
+// to use either Redis or an in-memory cache backend.
 package cache
 
 import (

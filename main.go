@@ -1,3 +1,5 @@
+// Package main provides the entry point for the groceries application.
+// It initializes logging, database connections, and the HTTP server with graceful shutdown handling.
 package main
 
 import (

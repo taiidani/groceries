@@ -1,3 +1,5 @@
+// Package events provides Server-Sent Events (SSE) functionality for real-time updates.
+// It implements event formatting and streaming according to the SSE specification.
 package events
 
 import (
