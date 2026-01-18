@@ -72,7 +72,11 @@ func (s *Server) listDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	// Broadcast the change
 	s.sseServer.Publish(r.Context(), sseEventList, nil)
 
-	http.Redirect(w, r, "/item/"+r.PathValue("id"), http.StatusFound)
+	redirect := r.FormValue("redirect")
+	if redirect == "" {
+		redirect = "/item/" + r.PathValue("id")
+	}
+	http.Redirect(w, r, redirect, http.StatusFound)
 }
 
 func (s *Server) listDoneHandler(w http.ResponseWriter, r *http.Request) {

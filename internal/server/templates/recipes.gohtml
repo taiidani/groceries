@@ -1,0 +1,68 @@
+{{ template "header.gohtml" . }}
+
+<main class="responsive">
+    <article id="recipeAdder" class="large-blur">
+        <header><h5><i>add</i> Add New Recipe <span class="loading-indicator" aria-busy="true" /></h5></header>
+
+        <form id="addRecipeForm" method="post" action="/recipe/add">
+            <div class="field label border">
+                <input type="text"
+                    name="name"
+                    placeholder="Recipe Name"
+                    minlength="3"
+                    maxlength="255"
+                    required
+                />
+                <label for="name">Recipe Name</label>
+            </div>
+
+            <div class="field label border">
+                <textarea
+                    name="description"
+                    placeholder="Description"
+                    rows="3"
+                ></textarea>
+                <label for="description">Description</label>
+            </div>
+        </form>
+
+        <footer>
+            <button type="submit" form="addRecipeForm" class="primary"><i>add</i> Add</button>
+        </footer>
+    </article>
+
+    <article class="large-blur">
+        <header><h5><i>skillet</i> Recipes <span class="loading-indicator" aria-busy="true" /></h5></header>
+
+        <form role="search" search-target="#recipes-list">
+            <div class="field label suffix border round">
+                <input name="search" type="search" placeholder="Search" />
+                <label for="search">Search</label>
+                <i class="front">search</i>
+            </div>
+        </form>
+
+        <br/>
+
+        <div id="recipes-list">
+            {{ if not .Recipes }}
+            <p class="center-align">No recipes yet. Create your first recipe above!</p>
+            {{ else }}
+            <ul>
+            {{ range .Recipes }}
+                <li class="recipe">
+                    <span class="name">
+                        <strong><a href="/recipe/{{.ID}}">{{ .Name }}</a></strong>
+                        {{ if .Description }}
+                        <br/><em>{{ .Description }}</em>
+                        {{ end }}
+                    </span>
+                </li>
+            {{ end }}
+            </ul>
+            {{ end }}
+        </div>
+    </article>
+</main>
+
+{{ template "footer.gohtml" . }}

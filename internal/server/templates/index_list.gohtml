@@ -25,7 +25,7 @@
 
                 <span class="name">
                     <a alt="Edit" href="/item/{{ .ID }}?redirect=/">{{.Name}}</a>
-                    <div><em>{{ if .List.Quantity }}{{.List.Quantity}}{{ end }}</em></div>
+                    <div><em>{{ if .List.Quantity }}Quantity: {{.List.Quantity}}{{ end }}</em></div>
                 </span>
             </li>
             {{ end }}

@@ -119,6 +119,16 @@ INSERT INTO "user" (id, name, admin) VALUES
 
 INSERT INTO "user_group" (user_id, group_id) VALUES (1, 1);
 INSERT INTO "user_group" (user_id, group_id) VALUES (2, 2);
+
+-- Recipes
+INSERT INTO recipe (name, description) VALUES
+('Spaghetti Carbonara', 'Classic Italian pasta dish with eggs, cheese, and pancetta');
+
+-- Recipe items (using items that exist: Free will=1, Love & Peace=2, Tofu=5)
+INSERT INTO recipe_item (recipe_id, item_id, quantity) VALUES
+(1, 1, '1 cup'),
+(1, 2, '2 tbsp'),
+(1, 5, '200g');
 -- +goose StatementEnd
 
 -- +goose Down

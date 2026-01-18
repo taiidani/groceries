@@ -104,6 +104,16 @@ func (s *Server) addRoutes(mux *http.ServeMux) {
 	mux.Handle("POST /store/add", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.storeAddHandler)))))
 	mux.Handle("POST /store/delete", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.storeDeleteHandler)))))
 
+	mux.Handle("GET /recipes", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.recipesHandler)))))
+	mux.Handle("GET /recipe/{id}", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.recipeHandler)))))
+	mux.Handle("POST /recipe/add", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.recipeAddHandler)))))
+	mux.Handle("POST /recipe/edit", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.recipeEditHandler)))))
+	mux.Handle("POST /recipe/delete/{id}", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.recipeDeleteHandler)))))
+	mux.Handle("POST /recipe/item/add/{id}", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.recipeAddItemHandler)))))
+	mux.Handle("POST /recipe/item/remove/{id}/{itemID}", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.recipeRemoveItemHandler)))))
+	mux.Handle("POST /recipe/addtolist/{id}", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.recipeAddToListHandler)))))
+	mux.Handle("POST /recipe/addalltolist/{id}", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.recipeAddAllToListHandler)))))
+
 	mux.Handle("GET /sse", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.sseHandler))))
 
 	mux.Handle("/assets/", sentryHandler.Handle(http.HandlerFunc(s.assetsHandler)))

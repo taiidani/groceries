@@ -1,0 +1,121 @@
+{{ template "header.gohtml" . }}
+
+<main class="responsive">
+    <section>
+        <article class="large-blur">
+            <header><h5><i>skillet</i> {{.Recipe.Name}}</h5></header>
+
+            <form id="editRecipeForm" method="POST" action="/recipe/edit">
+                <input type="hidden" name="id" value="{{.Recipe.ID}}" />
+
+                <div class="field label border">
+                    <input type="text" name="name" placeholder="Name" minlength="3" required value="{{.Recipe.Name}}" />
+                    <label for="name">Name</label>
+                </div>
+
+                <div class="field label border">
+                    <textarea
+                        name="description"
+                        placeholder="Description"
+                        rows="3"
+                    >{{.Recipe.Description}}</textarea>
+                    <label for="description">Description</label>
+                </div>
+            </form>
+
+            <footer>
+                <nav>
+                    <button form="editRecipeForm"><i>save</i> Save</button>
+                    <span class="max"></span>
+                    <button
+                        class="error"
+                        role="delete"
+                        form="deleteRecipeForm">
+                            <i>delete</i>
+                            Delete Recipe
+                    </button>
+                </nav>
+            </footer>
+        </article>
+
+        <article class="large-blur">
+            <header><h5><i>add</i> Add Item to Recipe</h5></header>
+
+            <form id="addItemToRecipeForm" method="POST" action="/recipe/item/add/{{.Recipe.ID}}">
+                <div class="field label border suffix">
+                    <select name="itemID" aria-label="Item" required>
+                        <option disabled selected value="">Select Item</option>
+                        {{ range .Items }}
+                        <option value="{{.ID}}">{{.Name}} ({{.CategoryName}})</option>
+                        {{ end }}
+                    </select>
+                    <label for="itemID">Item</label>
+                    <i>arrow_drop_down</i>
+                </div>
+
+                <div class="field label border">
+                    <input type="text" name="quantity" placeholder="Quantity (optional)" />
+                    <label for="quantity">Quantity</label>
+                </div>
+            </form>
+
+            <footer>
+                <button type="submit" form="addItemToRecipeForm"><i>add</i> Add Item</button>
+            </footer>
+        </article>
+
+        {{ if .Recipe.Items }}
+        <article class="large-blur">
+            <header>
+                <nav>
+                    <h5><i>grocery</i> Recipe Items</h5>
+                    <span class="max"></span>
+                    <button form="addAllToListForm" class="primary"><i>add</i> Add All to List</button>
+                </nav>
+            </header>
+
+            <ul>
+                {{ range .Recipe.Items }}
+                <li>
+                    <nav>
+                        <span>
+                            <strong>{{.ItemName}}</strong>
+                            {{ if .Quantity }}
+                            <br/><em>Quantity: {{.Quantity}}</em>
+                            {{ end }}
+                        </span>
+                        <span class="max"></span>
+                        {{ if .InList }}
+                        <form method="POST" action="/list/delete/{{.ItemID}}" style="display: inline;">
+                            <input type="hidden" name="redirect" value="/recipe/{{$.Recipe.ID}}" />
+                            <button  class="secondary" type="submit"><i>remove_shopping_cart</i> Remove from List</button>
+                        </form>
+                        {{ else }}
+                        <form method="POST" action="/recipe/addtolist/{{$.Recipe.ID}}" style="display: inline;">
+                            <input type="hidden" name="itemID" value="{{.ItemID}}" />
+                            <input type="hidden" name="quantity" value="{{.Quantity}}" />
+                            <input type="hidden" name="redirect" value="/recipe/{{$.Recipe.ID}}" />
+                            <button type="submit"><i>add_shopping_cart</i> Add to List</button>
+                        </form>
+                        {{ end }}
+                        <form method="POST" action="/recipe/item/remove/{{$.Recipe.ID}}/{{.ItemID}}" style="display: inline;">
+                            <button type="submit" class="transparent error"><i>delete</i> Remove from Recipe</button>
+                        </form>
+                    </nav>
+                </li>
+                {{ end }}
+            </ul>
+        </article>
+        {{ else }}
+        <article class="large-blur">
+            <header><h5><i>info</i> No Items</h5></header>
+            <p class="center-align">Add items to this recipe using the form above.</p>
+        </article>
+        {{ end }}
+    </section>
+
+    <form id="deleteRecipeForm" action="/recipe/delete/{{.Recipe.ID}}" method="POST"></form>
+    <form id="addAllToListForm" action="/recipe/addalltolist/{{.Recipe.ID}}" method="POST"></form>
+</main>
+
+{{ template "footer.gohtml" . }}

@@ -53,9 +53,9 @@
                 <nav>
                     <button form="editListItemForm"><i>save</i> Save</button>
                     {{ if .Item.List }}
-                        <button form="removeFromListForm"><i>remove</i> Remove</button>
+                        <button class="secondary" form="removeFromListForm"><i>remove_shopping_cart</i> Remove</button>
                     {{ else }}
-                        <button class="secondary" form="addToListForm"><i>add</i> Add</button>
+                        <button form="addToListForm"><i>add_shopping_cart</i> Add</button>
                     {{ end }}
                     <span class="max"></span>
 

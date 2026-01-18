@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 type Item struct {
@@ -170,7 +171,24 @@ WHERE id = $1`, i.List.ID, i.List.Quantity)
 	return tx.Commit()
 }
 
-func DeleteItem(ctx context.Context, id string) error {
+func DeleteItem(ctx context.Context, id int) error {
 	_, err := db.ExecContext(ctx, `DELETE FROM item WHERE id = $1`, id)
+	if err != nil {
+		// Check if the error is due to foreign key constraint (item in recipe)
+		if err.Error() != "" {
+			// Try to get recipes using this item
+			recipes, recipeErr := GetRecipesUsingItem(ctx, id)
+			if recipeErr == nil && len(recipes) > 0 {
+				recipeNames := strings.Builder{}
+				for i, recipe := range recipes {
+					if i > 0 {
+						recipeNames.WriteString(", ")
+					}
+					recipeNames.WriteString(recipe.Name)
+				}
+				return fmt.Errorf("cannot delete item: it is used in recipes: %s", recipeNames.String())
+			}
+		}
+	}
 	return err
 }

@@ -139,7 +139,13 @@ func (s *Server) itemEditHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) itemDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	err := models.DeleteItem(r.Context(), r.PathValue("id"))
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		errorResponse(w, r, http.StatusBadRequest, err)
+		return
+	}
+
+	err = models.DeleteItem(r.Context(), id)
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
