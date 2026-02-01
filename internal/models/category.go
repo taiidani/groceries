@@ -53,7 +53,7 @@ func (c *Category) Validate(ctx context.Context) error {
 			vErr = errors.Join(vErr, fmt.Errorf("could not load categories: %w", err))
 		} else {
 			for _, cat := range existingCategories {
-				if cat.Name == c.Name {
+				if cat.Name == c.Name && cat.StoreID == c.StoreID {
 					vErr = errors.Join(vErr, errors.New("category already exists"))
 				}
 			}
