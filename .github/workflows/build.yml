@@ -49,9 +49,8 @@ jobs:
       filename: "${{ needs.build.outputs.filename }}"
 
   deploy:
-    uses: taiidani/deploy-action/.github/workflows/nomad.yml@main
+    uses: taiidani/deploy-action/.github/workflows/deploy.yml@main
     needs: upload
     if: ${{ github.ref == 'refs/heads/main' }}
     with:
       artifact: "${{ needs.upload.outputs.artifact }}"
-      jobspec: groceries.nomad
