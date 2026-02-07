@@ -55,3 +55,4 @@ jobs:
     with:
       artifact: "${{ needs.upload.outputs.artifact }}"
       service: groceries
+      url: https://groceries.taiidani.com
