@@ -42,17 +42,10 @@ jobs:
       - uses: jdx/mise-action@v3
       - run: mise run test
 
-  upload:
-    uses: taiidani/deploy-action/.github/workflows/publish-binary.yml@main
-    needs: [build, lint, test]
-    with:
-      filename: "${{ needs.build.outputs.filename }}"
-
   deploy:
     uses: taiidani/deploy-action/.github/workflows/deploy.yml@main
-    needs: upload
+    needs: [build, lint, test]
     if: ${{ github.ref == 'refs/heads/main' }}
     with:
-      artifact: "${{ needs.upload.outputs.artifact }}"
-      service: groceries
+      filename: "${{ needs.build.outputs.filename }}"
       url: https://groceries.taiidani.com
