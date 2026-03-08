@@ -54,6 +54,8 @@ depends = []
 env.GOOSE_MIGRATION_DIR = "./internal/db/seeds"
 run = ["go tool goose --no-versioning up"]
 
+
+
 [tasks.lint]
 depends = ["dependencies"]
 run = ["go vet ./...", "go tool staticcheck ./..."]

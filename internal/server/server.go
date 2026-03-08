@@ -35,8 +35,7 @@ var templates embed.FS
 // DevMode can be toggled to pull rendered files from the filesystem or the embedded FS.
 var DevMode = os.Getenv("DEV") == "true"
 
-func NewServer(ctx context.Context, rds *redis.Client, port string) *Server {
-	mux := http.NewServeMux()
+func NewServer(ctx context.Context, rds *redis.Client, port string, mux *http.ServeMux) *Server {
 
 	publicURL := os.Getenv("PUBLIC_URL")
 	if publicURL == "" {

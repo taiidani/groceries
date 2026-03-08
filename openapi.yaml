@@ -1,0 +1,1616 @@
+openapi: 3.1.0
+
+info:
+  title: Groceries API
+  version: 1.0.0
+  description: |
+    REST API for the Groceries application. Provides token-based authentication
+    suitable for native app clients and future frontend rewrites.
+
+    ## Authentication
+
+    All endpoints except `POST /api/v1/auth/login` require a Bearer token in the
+    `Authorization` header:
+
+    ```
+    Authorization: Bearer <token>
+    ```
+
+    Tokens are obtained from the login endpoint and expire after 720 hours (30 days).
+
+servers:
+  - url: http://localhost:3000
+    description: Local development
+
+tags:
+  - name: auth
+    description: Authentication and current user
+  - name: users
+    description: User management (admin only)
+  - name: groups
+    description: Group management (admin only)
+  - name: stores
+    description: Store management
+  - name: categories
+    description: Category management
+  - name: items
+    description: Grocery item management
+  - name: list
+    description: Shopping list management
+  - name: recipes
+    description: Recipe management
+
+# ---------------------------------------------------------------------------
+# Reusable components
+# ---------------------------------------------------------------------------
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  # -------------------------------------------------------------------------
+  # Schemas
+  # -------------------------------------------------------------------------
+  schemas:
+    # --- Primitives & shared -------------------------------------------------
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+          examples:
+            - "item not found"
+
+    # --- Auth ----------------------------------------------------------------
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          examples:
+            - "alice"
+        password:
+          type: string
+          format: password
+          examples:
+            - "hunter2"
+
+    LoginResponse:
+      type: object
+      required: [token, expires_at]
+      properties:
+        token:
+          type: string
+          description: Bearer token to use in subsequent requests
+          examples:
+            - "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        expires_at:
+          type: string
+          format: date-time
+          description: ISO-8601 timestamp when the token expires
+
+    # --- User ----------------------------------------------------------------
+
+    User:
+      type: object
+      required: [id, name, admin]
+      properties:
+        id:
+          type: integer
+          examples:
+            - 1
+        name:
+          type: string
+          examples:
+            - "alice"
+        admin:
+          type: boolean
+          description: Whether this user has administrator privileges
+
+    CreateUserRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          examples:
+            - "alice"
+        admin:
+          type: boolean
+          default: false
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          examples:
+            - "alice"
+        admin:
+          type: boolean
+
+    # --- Group ---------------------------------------------------------------
+
+    Group:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+          examples:
+            - 1
+        name:
+          type: string
+          minLength: 3
+          examples:
+            - "Household"
+
+    CreateGroupRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          examples:
+            - "Household"
+
+    UpdateGroupRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          examples:
+            - "Household"
+
+    # --- Store ---------------------------------------------------------------
+
+    Store:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+          examples:
+            - 1
+        name:
+          type: string
+          minLength: 3
+          examples:
+            - "Whole Foods"
+
+    CreateStoreRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          examples:
+            - "Whole Foods"
+
+    UpdateStoreRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          examples:
+            - "Whole Foods"
+
+    # --- Category ------------------------------------------------------------
+
+    Category:
+      type: object
+      required: [id, store_id, name, description, item_count]
+      properties:
+        id:
+          type: integer
+          examples:
+            - 1
+        store_id:
+          type: integer
+          examples:
+            - 1
+        name:
+          type: string
+          minLength: 3
+          examples:
+            - "Produce"
+        description:
+          type: string
+          examples:
+            - "Fresh fruits and vegetables"
+        item_count:
+          type: integer
+          description: Number of items assigned to this category
+          examples:
+            - 12
+
+    CreateCategoryRequest:
+      type: object
+      required: [store_id, name]
+      properties:
+        store_id:
+          type: integer
+          examples:
+            - 1
+        name:
+          type: string
+          minLength: 3
+          examples:
+            - "Produce"
+        description:
+          type: string
+          default: ""
+
+    UpdateCategoryRequest:
+      type: object
+      required: [store_id, name]
+      properties:
+        store_id:
+          type: integer
+          examples:
+            - 1
+        name:
+          type: string
+          minLength: 3
+          examples:
+            - "Produce"
+        description:
+          type: string
+
+    # --- Item ----------------------------------------------------------------
+
+    ListItemSummary:
+      type: object
+      description: Presence of this object on an Item indicates the item is on the shopping list
+      required: [id, quantity, done]
+      properties:
+        id:
+          type: integer
+          description: ID of the list entry (not the item itself)
+          examples:
+            - 42
+        quantity:
+          type: string
+          examples:
+            - "2 lbs"
+        done:
+          type: boolean
+          description: Whether this item has been picked up during the current shopping trip
+
+    Item:
+      type: object
+      required: [id, category_id, category_name, name]
+      properties:
+        id:
+          type: integer
+          examples:
+            - 1
+        category_id:
+          type: integer
+          examples:
+            - 3
+        category_name:
+          type: string
+          examples:
+            - "Produce"
+        name:
+          type: string
+          examples:
+            - "Apples"
+        list:
+          $ref: "#/components/schemas/ListItemSummary"
+          description: Present when this item is currently on the shopping list
+
+    CreateItemRequest:
+      type: object
+      required: [category_id, name]
+      properties:
+        category_id:
+          type: integer
+          examples:
+            - 3
+        name:
+          type: string
+          minLength: 1
+          examples:
+            - "Apples"
+
+    UpdateItemRequest:
+      type: object
+      required: [category_id, name]
+      properties:
+        category_id:
+          type: integer
+          examples:
+            - 3
+        name:
+          type: string
+          minLength: 1
+          examples:
+            - "Apples"
+
+    # --- Shopping list -------------------------------------------------------
+
+    ListItem:
+      type: object
+      required: [id, item_id, item_name, category_id, quantity, done]
+      properties:
+        id:
+          type: integer
+          description: ID of the list entry
+          examples:
+            - 42
+        item_id:
+          type: integer
+          examples:
+            - 1
+        item_name:
+          type: string
+          examples:
+            - "Apples"
+        category_id:
+          type: integer
+          examples:
+            - 3
+        quantity:
+          type: string
+          examples:
+            - "2 lbs"
+        done:
+          type: boolean
+          description: Whether this item has been picked up during the current shopping trip
+
+    AddToListRequest:
+      type: object
+      description: |
+        Add an item to the shopping list. Supply either `item_id` to reference an existing
+        item, or `name` to create a new uncategorized item on-the-fly (matching the current
+        web app behaviour).
+      properties:
+        item_id:
+          type: integer
+          examples:
+            - 1
+        name:
+          type: string
+          description: Name of a new item to create and immediately add to the list
+          examples:
+            - "Apples"
+        quantity:
+          type: string
+          default: ""
+          examples:
+            - "2 lbs"
+
+    UpdateListItemRequest:
+      type: object
+      properties:
+        quantity:
+          type: string
+          examples:
+            - "3 lbs"
+        done:
+          type: boolean
+
+    ShoppingList:
+      type: object
+      required: [items, total, total_done]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ListItem"
+        total:
+          type: integer
+          description: Total number of items on the list
+          examples:
+            - 10
+        total_done:
+          type: integer
+          description: Number of items already marked done
+          examples:
+            - 3
+
+    # --- Recipe --------------------------------------------------------------
+
+    RecipeItem:
+      type: object
+      required: [id, recipe_id, item_id, item_name, quantity, in_list]
+      properties:
+        id:
+          type: integer
+          examples:
+            - 7
+        recipe_id:
+          type: integer
+          examples:
+            - 2
+        item_id:
+          type: integer
+          examples:
+            - 1
+        item_name:
+          type: string
+          examples:
+            - "Apples"
+        quantity:
+          type: string
+          examples:
+            - "3"
+        in_list:
+          type: boolean
+          description: Whether this item is currently on the shopping list
+
+    Recipe:
+      type: object
+      required: [id, name, description, created_at, items]
+      properties:
+        id:
+          type: integer
+          examples:
+            - 2
+        name:
+          type: string
+          examples:
+            - "Apple Pie"
+        description:
+          type: string
+          examples:
+            - "Classic American apple pie"
+        created_at:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RecipeItem"
+
+    RecipeSummary:
+      type: object
+      description: Recipe without the full items list, used in list responses
+      required: [id, name, description, created_at]
+      properties:
+        id:
+          type: integer
+          examples:
+            - 2
+        name:
+          type: string
+          examples:
+            - "Apple Pie"
+        description:
+          type: string
+          examples:
+            - "Classic American apple pie"
+        created_at:
+          type: string
+          format: date-time
+
+    CreateRecipeRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          examples:
+            - "Apple Pie"
+        description:
+          type: string
+          default: ""
+
+    UpdateRecipeRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          examples:
+            - "Apple Pie"
+        description:
+          type: string
+
+    AddRecipeItemRequest:
+      type: object
+      required: [item_id]
+      properties:
+        item_id:
+          type: integer
+          examples:
+            - 1
+        quantity:
+          type: string
+          default: ""
+          examples:
+            - "3"
+
+    AddRecipeToListRequest:
+      type: object
+      description: |
+        Optionally scope which items to add. Omit or send an empty array to add
+        all recipe items that are not already on the list.
+      properties:
+        item_ids:
+          type: array
+          items:
+            type: integer
+          description: Specific item IDs to add; omit to add all
+          examples:
+            - [1, 3, 5]
+
+  # -------------------------------------------------------------------------
+  # Responses
+  # -------------------------------------------------------------------------
+  responses:
+    NoContent:
+      description: Operation succeeded with no response body
+
+    BadRequest:
+      description: The request was malformed or failed validation
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    Unauthorized:
+      description: Missing or invalid Bearer token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    Forbidden:
+      description: The authenticated user does not have permission for this operation
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    NotFound:
+      description: The requested resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    Conflict:
+      description: The operation conflicts with existing data (e.g. duplicate name)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    InternalServerError:
+      description: An unexpected server-side error occurred
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  # -------------------------------------------------------------------------
+  # Parameters
+  # -------------------------------------------------------------------------
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Numeric resource ID
+
+    ItemIdPath:
+      name: itemId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Numeric item ID
+
+# ---------------------------------------------------------------------------
+# Default security (overridden on the login endpoint)
+# ---------------------------------------------------------------------------
+security:
+  - bearerAuth: []
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+paths:
+  # --------------------------------------------------------------------------
+  # Auth
+  # --------------------------------------------------------------------------
+
+  /api/v1/auth/login:
+    post:
+      operationId: authLogin
+      summary: Log in and obtain an API token
+      description: |
+        Validates credentials and returns a Bearer token. The token is also stored
+        in Redis alongside any existing web session, sharing the same 720-hour TTL.
+      tags: [auth]
+      security: [] # No token required
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/auth/logout:
+    post:
+      operationId: authLogout
+      summary: Invalidate the current API token
+      description: Deletes the token from Redis, rendering it immediately invalid.
+      tags: [auth]
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/auth/me:
+    get:
+      operationId: authMe
+      summary: Get the currently authenticated user
+      tags: [auth]
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --------------------------------------------------------------------------
+  # Users
+  # --------------------------------------------------------------------------
+
+  /api/v1/users:
+    get:
+      operationId: listUsers
+      summary: List all users
+      tags: [users]
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      operationId: createUser
+      summary: Create a new user
+      tags: [users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/users/{id}:
+    parameters:
+      - $ref: "#/components/parameters/IdPath"
+
+    get:
+      operationId: getUser
+      summary: Get a user by ID
+      tags: [users]
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      operationId: updateUser
+      summary: Update a user
+      tags: [users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      operationId: deleteUser
+      summary: Delete a user
+      tags: [users]
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --------------------------------------------------------------------------
+  # Groups
+  # --------------------------------------------------------------------------
+
+  /api/v1/groups:
+    get:
+      operationId: listGroups
+      summary: List all groups
+      tags: [groups]
+      responses:
+        "200":
+          description: List of groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Group"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      operationId: createGroup
+      summary: Create a new group
+      tags: [groups]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGroupRequest"
+      responses:
+        "201":
+          description: Group created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/groups/{id}:
+    parameters:
+      - $ref: "#/components/parameters/IdPath"
+
+    get:
+      operationId: getGroup
+      summary: Get a group by ID
+      tags: [groups]
+      responses:
+        "200":
+          description: Group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      operationId: updateGroup
+      summary: Update a group
+      tags: [groups]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateGroupRequest"
+      responses:
+        "200":
+          description: Updated group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      operationId: deleteGroup
+      summary: Delete a group
+      description: Fails if any users are still assigned to the group.
+      tags: [groups]
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --------------------------------------------------------------------------
+  # Stores
+  # --------------------------------------------------------------------------
+
+  /api/v1/stores:
+    get:
+      operationId: listStores
+      summary: List all stores
+      tags: [stores]
+      responses:
+        "200":
+          description: List of stores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Store"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      operationId: createStore
+      summary: Create a new store
+      tags: [stores]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateStoreRequest"
+      responses:
+        "201":
+          description: Store created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Store"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/stores/{id}:
+    parameters:
+      - $ref: "#/components/parameters/IdPath"
+
+    get:
+      operationId: getStore
+      summary: Get a store by ID, including its categories
+      tags: [stores]
+      responses:
+        "200":
+          description: Store with categories
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Store"
+                  - type: object
+                    required: [categories]
+                    properties:
+                      categories:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Category"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      operationId: updateStore
+      summary: Update a store
+      tags: [stores]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateStoreRequest"
+      responses:
+        "200":
+          description: Updated store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Store"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      operationId: deleteStore
+      summary: Delete a store
+      description: Fails if any categories are still assigned to the store.
+      tags: [stores]
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --------------------------------------------------------------------------
+  # Categories
+  # --------------------------------------------------------------------------
+
+  /api/v1/categories:
+    get:
+      operationId: listCategories
+      summary: List all categories
+      tags: [categories]
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      operationId: createCategory
+      summary: Create a new category
+      tags: [categories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCategoryRequest"
+      responses:
+        "201":
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/categories/{id}:
+    parameters:
+      - $ref: "#/components/parameters/IdPath"
+
+    get:
+      operationId: getCategory
+      summary: Get a category by ID, including its items
+      tags: [categories]
+      responses:
+        "200":
+          description: Category with items
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Category"
+                  - type: object
+                    required: [items]
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Item"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      operationId: updateCategory
+      summary: Update a category
+      tags: [categories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCategoryRequest"
+      responses:
+        "200":
+          description: Updated category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      operationId: deleteCategory
+      summary: Delete a category
+      description: Fails if any items are still assigned to the category.
+      tags: [categories]
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --------------------------------------------------------------------------
+  # Items
+  # --------------------------------------------------------------------------
+
+  /api/v1/items:
+    get:
+      operationId: listItems
+      summary: List all items
+      tags: [items]
+      parameters:
+        - name: category_id
+          in: query
+          schema:
+            type: integer
+          description: Filter items by category
+        - name: in_list
+          in: query
+          schema:
+            type: boolean
+          description: Filter to only items that are (or are not) on the shopping list
+      responses:
+        "200":
+          description: List of items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Item"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      operationId: createItem
+      summary: Create a new item
+      tags: [items]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateItemRequest"
+      responses:
+        "201":
+          description: Item created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/items/{id}:
+    parameters:
+      - $ref: "#/components/parameters/IdPath"
+
+    get:
+      operationId: getItem
+      summary: Get an item by ID
+      tags: [items]
+      responses:
+        "200":
+          description: Item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      operationId: updateItem
+      summary: Update an item
+      tags: [items]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateItemRequest"
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      operationId: deleteItem
+      summary: Delete an item
+      description: Fails if the item is used in any recipes.
+      tags: [items]
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --------------------------------------------------------------------------
+  # Shopping list
+  # --------------------------------------------------------------------------
+
+  /api/v1/list:
+    get:
+      operationId: getList
+      summary: Get the current shopping list
+      tags: [list]
+      responses:
+        "200":
+          description: Current shopping list with totals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShoppingList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/list/items:
+    post:
+      operationId: addToList
+      summary: Add an item to the shopping list
+      description: |
+        Supply either `item_id` for an existing item or `name` to create a new
+        uncategorized item and add it in one step.
+      tags: [list]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddToListRequest"
+      responses:
+        "201":
+          description: List item created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListItem"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Item is already on the list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/list/items/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Item ID (the grocery item ID, not the list entry ID)
+
+    put:
+      operationId: updateListItem
+      summary: Update a list item's quantity or done status
+      tags: [list]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateListItemRequest"
+      responses:
+        "200":
+          description: Updated list item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListItem"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      operationId: removeFromList
+      summary: Remove an item from the shopping list
+      tags: [list]
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/list/finish:
+    post:
+      operationId: finishShopping
+      summary: Finish shopping - remove all done items from the list
+      tags: [list]
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # --------------------------------------------------------------------------
+  # Recipes
+  # --------------------------------------------------------------------------
+
+  /api/v1/recipes:
+    get:
+      operationId: listRecipes
+      summary: List all recipes
+      tags: [recipes]
+      responses:
+        "200":
+          description: List of recipes (without full item details)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecipeSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      operationId: createRecipe
+      summary: Create a new recipe
+      tags: [recipes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRecipeRequest"
+      responses:
+        "201":
+          description: Recipe created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Recipe"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/recipes/{id}:
+    parameters:
+      - $ref: "#/components/parameters/IdPath"
+
+    get:
+      operationId: getRecipe
+      summary: Get a recipe by ID, including its items
+      tags: [recipes]
+      responses:
+        "200":
+          description: Recipe with items
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Recipe"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      operationId: updateRecipe
+      summary: Update a recipe's name and description
+      tags: [recipes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRecipeRequest"
+      responses:
+        "200":
+          description: Updated recipe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Recipe"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      operationId: deleteRecipe
+      summary: Delete a recipe
+      tags: [recipes]
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/recipes/{id}/items:
+    parameters:
+      - $ref: "#/components/parameters/IdPath"
+
+    post:
+      operationId: addRecipeItem
+      summary: Add an item to a recipe
+      tags: [recipes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddRecipeItemRequest"
+      responses:
+        "201":
+          description: Item added to recipe; returns the full updated recipe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Recipe"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Item is already in the recipe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/recipes/{id}/items/{itemId}:
+    parameters:
+      - $ref: "#/components/parameters/IdPath"
+      - $ref: "#/components/parameters/ItemIdPath"
+
+    delete:
+      operationId: removeRecipeItem
+      summary: Remove an item from a recipe
+      tags: [recipes]
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/recipes/{id}/add-to-list:
+    parameters:
+      - $ref: "#/components/parameters/IdPath"
+
+    post:
+      operationId: addRecipeToList
+      summary: Add recipe items to the shopping list
+      description: |
+        Adds items from a recipe to the shopping list. Items already on the list
+        are silently skipped. Optionally scope to a subset of the recipe's items
+        by providing `item_ids` in the request body.
+      tags: [recipes]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddRecipeToListRequest"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"

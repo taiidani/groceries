@@ -17,6 +17,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	sentryslog "github.com/getsentry/sentry-go/slog"
 	"github.com/go-redis/redis/v8"
+	"github.com/taiidani/groceries/internal/api"
 	"github.com/taiidani/groceries/internal/cache"
 	"github.com/taiidani/groceries/internal/models"
 	"github.com/taiidani/groceries/internal/server"
@@ -109,7 +110,11 @@ func initServer(ctx context.Context, rds *redis.Client) error {
 		return fmt.Errorf("required PORT environment variable not present")
 	}
 
-	srv := server.NewServer(ctx, rds, port)
+	// The web server owns the mux. The API server registers its routes onto
+	// the same mux so both share a single listener and connection pool.
+	mux := http.NewServeMux()
+	api.NewServer(ctx, rds, mux)
+	srv := server.NewServer(ctx, rds, port, mux)
 
 	go func() {
 		slog.Info("Server starting", "port", port)
