@@ -16,6 +16,7 @@ GOOSE_MIGRATION_DIR = "./internal/db/migrations"
 
 [tools]
 go = "1.25.1"
+tuist = "latest"
 
 [vars]
 filename = 'groceries'

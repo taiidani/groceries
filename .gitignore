@@ -3,3 +3,10 @@ groceries
 .env
 .DS_Store
 __debug*
+
+# iOS / Tuist generated artifacts
+clients/ios/*.xcodeproj
+clients/ios/*.xcworkspace
+clients/ios/Derived/
+clients/ios/.tuist-build/
+clients/ios/Tuist/.build/

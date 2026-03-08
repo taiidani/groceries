@@ -10,9 +10,9 @@ import (
 )
 
 type User struct {
-	ID    int
-	Name  string
-	Admin bool
+	ID    int    `json:"id"`
+	Name  string `json:"name"`
+	Admin bool   `json:"admin"`
 }
 
 func (u *User) Validate(ctx context.Context) error {
