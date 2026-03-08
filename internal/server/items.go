@@ -1,19 +1,16 @@
 package server
 
 import (
-	"database/sql"
-	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
-	"github.com/taiidani/groceries/internal/models"
+	"github.com/taiidani/groceries/internal/client"
 )
 
 type itemsBag struct {
 	baseBag
 	Stores []storeWithCategories
-	Item   models.Item
+	Item   client.Item
 }
 
 func (s *Server) itemsHandler(w http.ResponseWriter, r *http.Request) {
@@ -26,26 +23,18 @@ func (s *Server) itemsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	template := "items.gohtml"
-	renderHtml(w, http.StatusOK, template, bag)
+	renderHtml(w, http.StatusOK, "items.gohtml", bag)
 }
 
 func (s *Server) itemHandler(w http.ResponseWriter, r *http.Request) {
 	bag := struct {
 		baseBag
 		Redirect   string
-		Categories []models.Category
-		Item       models.Item
+		Categories []client.Category
+		Item       client.Item
 	}{baseBag: s.newBag(r.Context())}
 
 	bag.Redirect = r.URL.Query().Get("redirect")
-
-	categories, err := models.LoadCategories(r.Context())
-	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
-		return
-	}
-	bag.Categories = categories
 
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
@@ -53,19 +42,22 @@ func (s *Server) itemHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bag.Item, err = models.GetItem(r.Context(), id)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			errorResponse(w, r, http.StatusNotFound, errors.New("item not found"))
-		} else {
-			errorResponse(w, r, http.StatusInternalServerError, err)
-		}
+	apiClient := clientFromContext(r.Context())
 
+	categories, err := apiClient.ListCategories(r.Context())
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	bag.Categories = categories
+
+	bag.Item, err = apiClient.GetItem(r.Context(), id)
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	template := "item_edit.gohtml"
-	renderHtml(w, http.StatusOK, template, bag)
+	renderHtml(w, http.StatusOK, "item_edit.gohtml", bag)
 }
 
 func (s *Server) itemAddHandler(w http.ResponseWriter, r *http.Request) {
@@ -75,19 +67,13 @@ func (s *Server) itemAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newItem := models.Item{
-		CategoryID: categoryID,
-		Name:       r.FormValue("name"),
-	}
-
-	err = models.AddItem(r.Context(), newItem)
+	apiClient := clientFromContext(r.Context())
+	_, err = apiClient.CreateItem(r.Context(), categoryID, r.FormValue("name"))
 	if err != nil {
-		err = fmt.Errorf("could not add item: %w", err)
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Broadcast the change
 	s.sseServer.Publish(r.Context(), sseEventList, nil)
 
 	redirect := r.FormValue("redirect")
@@ -104,31 +90,33 @@ func (s *Server) itemEditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := models.GetItem(r.Context(), id)
+	categoryID, err := strconv.Atoi(r.FormValue("categoryID"))
 	if err != nil {
 		errorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
-	item.CategoryID, err = strconv.Atoi(r.FormValue("categoryID"))
-	if err != nil {
-		errorResponse(w, r, http.StatusBadRequest, err)
-		return
-	}
+	apiClient := clientFromContext(r.Context())
 
-	item.Name = r.FormValue("name")
-	if item.List != nil {
-		item.List.Quantity = r.FormValue("quantity")
-	}
-
-	// Add the new item
-	err = models.EditItem(r.Context(), item)
+	_, err = apiClient.UpdateItem(r.Context(), id, categoryID, r.FormValue("name"))
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Broadcast the change
+	existing, err := apiClient.GetItem(r.Context(), id)
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	if existing.List != nil {
+		if err := apiClient.UpdateListItem(r.Context(), id, r.FormValue("quantity")); err != nil {
+			errorResponse(w, r, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
 	s.sseServer.Publish(r.Context(), sseEventList, nil)
 
 	redirect := r.FormValue("redirect")
@@ -145,13 +133,12 @@ func (s *Server) itemDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = models.DeleteItem(r.Context(), id)
-	if err != nil {
+	apiClient := clientFromContext(r.Context())
+	if err := apiClient.DeleteItem(r.Context(), id); err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Broadcast the change
 	s.sseServer.Publish(r.Context(), sseEventList, nil)
 
 	redirect := r.FormValue("redirect")

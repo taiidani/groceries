@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/taiidani/groceries/internal/client"
-	"github.com/taiidani/groceries/internal/models"
 )
 
 func (s *Server) storesHandler(w http.ResponseWriter, r *http.Request) {
@@ -102,11 +101,11 @@ func (s *Server) storeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type storeWithCategories struct {
-	models.Store
+	client.Store
 	Categories []categoryWithItems
 }
 
 type categoryWithItems struct {
-	models.Category
-	Items []models.Item
+	client.Category
+	Items []client.Item
 }

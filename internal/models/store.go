@@ -7,8 +7,8 @@ import (
 )
 
 type Store struct {
-	ID   int
-	Name string
+	ID   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 const UncategorizedStoreID int = 0

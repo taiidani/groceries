@@ -8,10 +8,10 @@ import (
 )
 
 type Item struct {
-	ID           int
-	CategoryID   int
-	Name         string
-	List         *ListItem
+	ID           int       `json:"id"`
+	CategoryID   int       `json:"category_id"`
+	Name         string    `json:"name"`
+	List         *ListItem `json:"list"`
 	categoryName string
 }
 
@@ -40,9 +40,10 @@ func (i *Item) Validate(ctx context.Context) error {
 func LoadItems(ctx context.Context) ([]Item, error) {
 	rows, err := db.QueryContext(ctx, `
 SELECT item.id, item.name, item.category_id, category.name AS category_name,
-	(SELECT TRUE FROM item_list WHERE item_list.item_id = item.id) AS in_list
+	item_list.id AS list_id, item_list.quantity AS list_quantity, item_list.done AS list_done
 FROM item
 LEFT JOIN category ON (item.category_id = category.id)
+LEFT JOIN item_list ON (item_list.item_id = item.id)
 ORDER BY category.name, item.name`)
 	if err != nil {
 		return nil, err
@@ -53,13 +54,19 @@ ORDER BY category.name, item.name`)
 	for rows.Next() {
 		// Load the item
 		item := Item{}
-		var inList *bool
-		if err := rows.Scan(&item.ID, &item.Name, &item.CategoryID, &item.categoryName, &inList); err != nil {
+		var listID *int
+		var listQuantity *string
+		var listDone *bool
+		if err := rows.Scan(&item.ID, &item.Name, &item.CategoryID, &item.categoryName, &listID, &listQuantity, &listDone); err != nil {
 			return nil, err
 		}
 
-		if inList != nil {
-			item.List = &ListItem{}
+		if listID != nil {
+			item.List = &ListItem{
+				ID:       *listID,
+				Quantity: *listQuantity,
+				Done:     *listDone,
+			}
 		}
 
 		ret = append(ret, item)

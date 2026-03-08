@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 
-	"github.com/taiidani/groceries/internal/models"
+	"github.com/taiidani/groceries/internal/client"
 )
 
 type storeHierarchyInput struct {
@@ -15,24 +15,29 @@ type storeHierarchyInput struct {
 func loadStoreHierarchy(ctx context.Context, input storeHierarchyInput) ([]storeWithCategories, error) {
 	ret := []storeWithCategories{}
 
-	stores, err := models.LoadStores(ctx)
+	apiClient := clientFromContext(ctx)
+
+	stores, err := apiClient.ListStores(ctx)
 	if err != nil {
 		return ret, err
 	}
 
-	categories, err := models.LoadCategories(ctx)
+	categories, err := apiClient.ListCategories(ctx)
 	if err != nil {
 		return ret, err
 	}
 
-	var items []models.Item
+	var items []client.Item
 	if input.OnlyListItems {
-		items, err = models.LoadList(ctx)
+		items, err = apiClient.ListShoppingList(ctx)
+		if err != nil {
+			return ret, err
+		}
 	} else {
-		items, err = models.LoadItems(ctx)
-	}
-	if err != nil {
-		return ret, err
+		items, err = apiClient.ListItems(ctx, nil)
+		if err != nil {
+			return ret, err
+		}
 	}
 
 	for _, store := range stores {
@@ -43,7 +48,7 @@ func loadStoreHierarchy(ctx context.Context, input storeHierarchyInput) ([]store
 				continue
 			}
 
-			addItem := []models.Item{}
+			addItems := []client.Item{}
 			for _, item := range items {
 				if item.CategoryID != cat.ID {
 					continue
@@ -52,13 +57,13 @@ func loadStoreHierarchy(ctx context.Context, input storeHierarchyInput) ([]store
 					continue
 				}
 
-				addItem = append(addItem, item)
+				addItems = append(addItems, item)
 			}
 
-			if !input.ExcludeEmptyGroupings || len(addItem) > 0 {
+			if !input.ExcludeEmptyGroupings || len(addItems) > 0 {
 				addStore.Categories = append(addStore.Categories, categoryWithItems{
 					Category: cat,
-					Items:    addItem,
+					Items:    addItems,
 				})
 			}
 		}

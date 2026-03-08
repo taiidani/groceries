@@ -6,13 +6,13 @@ import (
 )
 
 type ListItem struct {
-	ID         int
-	ItemID     int
-	CategoryID string
-	Quantity   string
-	Done       bool
+	ID         int    `json:"id"`
+	ItemID     int    `json:"item_id"`
+	CategoryID string `json:"category_id"`
+	Quantity   string `json:"quantity"`
+	Done       bool   `json:"done"`
 
-	Name string
+	Name string `json:"name"`
 }
 
 func (i *ListItem) Validate(ctx context.Context) error {

@@ -7,11 +7,11 @@ import (
 )
 
 type Category struct {
-	ID          int
-	StoreID     int
-	Name        string
-	Description string
-	ItemCount   int
+	ID          int    `json:"id"`
+	StoreID     int    `json:"store_id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	ItemCount   int    `json:"item_count"`
 }
 
 const UncategorizedCategoryID int = 0
