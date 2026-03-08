@@ -27,8 +27,15 @@ func (s *Server) auth(w http.ResponseWriter, r *http.Request) {
 		errorResponse(w, r, http.StatusUnauthorized, fmt.Errorf("invalid credentials: %w", err))
 	}
 
-	// Yay we're authorized
-	sess := models.Session{UserID: user.ID}
+	// Yay we're authorized - generate an API token alongside the session so
+	// web server handlers can call the API on this user's behalf.
+	apiToken, _, err := authz.NewAPIToken(r.Context(), user.ID, s.cache)
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("could not create API token: %w", err))
+		return
+	}
+
+	sess := models.Session{UserID: user.ID, APIToken: apiToken}
 	cookie, err := authz.NewSession(r.Context(), sess, s.cache)
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("could not create session: %w", err))

@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/taiidani/groceries/internal/authz"
+	"github.com/taiidani/groceries/internal/client"
 	"github.com/taiidani/groceries/internal/models"
 )
 
@@ -16,6 +17,7 @@ var (
 	sessionKey  contextKey = "session"
 	userKey     contextKey = "user"
 	redirectKey contextKey = "redirect"
+	clientKey   contextKey = "client"
 )
 
 func (s *Server) adminMiddleware(next http.Handler) http.Handler {
@@ -59,8 +61,26 @@ func (s *Server) sessionMiddleware(next http.Handler) http.Handler {
 		}
 
 		ctx = context.WithValue(ctx, userKey, &user)
+
+		// Attach an API client scoped to this user's token so handlers can
+		// call the API on their behalf. If the token is missing the session
+		// pre-dates the API token field - treat it as expired and re-login.
+		if sess.APIToken == "" {
+			http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+			return
+		}
+		apiClient := client.New(s.publicURL, sess.APIToken)
+		ctx = context.WithValue(ctx, clientKey, apiClient)
+
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// clientFromContext retrieves the API client from the request context.
+// Returns nil if no client is present (e.g. session has no API token yet).
+func clientFromContext(ctx context.Context) *client.Client {
+	c, _ := ctx.Value(clientKey).(*client.Client)
+	return c
 }
 
 func (s *Server) redirectMiddleware(next http.Handler) http.Handler {

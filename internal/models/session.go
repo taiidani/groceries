@@ -1,5 +1,6 @@
 package models
 
 type Session struct {
-	UserID int
+	UserID   int
+	APIToken string
 }
