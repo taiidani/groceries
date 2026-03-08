@@ -9,10 +9,10 @@ let project = Project(
     ),
     targets: [
         .target(
-            name: "Groceries",
+            name: "GroceriesT",
             destinations: .iOS,
             product: .app,
-            bundleId: "JE539SF9V7.groceries",
+            bundleId: "com.ryannixon.groceries",
             deploymentTargets: .iOS("26.0"),
             infoPlist: .extendingDefault(with: [
                 "CFBundleDisplayName": "Groceries",
@@ -72,7 +72,7 @@ let project = Project(
             name: "GroceriesAPI",
             destinations: .iOS,
             product: .framework,
-            bundleId: "JE539SF9V7.groceries.api",
+            bundleId: "com.ryannixon.groceries.api",
             deploymentTargets: .iOS("26.0"),
             infoPlist: .default,
             sources: ["Sources/GroceriesAPI/**"],
@@ -89,7 +89,7 @@ let project = Project(
             name: "GroceriesAPITests",
             destinations: .iOS,
             product: .unitTests,
-            bundleId: "JE539SF9V7.groceries.api.tests",
+            bundleId: "com.ryannixon.groceries.api.tests",
             deploymentTargets: .iOS("26.0"),
             infoPlist: .default,
             sources: ["Tests/GroceriesAPITests/**"],
