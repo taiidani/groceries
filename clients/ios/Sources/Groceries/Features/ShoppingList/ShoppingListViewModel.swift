@@ -41,6 +41,9 @@ final class ShoppingListViewModel {
     /// Number of items already marked as done.
     private(set) var totalDone: Int = 0
 
+    /// Full catalog of items used for local search suggestions.
+    private(set) var allItems: [Item] = []
+
     /// `true` while the initial load (or a full refresh) is in flight.
     private(set) var isLoading: Bool = false
 
@@ -88,17 +91,20 @@ final class ShoppingListViewModel {
         defer { isLoading = false }
 
         do {
-            // All three calls are independent — fire them in parallel.
+            // All four calls are independent — fire them in parallel.
             async let storesFetch = apiClient.listStores()
             async let categoriesFetch = apiClient.listCategories()
             async let listFetch = apiClient.getList()
+            async let itemsFetch = apiClient.listItems()
 
-            let (stores, categories, list) = try await (storesFetch, categoriesFetch, listFetch)
+            let (stores, categories, list, fetchedItems) =
+                try await (storesFetch, categoriesFetch, listFetch, itemsFetch)
 
             storesById = Dictionary(uniqueKeysWithValues: stores.map { ($0.id, $0) })
             categoriesById = Dictionary(
                 uniqueKeysWithValues: categories.map { ($0.id, $0) }
                     as [(Int, GroceriesAPI.Category)])
+            allItems = fetchedItems
 
             applyList(list)
         } catch {
@@ -209,6 +215,41 @@ final class ShoppingListViewModel {
 
     /// Clears the currently displayed error message.
     func clearError() { errorMessage = nil }
+
+    /// Returns items whose names case-insensitively start with `query`.
+    /// An empty query (after trimming) returns no results.
+    func searchItems(query: String) -> [Item] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+
+        return allItems.filter {
+            $0.name.range(of: trimmed, options: [.caseInsensitive, .anchored]) != nil
+        }
+    }
+
+    func addItem(itemID: Int?, name: String?, quantity: String) async throws {
+        do {
+            let listItem: ListItem
+
+            if let itemID {
+                listItem = try await apiClient.addItemToList(itemID: itemID, quantity: quantity)
+            } else {
+                let trimmedName = name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                guard !trimmedName.isEmpty else {
+                    throw APIError.badRequest("name is required")
+                }
+                listItem = try await apiClient.addNewItemToList(name: trimmedName, quantity: quantity)
+            }
+
+            items.append(listItem)
+            total += 1
+            totalDone = items.filter(\.done).count
+            rebuildGroups()
+        } catch {
+            errorMessage = errorDescription(error)
+            throw error
+        }
+    }
 
     // MARK: - Private helpers
 
