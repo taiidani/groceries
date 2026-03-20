@@ -9,7 +9,6 @@ struct AddItemBar: View {
     @State private var query: String = ""
     @State private var quantity: String = ""
     @State private var isAdding: Bool = false
-    @State private var addErrorMessage: String?
 
     @FocusState private var focusedField: FocusField?
 
@@ -137,9 +136,6 @@ struct AddItemBar: View {
                 TextField("Qty", text: $quantity)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled(true)
-                    .onChange(of: quantity) { _, _ in
-                        addErrorMessage = nil
-                    }
                     .submitLabel(.done)
                     .onSubmit {
                         Task {
@@ -176,12 +172,6 @@ struct AddItemBar: View {
                 .accessibilityLabel("Add item to shopping list")
             }
 
-            if let addErrorMessage {
-                Text(addErrorMessage)
-                    .font(.caption)
-                    .foregroundStyle(.red.opacity(0.9))
-                    .accessibilityLabel("Add item failed: \(addErrorMessage)")
-            }
         }
     }
 
@@ -224,7 +214,6 @@ struct AddItemBar: View {
     }
 
     private func selectExisting(_ item: Item) {
-        addErrorMessage = nil
         mode = .quantity(
             Selection(
                 itemID: item.id,
@@ -236,7 +225,6 @@ struct AddItemBar: View {
     }
 
     private func selectNew(name: String) {
-        addErrorMessage = nil
         mode = .quantity(
             Selection(
                 itemID: nil,
@@ -250,18 +238,15 @@ struct AddItemBar: View {
     private func performAdd(selection: Selection) async {
         guard !isAdding else { return }
 
-        addErrorMessage = nil
         isAdding = true
         defer { isAdding = false }
 
         do {
             let trimmedQuantity = quantity.trimmingCharacters(in: .whitespacesAndNewlines)
             try await onAdd(selection.itemID, selection.trimmedName, trimmedQuantity)
-            addErrorMessage = nil
             resetToIdle()
         } catch {
-            let message = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
-            addErrorMessage = message.isEmpty ? "Could not add item. Please try again." : message
+            // Error surfacing is handled by the parent view-model banner.
         }
     }
 
@@ -269,7 +254,6 @@ struct AddItemBar: View {
         mode = .idle
         query = ""
         quantity = ""
-        addErrorMessage = nil
         focusedField = nil
     }
 }
