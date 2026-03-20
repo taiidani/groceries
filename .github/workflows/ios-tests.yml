@@ -37,4 +37,4 @@ jobs:
           xcodebuild test \
             -project Groceries.xcodeproj \
             -scheme GroceriesAPI \
-            -destination 'generic/platform=iOS Simulator'
+            -destination 'platform=iOS Simulator,OS=latest,name=iPhone 16'
