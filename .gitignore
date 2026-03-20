@@ -10,3 +10,6 @@ clients/ios/*.xcworkspace
 clients/ios/Derived/
 clients/ios/.tuist-build/
 clients/ios/Tuist/.build/
+
+# Local git worktrees
+.worktrees/
