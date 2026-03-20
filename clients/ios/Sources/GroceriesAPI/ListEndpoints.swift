@@ -4,6 +4,12 @@ import Foundation
 
 extension GroceriesAPIClient {
 
+    /// Returns all items that can be added to the shopping list.
+    public func listItems() async throws -> [Item] {
+        let req = try request(method: "GET", path: "/api/v1/items")
+        return try await perform(req)
+    }
+
     /// Returns the current shopping list with totals.
     public func getList() async throws -> ShoppingList {
         let req = try request(method: "GET", path: "/api/v1/list")

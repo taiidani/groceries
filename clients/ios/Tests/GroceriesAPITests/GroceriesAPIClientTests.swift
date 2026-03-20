@@ -318,4 +318,166 @@ final class GroceriesAPIClientTests: XCTestCase {
         XCTAssertEqual(items[0].name, "Apples")
         XCTAssertEqual(items[1].name, "Bread")
     }
+
+    func testAddItemToList_existingItem() async throws {
+        let responseJSON = """
+            {
+                "id": 12,
+                "item_id": 42,
+                "item_name": "Apples",
+                "category_id": 10,
+                "quantity": "2",
+                "done": false
+            }
+            """
+
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.url?.path, "/api/v1/list/items")
+
+            let body = try XCTUnwrap(request.httpBody)
+            let bodyString = try XCTUnwrap(String(data: body, encoding: .utf8))
+            XCTAssertTrue(bodyString.contains("\"item_id\":42"))
+            XCTAssertTrue(bodyString.contains("\"quantity\":\"2\""))
+            XCTAssertFalse(bodyString.contains("\"name\""))
+
+            let data = try XCTUnwrap(responseJSON.data(using: .utf8))
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+            return (response, data)
+        }
+
+        let client = makeClient()
+        let item = try await client.addItemToList(itemID: 42, quantity: "2")
+
+        XCTAssertEqual(item.id, 12)
+        XCTAssertEqual(item.itemID, 42)
+        XCTAssertEqual(item.itemName, "Apples")
+        XCTAssertEqual(item.quantity, "2")
+        XCTAssertFalse(item.done)
+    }
+
+    func testAddNewItemToList_freeText() async throws {
+        let responseJSON = """
+            {
+                "id": 17,
+                "item_id": 88,
+                "item_name": "Oat Milk",
+                "category_id": 3,
+                "quantity": "1",
+                "done": false
+            }
+            """
+
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.url?.path, "/api/v1/list/items")
+
+            let body = try XCTUnwrap(request.httpBody)
+            let bodyString = try XCTUnwrap(String(data: body, encoding: .utf8))
+            XCTAssertTrue(bodyString.contains("\"name\":\"Oat Milk\""))
+            XCTAssertTrue(bodyString.contains("\"quantity\":\"1\""))
+            XCTAssertFalse(bodyString.contains("\"item_id\""))
+
+            let data = try XCTUnwrap(responseJSON.data(using: .utf8))
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+            return (response, data)
+        }
+
+        let client = makeClient()
+        let item = try await client.addNewItemToList(name: "Oat Milk", quantity: "1")
+
+        XCTAssertEqual(item.id, 17)
+        XCTAssertEqual(item.itemID, 88)
+        XCTAssertEqual(item.itemName, "Oat Milk")
+        XCTAssertEqual(item.quantity, "1")
+        XCTAssertFalse(item.done)
+    }
+
+    func testAddToList_conflict_throws409() async throws {
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.url?.path, "/api/v1/list/items")
+
+            let body = try XCTUnwrap(request.httpBody)
+            let bodyString = try XCTUnwrap(String(data: body, encoding: .utf8))
+            XCTAssertTrue(bodyString.contains("\"item_id\":42"))
+            XCTAssertTrue(bodyString.contains("\"quantity\":\"\""))
+
+            let data = try XCTUnwrap("{\"error\":\"item is already on the list\"}".data(using: .utf8))
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 409,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+            return (response, data)
+        }
+
+        let client = makeClient()
+
+        do {
+            _ = try await client.addItemToList(itemID: 42)
+            XCTFail("Expected conflict error")
+        } catch let error as APIError {
+            switch error {
+            case .conflict(let message):
+                XCTAssertEqual(message, "item is already on the list")
+            default:
+                XCTFail("Expected APIError.conflict, got \(error)")
+            }
+        }
+    }
+
+    func testAddToList_notFound_throws404() async throws {
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.url?.path, "/api/v1/list/items")
+
+            let body = try XCTUnwrap(request.httpBody)
+            let bodyString = try XCTUnwrap(String(data: body, encoding: .utf8))
+            XCTAssertTrue(bodyString.contains("\"item_id\":999"))
+            XCTAssertTrue(bodyString.contains("\"quantity\":\"\""))
+
+            let data = try XCTUnwrap("{\"error\":\"item not found\"}".data(using: .utf8))
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 404,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+            return (response, data)
+        }
+
+        let client = makeClient()
+
+        do {
+            _ = try await client.addItemToList(itemID: 999)
+            XCTFail("Expected notFound error")
+        } catch let error as APIError {
+            switch error {
+            case .notFound(let message):
+                XCTAssertEqual(message, "item not found")
+            default:
+                XCTFail("Expected APIError.notFound, got \(error)")
+            }
+        }
+    }
 }
