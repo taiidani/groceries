@@ -6,6 +6,21 @@ import XCTest
 
 final class GroceriesAPIClientTests: XCTestCase {
 
+    override func tearDown() {
+        MockURLProtocol.requestHandler = nil
+        super.tearDown()
+    }
+
+    private func makeClient() -> GroceriesAPIClient {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [MockURLProtocol.self]
+        let session = URLSession(configuration: config)
+        return GroceriesAPIClient(
+            baseURL: URL(string: "http://localhost:3000")!,
+            session: session
+        )
+    }
+
     // MARK: - JSON Decoding
 
     func testDecodeShoppingList() throws {
@@ -259,5 +274,48 @@ final class GroceriesAPIClientTests: XCTestCase {
         await client.setToken("new-token")
         let authenticated = await client.isAuthenticated
         XCTAssertTrue(authenticated)
+    }
+
+    func testListItems_returnsAllItems() async throws {
+        let responseJSON = """
+            [
+                {
+                    "id": 1,
+                    "category_id": 10,
+                    "category_name": "Produce",
+                    "name": "Apples"
+                },
+                {
+                    "id": 2,
+                    "category_id": 11,
+                    "category_name": "Bakery",
+                    "name": "Bread"
+                }
+            ]
+            """
+
+        MockURLProtocol.requestHandler = { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.url?.path, "/api/v1/items")
+
+            let data = try XCTUnwrap(responseJSON.data(using: .utf8))
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+
+            return (response, data)
+        }
+
+        let client = makeClient()
+        let items = try await client.listItems()
+
+        XCTAssertEqual(items.count, 2)
+        XCTAssertEqual(items[0].name, "Apples")
+        XCTAssertEqual(items[1].name, "Bread")
     }
 }
