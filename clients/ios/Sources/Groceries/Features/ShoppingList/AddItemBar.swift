@@ -80,10 +80,13 @@ struct AddItemBar: View {
                 .foregroundStyle(.white.opacity(0.85))
             }
 
-            if !searchResults.isEmpty || !trimmedQuery.isEmpty {
+            if trimmedQuery.isEmpty {
+                EmptyView()
+            } else {
+                let results = search(trimmedQuery)
                 ScrollView {
                     VStack(spacing: 6) {
-                        ForEach(searchResults) { item in
+                        ForEach(results) { item in
                             resultRow(
                                 title: item.name,
                                 subtitle: item.categoryName,
@@ -93,14 +96,12 @@ struct AddItemBar: View {
                             }
                         }
 
-                        if !trimmedQuery.isEmpty {
-                            resultRow(
-                                title: "Add \"\(trimmedQuery)\" as new item",
-                                subtitle: nil,
-                                accessibilityLabel: "Add \(trimmedQuery) as new item"
-                            ) {
-                                selectNew(name: trimmedQuery)
-                            }
+                        resultRow(
+                            title: "Add \"\(trimmedQuery)\" as new item",
+                            subtitle: nil,
+                            accessibilityLabel: "Add \(trimmedQuery) as new item"
+                        ) {
+                            selectNew(name: trimmedQuery)
                         }
                     }
                 }
@@ -136,6 +137,9 @@ struct AddItemBar: View {
                 TextField("Qty", text: $quantity)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled(true)
+                    .onChange(of: quantity) { _, _ in
+                        addErrorMessage = nil
+                    }
                     .submitLabel(.done)
                     .onSubmit {
                         Task {
@@ -215,10 +219,6 @@ struct AddItemBar: View {
         .accessibilityLabel(accessibilityLabel)
     }
 
-    private var searchResults: [Item] {
-        search(trimmedQuery)
-    }
-
     private var trimmedQuery: String {
         query.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -250,11 +250,13 @@ struct AddItemBar: View {
     private func performAdd(selection: Selection) async {
         guard !isAdding else { return }
 
+        addErrorMessage = nil
         isAdding = true
         defer { isAdding = false }
 
         do {
-            try await onAdd(selection.itemID, selection.trimmedName, quantity)
+            let trimmedQuantity = quantity.trimmingCharacters(in: .whitespacesAndNewlines)
+            try await onAdd(selection.itemID, selection.trimmedName, trimmedQuantity)
             addErrorMessage = nil
             resetToIdle()
         } catch {
