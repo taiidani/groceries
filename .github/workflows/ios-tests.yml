@@ -27,10 +27,15 @@ jobs:
         working-directory: clients/ios
         run: tuist generate
 
+      - name: List Xcode schemes
+        working-directory: clients/ios
+        run: xcodebuild -list -project Groceries.xcodeproj
+
       - name: Run Groceries API unit tests
         working-directory: clients/ios
         run: |
           xcodebuild test \
             -project Groceries.xcodeproj \
-            -scheme GroceriesAPITests \
+            -scheme GroceriesT \
+            -only-testing:GroceriesAPITests \
             -destination 'generic/platform=iOS Simulator'
