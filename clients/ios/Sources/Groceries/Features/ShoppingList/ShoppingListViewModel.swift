@@ -222,8 +222,10 @@ final class ShoppingListViewModel {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
 
+        let listedItemIDs = Set(items.map(\.itemID))
+
         return allItems.filter {
-            $0.list == nil
+            !listedItemIDs.contains($0.id)
                 && $0.name.range(of: trimmed, options: [.caseInsensitive, .anchored]) != nil
         }
     }
@@ -243,7 +245,6 @@ final class ShoppingListViewModel {
             }
 
             items.append(listItem)
-            allItems.removeAll(where: { $0.id == listItem.itemID })
             total += 1
             totalDone = items.filter(\.done).count
             rebuildGroups()
