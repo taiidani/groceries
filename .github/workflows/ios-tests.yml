@@ -36,6 +36,5 @@ jobs:
         run: |
           xcodebuild test \
             -project Groceries.xcodeproj \
-            -scheme GroceriesT \
-            -only-testing:GroceriesAPITests \
+            -scheme GroceriesAPI \
             -destination 'generic/platform=iOS Simulator'
