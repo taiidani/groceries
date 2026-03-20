@@ -223,7 +223,8 @@ final class ShoppingListViewModel {
         guard !trimmed.isEmpty else { return [] }
 
         return allItems.filter {
-            $0.name.range(of: trimmed, options: [.caseInsensitive, .anchored]) != nil
+            $0.list == nil
+                && $0.name.range(of: trimmed, options: [.caseInsensitive, .anchored]) != nil
         }
     }
 
@@ -242,6 +243,7 @@ final class ShoppingListViewModel {
             }
 
             items.append(listItem)
+            allItems.removeAll(where: { $0.id == listItem.itemID })
             total += 1
             totalDone = items.filter(\.done).count
             rebuildGroups()
