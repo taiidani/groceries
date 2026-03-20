@@ -1,0 +1,36 @@
+name: ios-tests
+
+on:
+  pull_request:
+    paths:
+      - "clients/ios/**"
+      - ".github/workflows/ios-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  api-tests:
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: jdx/mise-action@v3
+
+      - name: Show tool versions
+        working-directory: clients/ios
+        run: |
+          tuist version
+          xcodebuild -version
+
+      - name: Generate Xcode project
+        working-directory: clients/ios
+        run: tuist generate
+
+      - name: Run Groceries API unit tests
+        working-directory: clients/ios
+        run: |
+          xcodebuild test \
+            -project Groceries.xcodeproj \
+            -scheme GroceriesAPITests \
+            -destination 'generic/platform=iOS Simulator'
