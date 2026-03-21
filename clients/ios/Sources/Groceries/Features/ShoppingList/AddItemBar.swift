@@ -28,12 +28,22 @@ struct AddItemBar: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.black.opacity(0.38))
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.black.opacity(0.72),
+                            Color.black.opacity(0.62),
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
         )
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
         )
+        .shadow(color: .black.opacity(0.22), radius: 12, y: 6)
     }
 
     private var idleView: some View {
@@ -61,10 +71,16 @@ struct AddItemBar: View {
     private var searchingView: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                TextField("Search items", text: $query)
+                TextField(
+                    "",
+                    text: $query,
+                    prompt: Text("Search items").foregroundStyle(.white.opacity(0.62))
+                )
                     .textInputAutocapitalization(.words)
                     .autocorrectionDisabled(false)
                     .focused($focusedField, equals: .search)
+                    .foregroundColor(.white)
+                    .tint(.white)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                     .background(
@@ -133,10 +149,16 @@ struct AddItemBar: View {
             }
 
             HStack(spacing: 8) {
-                TextField("Qty", text: $quantity)
+                TextField(
+                    "",
+                    text: $quantity,
+                    prompt: Text("Qty").foregroundStyle(.white.opacity(0.62))
+                )
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled(true)
                     .submitLabel(.done)
+                    .foregroundColor(.white)
+                    .tint(.white)
                     .onSubmit {
                         Task {
                             await performAdd(selection: selection)
