@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -13,6 +14,24 @@ type Item struct {
 	Name         string    `json:"name"`
 	List         *ListItem `json:"list"`
 	categoryName string
+}
+
+func (i Item) MarshalJSON() ([]byte, error) {
+	type itemJSON struct {
+		ID           int       `json:"id"`
+		CategoryID   int       `json:"category_id"`
+		CategoryName string    `json:"category_name"`
+		Name         string    `json:"name"`
+		List         *ListItem `json:"list"`
+	}
+
+	return json.Marshal(itemJSON{
+		ID:           i.ID,
+		CategoryID:   i.CategoryID,
+		CategoryName: i.categoryName,
+		Name:         i.Name,
+		List:         i.List,
+	})
 }
 
 func (i *Item) CategoryName() string {

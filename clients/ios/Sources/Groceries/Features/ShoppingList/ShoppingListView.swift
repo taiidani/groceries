@@ -70,13 +70,22 @@ struct ShoppingListView: View {
             .refreshable { await viewModel.refresh() }
             .task { await viewModel.load() }
             .safeAreaInset(edge: .bottom) {
-                // Error banner pinned above the home indicator.
-                if let message = viewModel.errorMessage {
-                    errorBanner(message: message)
-                        .padding(.horizontal)
-                        .padding(.bottom, 8)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                VStack(spacing: 8) {
+                    AddItemBar(
+                        search: { viewModel.searchItems(query: $0) },
+                        onAdd: { itemID, name, quantity in
+                            try await viewModel.addItem(itemID: itemID, name: name, quantity: quantity)
+                        }
+                    )
+
+                    // Error banner pinned above the home indicator.
+                    if let message = viewModel.errorMessage {
+                        errorBanner(message: message)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
                 }
+                .padding(.horizontal)
+                .padding(.bottom, 8)
             }
             .animation(.easeInOut(duration: 0.25), value: viewModel.errorMessage)
             .confirmationDialog(
