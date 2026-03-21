@@ -7,7 +7,7 @@ import XCTest
 final class GroceriesAPIClientTests: XCTestCase {
 
     override func tearDown() {
-        MockURLProtocol.requestHandler = nil
+        MockURLProtocol.clearRequestHandler()
         super.tearDown()
     }
 
@@ -276,6 +276,17 @@ final class GroceriesAPIClientTests: XCTestCase {
         XCTAssertTrue(authenticated)
     }
 
+    func testMockURLProtocolRequestBodyData_readsFromHTTPBodyStream() throws {
+        let expectedBody = Data("{\"name\":\"Oat Milk\"}".utf8)
+        var request = URLRequest(url: URL(string: "http://localhost:3000/api/v1/list/items")!)
+        request.httpMethod = "POST"
+        request.httpBodyStream = InputStream(data: expectedBody)
+
+        let extracted = MockURLProtocol.requestBodyData(from: request)
+
+        XCTAssertEqual(extracted, expectedBody)
+    }
+
     func testListItems_returnsAllItems() async throws {
         let responseJSON = """
             [
@@ -294,7 +305,7 @@ final class GroceriesAPIClientTests: XCTestCase {
             ]
             """
 
-        MockURLProtocol.requestHandler = { request in
+        MockURLProtocol.setRequestHandler { request in
             XCTAssertEqual(request.httpMethod, "GET")
             XCTAssertEqual(request.url?.path, "/api/v1/items")
 
@@ -331,11 +342,11 @@ final class GroceriesAPIClientTests: XCTestCase {
             }
             """
 
-        MockURLProtocol.requestHandler = { request in
+        MockURLProtocol.setRequestHandler { request in
             XCTAssertEqual(request.httpMethod, "POST")
             XCTAssertEqual(request.url?.path, "/api/v1/list/items")
 
-            let body = try XCTUnwrap(request.httpBody)
+            let body = try XCTUnwrap(MockURLProtocol.requestBodyData(from: request))
             let bodyString = try XCTUnwrap(String(data: body, encoding: .utf8))
             XCTAssertTrue(bodyString.contains("\"item_id\":42"))
             XCTAssertTrue(bodyString.contains("\"quantity\":\"2\""))
@@ -375,11 +386,11 @@ final class GroceriesAPIClientTests: XCTestCase {
             }
             """
 
-        MockURLProtocol.requestHandler = { request in
+        MockURLProtocol.setRequestHandler { request in
             XCTAssertEqual(request.httpMethod, "POST")
             XCTAssertEqual(request.url?.path, "/api/v1/list/items")
 
-            let body = try XCTUnwrap(request.httpBody)
+            let body = try XCTUnwrap(MockURLProtocol.requestBodyData(from: request))
             let bodyString = try XCTUnwrap(String(data: body, encoding: .utf8))
             XCTAssertTrue(bodyString.contains("\"name\":\"Oat Milk\""))
             XCTAssertTrue(bodyString.contains("\"quantity\":\"1\""))
@@ -408,11 +419,11 @@ final class GroceriesAPIClientTests: XCTestCase {
     }
 
     func testAddToList_conflict_throws409() async throws {
-        MockURLProtocol.requestHandler = { request in
+        MockURLProtocol.setRequestHandler { request in
             XCTAssertEqual(request.httpMethod, "POST")
             XCTAssertEqual(request.url?.path, "/api/v1/list/items")
 
-            let body = try XCTUnwrap(request.httpBody)
+            let body = try XCTUnwrap(MockURLProtocol.requestBodyData(from: request))
             let bodyString = try XCTUnwrap(String(data: body, encoding: .utf8))
             XCTAssertTrue(bodyString.contains("\"item_id\":42"))
             XCTAssertTrue(bodyString.contains("\"quantity\":\"\""))
@@ -445,11 +456,11 @@ final class GroceriesAPIClientTests: XCTestCase {
     }
 
     func testAddToList_notFound_throws404() async throws {
-        MockURLProtocol.requestHandler = { request in
+        MockURLProtocol.setRequestHandler { request in
             XCTAssertEqual(request.httpMethod, "POST")
             XCTAssertEqual(request.url?.path, "/api/v1/list/items")
 
-            let body = try XCTUnwrap(request.httpBody)
+            let body = try XCTUnwrap(MockURLProtocol.requestBodyData(from: request))
             let bodyString = try XCTUnwrap(String(data: body, encoding: .utf8))
             XCTAssertTrue(bodyString.contains("\"item_id\":999"))
             XCTAssertTrue(bodyString.contains("\"quantity\":\"\""))
