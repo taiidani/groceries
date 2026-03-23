@@ -103,5 +103,24 @@ let project = Project(
                 ]
             )
         ),
+        .target(
+            name: "GroceriesTests",
+            destinations: .iOS,
+            product: .unitTests,
+            bundleId: "com.ryannixon.groceries.tests",
+            deploymentTargets: .iOS("26.0"),
+            infoPlist: .default,
+            sources: ["Tests/GroceriesTests/**"],
+            dependencies: [
+                .target(name: "GroceriesT"),
+                .target(name: "GroceriesAPI")
+            ],
+            settings: .settings(
+                base: [
+                    "DEVELOPMENT_TEAM": "JE539SF9V7",
+                    "SWIFT_VERSION": "6.0",
+                ]
+            )
+        ),
     ]
 )
