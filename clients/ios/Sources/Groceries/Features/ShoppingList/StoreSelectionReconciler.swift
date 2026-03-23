@@ -1,5 +1,3 @@
-import Foundation
-
 enum StoreSelectionReconciler {
     static func reconcile(current: Int?, availableStoreIDs: [Int]) -> Int? {
         guard !availableStoreIDs.isEmpty else { return nil }

@@ -17,6 +17,11 @@ final class StoreSelectionReconcilerTests: XCTestCase {
         XCTAssertNil(selected)
     }
 
+    func test_returnsNilWhenCurrentIsNilAndNoStoresAvailable() {
+        let selected = StoreSelectionReconciler.reconcile(current: nil, availableStoreIDs: [])
+        XCTAssertNil(selected)
+    }
+
     func test_selectsFirstWhenCurrentIsNilAndStoresExist() {
         let selected = StoreSelectionReconciler.reconcile(current: nil, availableStoreIDs: [9, 11])
         XCTAssertEqual(selected, 9)
