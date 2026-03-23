@@ -30,6 +30,8 @@ public struct StoreGroup: Identifiable {
 @MainActor
 final class ShoppingListViewModel {
 
+    typealias StoreTotals = (total: Int, done: Int)
+
     // MARK: - State
 
     /// The list grouped into Store → Category → Items for display.
@@ -210,6 +212,32 @@ final class ShoppingListViewModel {
     /// `true` when there is at least one item marked done.
     var hasDoneItems: Bool { totalDone > 0 }
 
+    /// Store groups that contain at least one item.
+    var nonEmptyStoreGroups: [StoreGroup] {
+        storeGroups.filter { group in
+            group.categories.contains { !$0.items.isEmpty }
+        }
+    }
+
+    /// Returns true only when the store exists and all items are done.
+    func isStoreComplete(storeID: Int) -> Bool {
+        let totals = storeTotals(storeID: storeID)
+        return totals.total > 0 && totals.done == totals.total
+    }
+
+    /// Returns `(total, done)` item counts for a store.
+    func storeTotals(storeID: Int) -> StoreTotals {
+        guard let group = nonEmptyStoreGroups.first(where: { $0.id == storeID }) else {
+            return (total: 0, done: 0)
+        }
+
+        let allItems = group.categories.flatMap(\.items)
+        return (
+            total: allItems.count,
+            done: allItems.filter(\.done).count
+        )
+    }
+
     /// `true` when the list has no items at all.
     var isEmpty: Bool { items.isEmpty }
 
@@ -344,4 +372,19 @@ final class ShoppingListViewModel {
         }
         return error.localizedDescription
     }
+
+    #if DEBUG
+        func _injectTestData(
+            stores: [Store],
+            categories: [GroceriesAPI.Category],
+            items: [ListItem]
+        ) {
+            storesById = Dictionary(uniqueKeysWithValues: stores.map { ($0.id, $0) })
+            categoriesById = Dictionary(uniqueKeysWithValues: categories.map { ($0.id, $0) })
+            self.items = items
+            total = items.count
+            totalDone = items.filter(\.done).count
+            rebuildGroups()
+        }
+    #endif
 }
