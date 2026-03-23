@@ -314,10 +314,12 @@ struct ShoppingListView: View {
     }
 
     private func storeChipAccessibilityLabel(for store: StoreGroup, isComplete: Bool) -> String {
+        let totals = viewModel.storeTotals(storeID: store.id)
+        let itemWord = totals.total == 1 ? "item" : "items"
         if isComplete {
-            return "\(store.name), complete"
+            return "\(store.name), \(totals.total) \(itemWord), all done"
         }
-        return store.name
+        return "\(store.name), \(totals.total) \(itemWord)"
     }
 }
 
