@@ -37,6 +37,7 @@ struct ShoppingListView: View {
     // MARK: - Local UI state
 
     @State private var showFinishConfirmation: Bool = false
+    @State private var selectedStoreID: Int?
 
     // MARK: - Init
 
@@ -45,6 +46,10 @@ struct ShoppingListView: View {
     }
 
     // MARK: - Computed
+
+    private var availableStoreIDs: [Int] {
+        viewModel.nonEmptyStoreGroups.map(\.id)
+    }
 
     // MARK: - Body
 
@@ -55,7 +60,7 @@ struct ShoppingListView: View {
 
                 if viewModel.isLoading && viewModel.isEmpty {
                     loadingView
-                } else if viewModel.storeGroups.isEmpty && !viewModel.isLoading {
+                } else if viewModel.nonEmptyStoreGroups.isEmpty && !viewModel.isLoading {
                     emptyStateView
                 } else {
                     listView
@@ -69,6 +74,10 @@ struct ShoppingListView: View {
             .toolbar { toolbarContent }
             .refreshable { await viewModel.refresh() }
             .task { await viewModel.load() }
+            .onAppear { reconcileStoreSelection() }
+            .onChange(of: availableStoreIDs) { _, _ in
+                reconcileStoreSelection()
+            }
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 8) {
                     AddItemBar(
@@ -106,48 +115,99 @@ struct ShoppingListView: View {
     // MARK: - List view
 
     private var listView: some View {
+        VStack(spacing: 12) {
+            storeChipsView
+
+            TabView(selection: $selectedStoreID) {
+                ForEach(viewModel.nonEmptyStoreGroups) { store in
+                    storeList(store: store)
+                        .tag(Optional(store.id))
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .indexViewStyle(.page(backgroundDisplayMode: .never))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .animation(.default, value: availableStoreIDs)
+    }
+
+    private var storeChipsView: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(viewModel.nonEmptyStoreGroups) { store in
+                    let isSelected = selectedStoreID == store.id
+                    let isComplete = viewModel.isStoreComplete(storeID: store.id)
+
+                    Button {
+                        selectedStoreID = store.id
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(store.name)
+                                .lineLimit(1)
+
+                            if isComplete {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.caption.weight(.bold))
+                            }
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(isSelected ? Color.black : Color.white)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(isSelected ? Color.white : Color.white.opacity(0.15))
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(storeChipAccessibilityLabel(for: store, isComplete: isComplete))
+                    .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+
+    private func storeList(store: StoreGroup) -> some View {
         List {
             progressSection
 
-            ForEach(viewModel.storeGroups) { store in
-                Section {
-                    ForEach(store.categories) { category in
-                        // Category name as a row header within the store section.
-                        Text(category.name)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.white.opacity(0.6))
-                            .listRowBackground(Color.clear)
-                            .listRowInsets(.init(top: 8, leading: 16, bottom: 2, trailing: 16))
+            Section {
+                ForEach(store.categories) { category in
+                    // Category name as a row header within the store section.
+                    Text(category.name)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(.init(top: 8, leading: 16, bottom: 2, trailing: 16))
 
-                        ForEach(category.items) { item in
-                            ShoppingListRow(
-                                item: item,
-                                isMutating: viewModel.mutatingItemIDs.contains(item.itemID),
-                                onToggleDone: {
-                                    Task { await viewModel.toggleDone(for: item) }
-                                }
-                            )
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    Task { await viewModel.remove(item: item) }
-                                } label: {
-                                    Label("Remove", systemImage: "trash")
-                                }
+                    ForEach(category.items) { item in
+                        ShoppingListRow(
+                            item: item,
+                            isMutating: viewModel.mutatingItemIDs.contains(item.itemID),
+                            onToggleDone: {
+                                Task { await viewModel.toggleDone(for: item) }
+                            }
+                        )
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                Task { await viewModel.remove(item: item) }
+                            } label: {
+                                Label("Remove", systemImage: "trash")
                             }
                         }
                     }
-                } header: {
-                    Text(store.name)
-                        .foregroundStyle(.white)
-                        .textCase(nil)
-                        .font(.headline)
                 }
+            } header: {
+                Text(store.name)
+                    .foregroundStyle(.white)
+                    .textCase(nil)
+                    .font(.headline)
             }
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .environment(\.colorScheme, .dark)
-        .animation(.default, value: viewModel.storeGroups.map(\.id))
     }
 
     // MARK: - Progress section
@@ -244,6 +304,20 @@ struct ShoppingListView: View {
                     .accessibilityLabel("Updating list…")
             }
         }
+    }
+
+    private func reconcileStoreSelection() {
+        selectedStoreID = StoreSelectionReconciler.reconcile(
+            current: selectedStoreID,
+            availableStoreIDs: availableStoreIDs
+        )
+    }
+
+    private func storeChipAccessibilityLabel(for store: StoreGroup, isComplete: Bool) -> String {
+        if isComplete {
+            return "\(store.name), complete"
+        }
+        return store.name
     }
 }
 
