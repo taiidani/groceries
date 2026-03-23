@@ -2,21 +2,41 @@ import XCTest
 @testable import GroceriesT
 
 final class ShoppingListSelectionStateTests: XCTestCase {
-    func test_emptySelectionWithAvailableStores_selectsFirstStore() {
-        let selectedStoreID = StoreSelectionReconciler.reconcile(current: nil, availableStoreIDs: [3, 7, 9])
+    func test_selectionTransitionsAcrossStoreSnapshots() {
+        var current: Int?
+        var observed: [Int?] = []
 
-        XCTAssertEqual(selectedStoreID, 3)
+        current = StoreSelectionReconciler.reconcile(current: current, availableStoreIDs: [])
+        observed.append(current)
+
+        current = StoreSelectionReconciler.reconcile(current: current, availableStoreIDs: [5, 9])
+        observed.append(current)
+
+        current = StoreSelectionReconciler.reconcile(current: current, availableStoreIDs: [5, 9])
+        observed.append(current)
+
+        current = StoreSelectionReconciler.reconcile(current: current, availableStoreIDs: [9])
+        observed.append(current)
+
+        current = StoreSelectionReconciler.reconcile(current: current, availableStoreIDs: [])
+        observed.append(current)
+
+        XCTAssertEqual(observed, [nil, 5, 5, 9, nil])
     }
 
-    func test_removedSelection_fallsBackToFirstStoreInDeterministicOrder() {
-        let selectedStoreID = StoreSelectionReconciler.reconcile(current: 42, availableStoreIDs: [1, 4, 8])
+    func test_selectionDoesNotAutoAdvanceWhenCurrentRemainsPresentAcrossReordering() {
+        var current: Int? = nil
+        var observed: [Int?] = []
 
-        XCTAssertEqual(selectedStoreID, 1)
-    }
+        current = StoreSelectionReconciler.reconcile(current: current, availableStoreIDs: [2, 8, 10])
+        observed.append(current)
 
-    func test_existingSelection_doesNotAutoAdvanceToNextStore() {
-        let selectedStoreID = StoreSelectionReconciler.reconcile(current: 4, availableStoreIDs: [1, 4, 8])
+        current = StoreSelectionReconciler.reconcile(current: current, availableStoreIDs: [10, 2, 8])
+        observed.append(current)
 
-        XCTAssertEqual(selectedStoreID, 4)
+        current = StoreSelectionReconciler.reconcile(current: current, availableStoreIDs: [8, 2, 10])
+        observed.append(current)
+
+        XCTAssertEqual(observed, [2, 2, 2])
     }
 }
