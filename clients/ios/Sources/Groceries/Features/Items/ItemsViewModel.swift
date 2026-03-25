@@ -7,7 +7,7 @@ protocol ItemsAPI: Sendable {
     func createItem(categoryID: Int, name: String) async throws -> Item
     func updateItem(id: Int, categoryID: Int, name: String) async throws -> Item
     func deleteItem(id: Int) async throws
-    func addItemToList(itemID: Int) async throws -> Item
+    func addItemToList(itemID: Int) async throws
     func removeItemFromList(itemID: Int) async throws
 }
 
@@ -16,13 +16,8 @@ extension GroceriesAPIClient: ItemsAPI {
         try await listItems(categoryID: nil, inList: inList)
     }
 
-    func addItemToList(itemID: Int) async throws -> Item {
+    func addItemToList(itemID: Int) async throws {
         _ = try await addItemToList(itemID: itemID, quantity: "")
-        let items = try await listItems(inList: true)
-        guard let item = items.first(where: { $0.id == itemID }) else {
-            throw APIError.notFound("Item not found")
-        }
-        return item
     }
 }
 

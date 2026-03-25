@@ -1457,7 +1457,7 @@ private final class MockItemsAPI: ItemsAPI {
         items.removeAll(where: { $0.id == id })
     }
 
-    func addItemToList(itemID: Int) async throws -> Item {
+    func addItemToList(itemID: Int) async throws {
         addItemToListCallCount += 1
         let callIndex = addItemToListCallCount
 
@@ -1472,14 +1472,13 @@ private final class MockItemsAPI: ItemsAPI {
             throw addItemToListError
         }
 
-        if let listItemsAfterSetInList,
-            let item = listItemsAfterSetInList.first(where: { $0.id == itemID })
-        {
+        if let listItemsAfterSetInList {
             items = listItemsAfterSetInList
-            return item
         }
 
-        return try XCTUnwrap(items.first(where: { $0.id == itemID }))
+        guard items.contains(where: { $0.id == itemID }) else {
+            throw APIError.notFound("Item not found")
+        }
     }
 
     func removeItemFromList(itemID: Int) async throws {
