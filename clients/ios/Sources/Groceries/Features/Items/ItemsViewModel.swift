@@ -39,6 +39,9 @@ final class ItemsViewModel {
     private(set) var isUpdating = false
     private(set) var mutatingItemIDs: Set<Int> = []
 
+    var isAddCategoryPickerDisabled: Bool { isAdding }
+    var isAddNameFieldDisabled: Bool { isAdding }
+
     var searchText: String = "" {
         didSet { applyFilters() }
     }
@@ -88,6 +91,12 @@ final class ItemsViewModel {
             errorMessage = errorDescription(error)
             return false
         }
+    }
+
+    func isAddButtonDisabled(name: String, categoryID: Int?) -> Bool {
+        guard !isAdding else { return true }
+        guard categoryID != nil else { return true }
+        return name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     func updateItem(id: Int, name: String, categoryID: Int?) async -> Bool {

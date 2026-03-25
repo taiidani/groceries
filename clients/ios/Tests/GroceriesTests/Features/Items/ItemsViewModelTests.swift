@@ -732,6 +732,50 @@ final class ItemsViewModelTests: XCTestCase {
         XCTAssertEqual(api.listCategoriesCallCount, 3)
         XCTAssertEqual(api.listItemsCallCount, 3)
     }
+
+    func test_addFlowControlsDisabled_whileAddRequestInFlight() async throws {
+        let api = MockItemsAPI(categories: [], items: [])
+        api.createItemResult = try decodeItem(
+            """
+            {
+              "id": 44,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Milk"
+            }
+            """
+        )
+        api.blockedCreateCallIndices = [1]
+
+        let parked = expectation(description: "create call parked")
+        api.onCreateCallParked = { callIndex in
+            if callIndex == 1 {
+                parked.fulfill()
+            }
+        }
+
+        let viewModel = ItemsViewModel(api: api)
+
+        let addTask = Task { await viewModel.addItem(name: "Milk", categoryID: 1) }
+        await fulfillment(of: [parked], timeout: 1.0)
+
+        XCTAssertTrue(viewModel.isAdding)
+        XCTAssertTrue(viewModel.isAddButtonDisabled(name: "Milk", categoryID: 1))
+        XCTAssertTrue(viewModel.isAddCategoryPickerDisabled)
+        XCTAssertTrue(viewModel.isAddNameFieldDisabled)
+
+        api.releaseCreateCall(1)
+        _ = await addTask.value
+    }
+
+    func test_addFlowValidation_requiresTrimmedNameAndCategory() async throws {
+        let api = MockItemsAPI(categories: [], items: [])
+        let viewModel = ItemsViewModel(api: api)
+
+        XCTAssertTrue(viewModel.isAddButtonDisabled(name: "   ", categoryID: 1))
+        XCTAssertTrue(viewModel.isAddButtonDisabled(name: "Milk", categoryID: nil))
+        XCTAssertFalse(viewModel.isAddButtonDisabled(name: " Milk ", categoryID: 1))
+    }
 }
 
 private func decodeCategories(_ json: String) throws -> [GroceriesAPI.Category] {
