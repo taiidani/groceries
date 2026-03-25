@@ -52,6 +52,9 @@ final class ShoppingListViewModel {
     /// `true` while a global mutation (finish shopping) is in flight.
     private(set) var isMutating: Bool = false
 
+    /// `true` while add-item mutation is in flight.
+    private(set) var isAddingItem: Bool = false
+
     /// The most recent error message to surface to the user.
     private(set) var errorMessage: String?
 
@@ -212,6 +215,11 @@ final class ShoppingListViewModel {
     /// `true` when there is at least one item marked done.
     var hasDoneItems: Bool { totalDone > 0 }
 
+    /// `true` when a list-changing request is in-flight.
+    var hasInFlightListMutation: Bool {
+        isLoading || isMutating || isAddingItem || !mutatingItemIDs.isEmpty
+    }
+
     /// Store groups that contain at least one item.
     var nonEmptyStoreGroups: [StoreGroup] {
         storeGroups.filter { group in
@@ -259,6 +267,9 @@ final class ShoppingListViewModel {
     }
 
     func addItem(itemID: Int?, name: String?, quantity: String) async throws {
+        isAddingItem = true
+        defer { isAddingItem = false }
+
         do {
             let listItem: ListItem
 
