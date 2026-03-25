@@ -401,6 +401,98 @@ final class ItemsViewModelTests: XCTestCase {
         XCTAssertNotNil(userInfo[AppEvents.MembershipChanged.changedAtKey] as? Date)
     }
 
+    func test_setInListToggleOffSuccess_callsRemoveRefreshesAndPostsFalseNotification() async throws {
+        let notificationCenter = NotificationCenter()
+        let original = try decodeItem(
+            """
+            {
+              "id": 1,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Milk",
+              "list": { "id": 22, "quantity": "1", "done": false }
+            }
+            """
+        )
+        let toggledOff = try decodeItem(
+            """
+            {
+              "id": 1,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Milk"
+            }
+            """
+        )
+        let api = MockItemsAPI(categories: [], items: [original])
+        api.listItemsAfterSetInList = [toggledOff]
+
+        let viewModel = ItemsViewModel(api: api, notificationCenter: notificationCenter)
+        await viewModel.load()
+
+        let recorder = NotificationRecorder()
+        let token = notificationCenter.addObserver(
+            forName: AppEvents.MembershipChanged.name,
+            object: nil,
+            queue: nil
+        ) { note in
+            recorder.record(note)
+        }
+        defer { notificationCenter.removeObserver(token) }
+
+        let ok = await viewModel.setInList(itemID: 1, isInList: false)
+
+        XCTAssertTrue(ok)
+        XCTAssertEqual(api.addItemToListCallCount, 0)
+        XCTAssertEqual(api.removeItemFromListCallCount, 1)
+        XCTAssertEqual(api.listItemsCallCount, 2)
+        XCTAssertNil(viewModel.items.first?.list)
+
+        let notification = try XCTUnwrap(recorder.lastNotification)
+        let userInfo = try XCTUnwrap(notification.userInfo)
+        XCTAssertEqual(userInfo[AppEvents.MembershipChanged.itemIDKey] as? Int, 1)
+        XCTAssertEqual(userInfo[AppEvents.MembershipChanged.isInListKey] as? Bool, false)
+    }
+
+    func test_setInListToggleOffFailure_preservesStateAndDoesNotPostNotification() async throws {
+        let notificationCenter = NotificationCenter()
+        let original = try decodeItem(
+            """
+            {
+              "id": 1,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Milk",
+              "list": { "id": 22, "quantity": "1", "done": false }
+            }
+            """
+        )
+        let api = MockItemsAPI(categories: [], items: [original])
+        api.removeItemFromListError = APIError.serverError("toggle off fail")
+
+        let viewModel = ItemsViewModel(api: api, notificationCenter: notificationCenter)
+        await viewModel.load()
+
+        let recorder = NotificationRecorder()
+        let token = notificationCenter.addObserver(
+            forName: AppEvents.MembershipChanged.name,
+            object: nil,
+            queue: nil
+        ) { note in
+            recorder.record(note)
+        }
+        defer { notificationCenter.removeObserver(token) }
+
+        let result = await viewModel.setInList(itemID: 1, isInList: false)
+
+        XCTAssertFalse(result)
+        XCTAssertEqual(api.addItemToListCallCount, 0)
+        XCTAssertEqual(api.removeItemFromListCallCount, 1)
+        XCTAssertEqual(api.listItemsCallCount, 1)
+        XCTAssertNotNil(viewModel.items.first?.list)
+        XCTAssertEqual(recorder.count, 0)
+    }
+
     func test_toggleAndDeleteFailure_preserveState_andToggleFailureDoesNotPostNotification() async throws {
         let notificationCenter = NotificationCenter()
         let original = try decodeItem(
@@ -651,6 +743,224 @@ final class ItemsViewModelTests: XCTestCase {
         XCTAssertEqual(api.removeItemFromListCallCount, 0)
     }
 
+    func test_updateItem_rejectedWhileDeleteInFlightForSameItem() async throws {
+        let item = try decodeItem(
+            """
+            {
+              "id": 19,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Cheese"
+            }
+            """
+        )
+
+        let api = MockItemsAPI(categories: [], items: [item])
+        api.blockedDeleteCallIndices = [1]
+
+        let parked = expectation(description: "delete call parked")
+        api.onDeleteCallParked = { callIndex in
+            if callIndex == 1 {
+                parked.fulfill()
+            }
+        }
+
+        let viewModel = ItemsViewModel(api: api)
+
+        let deleteTask = Task { await viewModel.deleteItem(id: 19) }
+        await fulfillment(of: [parked], timeout: 1.0)
+
+        let saveResult = await viewModel.updateItem(id: 19, name: "Sharp Cheese", categoryID: 1)
+        api.releaseDeleteCall(1)
+
+        XCTAssertFalse(saveResult)
+        let deleteResult = await deleteTask.value
+
+        XCTAssertTrue(deleteResult)
+        XCTAssertEqual(api.deleteItemCallCount, 1)
+        XCTAssertEqual(api.updateItemCallCount, 0)
+    }
+
+    func test_editorMutations_lockEachOtherWhileUpdateInFlight() async throws {
+        let existingItem = try decodeItem(
+            """
+            {
+              "id": 14,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Milk"
+            }
+            """
+        )
+        let updatedItem = try decodeItem(
+            """
+            {
+              "id": 14,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Oat Milk"
+            }
+            """
+        )
+
+        let api = MockItemsAPI(categories: [], items: [existingItem])
+        api.updateItemResult = updatedItem
+        api.blockedUpdateCallIndices = [1]
+
+        let parked = expectation(description: "update call parked")
+        api.onUpdateCallParked = { callIndex in
+            if callIndex == 1 {
+                parked.fulfill()
+            }
+        }
+
+        let viewModel = ItemsViewModel(api: api)
+
+        let saveTask = Task {
+            await viewModel.updateItem(id: 14, name: "Oat Milk", categoryID: 1)
+        }
+        await fulfillment(of: [parked], timeout: 1.0)
+
+        let toggleResult = await viewModel.setInList(itemID: 14, isInList: true)
+        let deleteResult = await viewModel.deleteItem(id: 14)
+
+        api.releaseUpdateCall(1)
+        let saveResult = await saveTask.value
+
+        XCTAssertTrue(saveResult)
+        XCTAssertFalse(toggleResult)
+        XCTAssertFalse(deleteResult)
+        XCTAssertEqual(api.updateItemCallCount, 1)
+        XCTAssertEqual(api.addItemToListCallCount, 0)
+        XCTAssertEqual(api.deleteItemCallCount, 0)
+    }
+
+    func test_editorMutations_lockEachOtherWhileToggleInFlight() async throws {
+        let item = try decodeItem(
+            """
+            {
+              "id": 15,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Cream"
+            }
+            """
+        )
+        let inListItem = try decodeItem(
+            """
+            {
+              "id": 15,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Cream",
+              "list": { "id": 40, "quantity": "1", "done": false }
+            }
+            """
+        )
+
+        let api = MockItemsAPI(categories: [], items: [item])
+        api.listItemsAfterSetInList = [inListItem]
+        api.blockedAddItemToListCallIndices = [1]
+
+        let parked = expectation(description: "toggle call parked")
+        api.onAddItemToListCallParked = { callIndex in
+            if callIndex == 1 {
+                parked.fulfill()
+            }
+        }
+
+        let viewModel = ItemsViewModel(api: api)
+        await viewModel.load()
+
+        let toggleTask = Task { await viewModel.setInList(itemID: 15, isInList: true) }
+        await fulfillment(of: [parked], timeout: 1.0)
+
+        let saveResult = await viewModel.updateItem(id: 15, name: "Whipping Cream", categoryID: 1)
+        let deleteResult = await viewModel.deleteItem(id: 15)
+
+        api.releaseAddItemToListCall(1)
+        let toggleResult = await toggleTask.value
+
+        XCTAssertTrue(toggleResult)
+        XCTAssertFalse(saveResult)
+        XCTAssertFalse(deleteResult)
+        XCTAssertEqual(api.addItemToListCallCount, 1)
+        XCTAssertEqual(api.updateItemCallCount, 0)
+        XCTAssertEqual(api.deleteItemCallCount, 0)
+    }
+
+    func test_deleteItem_conflict_keepsItemAndShowsError() async throws {
+        let item = try decodeItem(
+            """
+            {
+              "id": 21,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Milk"
+            }
+            """
+        )
+
+        let api = MockItemsAPI(categories: [], items: [item])
+        api.deleteItemError = APIError.conflict("Item is still referenced")
+        let viewModel = ItemsViewModel(api: api)
+        await viewModel.load()
+
+        let deleteResult = await viewModel.deleteItem(id: 21)
+
+        XCTAssertFalse(deleteResult)
+        XCTAssertEqual(viewModel.items.map(\.id), [21])
+        XCTAssertEqual(viewModel.errorMessage, "Item is still referenced")
+    }
+
+    func test_updateItem_notFound_keepsPriorState() async throws {
+        let original = try decodeItem(
+            """
+            {
+              "id": 33,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Milk"
+            }
+            """
+        )
+
+        let api = MockItemsAPI(categories: [], items: [original])
+        api.updateItemError = APIError.notFound("Item no longer exists")
+        let viewModel = ItemsViewModel(api: api)
+        await viewModel.load()
+
+        let updateResult = await viewModel.updateItem(id: 33, name: "Oat Milk", categoryID: 1)
+
+        XCTAssertFalse(updateResult)
+        XCTAssertEqual(viewModel.items.map(\.name), ["Milk"])
+        XCTAssertEqual(viewModel.errorMessage, "Item no longer exists")
+    }
+
+    func test_deleteItem_notFound_keepsPriorState() async throws {
+        let original = try decodeItem(
+            """
+            {
+              "id": 34,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Milk"
+            }
+            """
+        )
+
+        let api = MockItemsAPI(categories: [], items: [original])
+        api.deleteItemError = APIError.notFound("Item no longer exists")
+        let viewModel = ItemsViewModel(api: api)
+        await viewModel.load()
+
+        let deleteResult = await viewModel.deleteItem(id: 34)
+
+        XCTAssertFalse(deleteResult)
+        XCTAssertEqual(viewModel.items.map(\.name), ["Milk"])
+        XCTAssertEqual(viewModel.errorMessage, "Item no longer exists")
+    }
+
     func test_retryAndRefresh_refetchAndReplaceStaleCache() async throws {
         let api = MockItemsAPI(
             categories: [
@@ -775,6 +1085,62 @@ final class ItemsViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.isAddButtonDisabled(name: "   ", categoryID: 1))
         XCTAssertTrue(viewModel.isAddButtonDisabled(name: "Milk", categoryID: nil))
         XCTAssertFalse(viewModel.isAddButtonDisabled(name: " Milk ", categoryID: 1))
+    }
+
+    func test_itemEditorControlsDisabled_whileMutationInFlight() {
+        XCTAssertTrue(ItemEditorViewUX.cancelDisabled(isMutationInFlight: true))
+        XCTAssertTrue(ItemEditorViewUX.saveDisabled(isMutationInFlight: true, baseSaveDisabled: false))
+        XCTAssertTrue(ItemEditorViewUX.nameDisabled(isMutationInFlight: true))
+        XCTAssertTrue(ItemEditorViewUX.categoryDisabled(isMutationInFlight: true))
+        XCTAssertTrue(ItemEditorViewUX.membershipToggleDisabled(isMutationInFlight: true))
+        XCTAssertTrue(ItemEditorViewUX.deleteDisabled(isMutationInFlight: true))
+    }
+
+    func test_itemEditorAccessibilityLabels_remainStable() {
+        XCTAssertEqual(ItemEditorViewAccessibility.categoryLabel, "Edit item category")
+        XCTAssertEqual(ItemEditorViewAccessibility.nameLabel, "Edit item name")
+        XCTAssertEqual(ItemEditorViewAccessibility.membershipToggleLabel, "Include item in shopping list")
+        XCTAssertEqual(ItemEditorViewAccessibility.cancelButtonLabel, "Cancel edit item")
+        XCTAssertEqual(ItemEditorViewAccessibility.saveButtonLabel, "Save item changes")
+        XCTAssertEqual(ItemEditorViewAccessibility.deleteButtonLabel, "Delete item")
+        XCTAssertEqual(ItemEditorViewAccessibility.deleteConfirmButtonLabel, "Confirm delete item")
+        XCTAssertEqual(ItemEditorViewAccessibility.errorLabel, "Edit item error")
+    }
+
+    func test_setInList_notFound_keepsPriorState_andSurfacesError() async throws {
+        let notificationCenter = NotificationCenter()
+        let original = try decodeItem(
+            """
+            {
+              "id": 1,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Milk"
+            }
+            """
+        )
+        let api = MockItemsAPI(categories: [], items: [original])
+        api.addItemToListError = APIError.notFound("Item no longer exists")
+
+        let viewModel = ItemsViewModel(api: api, notificationCenter: notificationCenter)
+        await viewModel.load()
+
+        let recorder = NotificationRecorder()
+        let token = notificationCenter.addObserver(
+            forName: AppEvents.MembershipChanged.name,
+            object: nil,
+            queue: nil
+        ) { note in
+            recorder.record(note)
+        }
+        defer { notificationCenter.removeObserver(token) }
+
+        let result = await viewModel.setInList(itemID: 1, isInList: true)
+
+        XCTAssertFalse(result)
+        XCTAssertEqual(viewModel.items.map(\.id), [1])
+        XCTAssertEqual(viewModel.errorMessage, "Item no longer exists")
+        XCTAssertEqual(recorder.count, 0)
     }
 }
 

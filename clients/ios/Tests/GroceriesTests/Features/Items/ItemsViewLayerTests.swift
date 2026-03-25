@@ -26,4 +26,52 @@ final class ItemsViewLayerTests: XCTestCase {
         XCTAssertEqual(AddItemViewAccessibility.saveButtonLabel, "Save item")
         XCTAssertEqual(AddItemViewAccessibility.errorLabel, "Add item error")
     }
+
+    func test_itemEditorMembershipToggle_pessimisticFlow_keepsVisibleValueUntilSuccess() {
+        let initial = ItemEditorViewUX.membershipToggleInitialState(isInList: false)
+
+        XCTAssertEqual(initial.visibleValue, false)
+
+        let afterTap = ItemEditorViewUX.membershipToggleBeginMutation(
+            currentVisibleValue: initial.visibleValue,
+            requestedValue: true
+        )
+
+        XCTAssertEqual(afterTap.visibleValue, false)
+        XCTAssertEqual(afterTap.requestedValue, true)
+
+        let afterSuccess = ItemEditorViewUX.membershipToggleResolveMutation(
+            currentVisibleValue: afterTap.visibleValue,
+            requestedValue: afterTap.requestedValue,
+            success: true
+        )
+
+        XCTAssertEqual(afterSuccess, true)
+    }
+
+    func test_itemEditorMembershipToggle_notFoundFailure_keepsVisibleValue() {
+        let afterTap = ItemEditorViewUX.membershipToggleBeginMutation(
+            currentVisibleValue: true,
+            requestedValue: false
+        )
+
+        let afterFailure = ItemEditorViewUX.membershipToggleResolveMutation(
+            currentVisibleValue: afterTap.visibleValue,
+            requestedValue: afterTap.requestedValue,
+            success: false
+        )
+
+        XCTAssertEqual(afterTap.visibleValue, true)
+        XCTAssertEqual(afterFailure, true)
+    }
+
+    func test_itemEditorMembershipToggle_syncsToExternalModelMembershipChange() {
+        let synced = ItemEditorViewUX.membershipToggleSyncExternalModelChange(
+            currentVisibleValue: false,
+            modelIsInList: true,
+            isMutationInFlight: false
+        )
+
+        XCTAssertTrue(synced)
+    }
 }

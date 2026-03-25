@@ -104,9 +104,14 @@ final class ItemsViewModel {
             return false
         }
         guard !isUpdating else { return false }
+        guard !mutatingItemIDs.contains(id) else { return false }
 
         isUpdating = true
-        defer { isUpdating = false }
+        mutatingItemIDs.insert(id)
+        defer {
+            isUpdating = false
+            mutatingItemIDs.remove(id)
+        }
 
         do {
             let updated = try await api.updateItem(id: id, categoryID: validated.categoryID, name: validated.name)
