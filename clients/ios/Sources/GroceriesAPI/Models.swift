@@ -74,6 +74,36 @@ public struct Item: Decodable, Identifiable, Sendable {
     }
 }
 
+public struct CreateItemRequest: Encodable, Sendable {
+    public let categoryID: Int
+    public let name: String
+
+    public init(categoryID: Int, name: String) {
+        self.categoryID = categoryID
+        self.name = name
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case categoryID = "category_id"
+        case name
+    }
+}
+
+public struct UpdateItemRequest: Encodable, Sendable {
+    public let categoryID: Int
+    public let name: String
+
+    public init(categoryID: Int, name: String) {
+        self.categoryID = categoryID
+        self.name = name
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case categoryID = "category_id"
+        case name
+    }
+}
+
 // MARK: - Shopping List
 
 /// A lightweight summary of a list entry embedded inside an `Item`.

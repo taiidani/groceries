@@ -205,6 +205,26 @@ final class GroceriesAPIClientTests: XCTestCase {
         XCTAssertFalse(json.contains("\"quantity\""))
     }
 
+    func testEncodeCreateItemRequest() throws {
+        let request = CreateItemRequest(categoryID: 7, name: "Apples")
+        let data = try JSONEncoder.apiEncoder.encode(request)
+        let json = try XCTUnwrap(String(data: data, encoding: .utf8))
+
+        XCTAssertTrue(json.contains("\"category_id\":7"))
+        XCTAssertTrue(json.contains("\"name\":\"Apples\""))
+        XCTAssertFalse(json.contains("\"categoryID\""))
+    }
+
+    func testEncodeUpdateItemRequest() throws {
+        let request = UpdateItemRequest(categoryID: 4, name: "Bread")
+        let data = try JSONEncoder.apiEncoder.encode(request)
+        let json = try XCTUnwrap(String(data: data, encoding: .utf8))
+
+        XCTAssertTrue(json.contains("\"category_id\":4"))
+        XCTAssertTrue(json.contains("\"name\":\"Bread\""))
+        XCTAssertFalse(json.contains("\"categoryID\""))
+    }
+
     // MARK: - APIError descriptions
 
     func testAPIErrorUnauthorizedDescription() {
