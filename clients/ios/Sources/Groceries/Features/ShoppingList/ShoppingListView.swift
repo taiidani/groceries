@@ -171,7 +171,7 @@ struct ShoppingListView: View {
             Button {
                 showFinishConfirmation = true
             } label: {
-                Label("Clear Done", systemImage: "checkmark.circle")
+                Image(systemName: "checkmark.circle")
             }
             .buttonStyle(.borderedProminent)
             .disabled(viewModel.isMutating)
@@ -427,10 +427,11 @@ private struct ProgressSummaryView: View {
             HStack {
                 Text("\(done) of \(total) items done")
                     .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.92))
                 Spacer()
                 Text("\(Int(progress * 100))%")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.78))
                     .monospacedDigit()
             }
 
