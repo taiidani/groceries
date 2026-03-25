@@ -32,7 +32,8 @@ final class ItemsViewModel {
     private(set) var items: [Item] = []
     private(set) var filteredItems: [Item] = []
     private(set) var categories: [GroceriesAPI.Category] = []
-    private(set) var errorMessage: String?
+    private(set) var loadErrorMessage: String?
+    private(set) var mutationErrorMessage: String?
 
     private(set) var isLoading = false
     private(set) var isAdding = false
@@ -84,11 +85,11 @@ final class ItemsViewModel {
         do {
             let item = try await api.createItem(categoryID: validated.categoryID, name: validated.name)
             items.append(item)
-            errorMessage = nil
+            mutationErrorMessage = nil
             applyFilters()
             return true
         } catch {
-            errorMessage = errorDescription(error)
+            mutationErrorMessage = errorDescription(error)
             return false
         }
     }
@@ -118,11 +119,11 @@ final class ItemsViewModel {
             if let index = items.firstIndex(where: { $0.id == id }) {
                 items[index] = updated
             }
-            errorMessage = nil
+            mutationErrorMessage = nil
             applyFilters()
             return true
         } catch {
-            errorMessage = errorDescription(error)
+            mutationErrorMessage = errorDescription(error)
             return false
         }
     }
@@ -135,11 +136,11 @@ final class ItemsViewModel {
         do {
             try await api.deleteItem(id: id)
             items.removeAll(where: { $0.id == id })
-            errorMessage = nil
+            mutationErrorMessage = nil
             applyFilters()
             return true
         } catch {
-            errorMessage = errorDescription(error)
+            mutationErrorMessage = errorDescription(error)
             return false
         }
     }
@@ -159,7 +160,7 @@ final class ItemsViewModel {
             }
 
             items = try await api.listItems(inList: nil)
-            errorMessage = nil
+            mutationErrorMessage = nil
             applyFilters()
 
             notificationCenter.post(
@@ -173,7 +174,7 @@ final class ItemsViewModel {
             )
             return true
         } catch {
-            errorMessage = errorDescription(error)
+            mutationErrorMessage = errorDescription(error)
             return false
         }
     }
@@ -200,11 +201,11 @@ final class ItemsViewModel {
 
             categories = fetchedCategories
             items = fetchedItems
-            errorMessage = nil
+            loadErrorMessage = nil
             applyFilters()
         } catch {
             guard loadID == latestLoadID else { return }
-            errorMessage = errorDescription(error)
+            loadErrorMessage = errorDescription(error)
         }
     }
 
@@ -228,11 +229,11 @@ final class ItemsViewModel {
     private func validatedInput(name: String, categoryID: Int?) -> (name: String, categoryID: Int)? {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else {
-            errorMessage = "Item name is required."
+            mutationErrorMessage = "Item name is required."
             return nil
         }
         guard let categoryID else {
-            errorMessage = "Category is required."
+            mutationErrorMessage = "Category is required."
             return nil
         }
         return (name: trimmedName, categoryID: categoryID)

@@ -130,7 +130,7 @@ final class ItemsViewModelTests: XCTestCase {
         XCTAssertFalse(updateResult)
         XCTAssertEqual(api.createItemCallCount, 0)
         XCTAssertEqual(api.updateItemCallCount, 0)
-        XCTAssertEqual(viewModel.errorMessage, "Item name is required.")
+        XCTAssertEqual(viewModel.mutationErrorMessage, "Item name is required.")
     }
 
     func test_addAndUpdate_requireCategory() async throws {
@@ -159,7 +159,7 @@ final class ItemsViewModelTests: XCTestCase {
         XCTAssertFalse(updateResult)
         XCTAssertEqual(api.createItemCallCount, 0)
         XCTAssertEqual(api.updateItemCallCount, 0)
-        XCTAssertEqual(viewModel.errorMessage, "Category is required.")
+        XCTAssertEqual(viewModel.mutationErrorMessage, "Category is required.")
     }
 
     func test_loadFailure_keepsEmptySafeState_andRetryPathRecovers() async throws {
@@ -176,7 +176,7 @@ final class ItemsViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.items.isEmpty)
         XCTAssertTrue(viewModel.filteredItems.isEmpty)
         XCTAssertTrue(viewModel.categories.isEmpty)
-        XCTAssertNotNil(viewModel.errorMessage)
+        XCTAssertNotNil(viewModel.loadErrorMessage)
 
         api.listCategoriesError = nil
         api.listItemsError = nil
@@ -210,7 +210,7 @@ final class ItemsViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.items.map(\.name), ["Milk"])
         XCTAssertEqual(viewModel.categories.map(\.name), ["Dairy"])
-        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertNil(viewModel.loadErrorMessage)
         XCTAssertEqual(api.listCategoriesCallCount, 2)
         XCTAssertEqual(api.listItemsCallCount, 2)
     }
@@ -910,7 +910,7 @@ final class ItemsViewModelTests: XCTestCase {
 
         XCTAssertFalse(deleteResult)
         XCTAssertEqual(viewModel.items.map(\.id), [21])
-        XCTAssertEqual(viewModel.errorMessage, "Item is still referenced")
+        XCTAssertEqual(viewModel.mutationErrorMessage, "Item is still referenced")
     }
 
     func test_updateItem_notFound_keepsPriorState() async throws {
@@ -934,7 +934,7 @@ final class ItemsViewModelTests: XCTestCase {
 
         XCTAssertFalse(updateResult)
         XCTAssertEqual(viewModel.items.map(\.name), ["Milk"])
-        XCTAssertEqual(viewModel.errorMessage, "Item no longer exists")
+        XCTAssertEqual(viewModel.mutationErrorMessage, "Item no longer exists")
     }
 
     func test_deleteItem_notFound_keepsPriorState() async throws {
@@ -958,7 +958,7 @@ final class ItemsViewModelTests: XCTestCase {
 
         XCTAssertFalse(deleteResult)
         XCTAssertEqual(viewModel.items.map(\.name), ["Milk"])
-        XCTAssertEqual(viewModel.errorMessage, "Item no longer exists")
+        XCTAssertEqual(viewModel.mutationErrorMessage, "Item no longer exists")
     }
 
     func test_retryAndRefresh_refetchAndReplaceStaleCache() async throws {
@@ -1139,7 +1139,7 @@ final class ItemsViewModelTests: XCTestCase {
 
         XCTAssertFalse(result)
         XCTAssertEqual(viewModel.items.map(\.id), [1])
-        XCTAssertEqual(viewModel.errorMessage, "Item no longer exists")
+        XCTAssertEqual(viewModel.mutationErrorMessage, "Item no longer exists")
         XCTAssertEqual(recorder.count, 0)
     }
 }

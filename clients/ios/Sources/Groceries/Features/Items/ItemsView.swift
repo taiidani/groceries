@@ -39,8 +39,13 @@ enum ItemsViewUX {
         isAdding
     }
 
-    static func shouldShowRetryAffordance(isLoading: Bool, filteredItems: [Item], errorMessage: String?) -> Bool {
-        !isLoading && filteredItems.isEmpty && errorMessage != nil
+    static func shouldShowRetryAffordance(
+        isLoading: Bool,
+        filteredItems: [Item],
+        loadErrorMessage: String?,
+        mutationErrorMessage _: String?
+    ) -> Bool {
+        !isLoading && filteredItems.isEmpty && loadErrorMessage != nil
     }
 
     static func performRetry(using action: () async -> Void) async {
@@ -91,7 +96,8 @@ struct ItemsView: View {
                             if ItemsViewUX.shouldShowRetryAffordance(
                                 isLoading: viewModel.isLoading,
                                 filteredItems: viewModel.filteredItems,
-                                errorMessage: viewModel.errorMessage
+                                loadErrorMessage: viewModel.loadErrorMessage,
+                                mutationErrorMessage: viewModel.mutationErrorMessage
                             ) {
                                 ContentUnavailableView {
                                     Label("Unable to load items", systemImage: "exclamationmark.triangle")

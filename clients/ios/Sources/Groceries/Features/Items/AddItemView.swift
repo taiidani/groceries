@@ -53,7 +53,7 @@ struct AddItemView: View {
                         .accessibilityLabel(AddItemViewAccessibility.nameLabel)
                 }
 
-                if let errorMessage = viewModel.errorMessage {
+                if let errorMessage = viewModel.mutationErrorMessage {
                     Section {
                         Text(errorMessage)
                             .foregroundStyle(.red)

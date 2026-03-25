@@ -61,7 +61,8 @@ final class ItemsViewLayerTests: XCTestCase {
             ItemsViewUX.shouldShowRetryAffordance(
                 isLoading: false,
                 filteredItems: [],
-                errorMessage: "boom"
+                loadErrorMessage: "boom",
+                mutationErrorMessage: nil
             )
         )
 
@@ -69,7 +70,19 @@ final class ItemsViewLayerTests: XCTestCase {
             ItemsViewUX.shouldShowRetryAffordance(
                 isLoading: false,
                 filteredItems: [item],
-                errorMessage: "boom"
+                loadErrorMessage: "boom",
+                mutationErrorMessage: nil
+            )
+        )
+    }
+
+    func test_retryAffordance_hiddenWhenOnlyMutationErrorExistsAndFiltersEmptyList() {
+        XCTAssertFalse(
+            ItemsViewUX.shouldShowRetryAffordance(
+                isLoading: false,
+                filteredItems: [],
+                loadErrorMessage: nil,
+                mutationErrorMessage: "Category is required."
             )
         )
     }
