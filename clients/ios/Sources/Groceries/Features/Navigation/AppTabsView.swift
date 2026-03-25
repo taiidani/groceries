@@ -4,6 +4,7 @@ import SwiftUI
 
 enum AppTab: String, CaseIterable, Hashable {
     case list
+    case items
     case account
 }
 
@@ -32,6 +33,12 @@ struct AppTabsView: View {
                     Label("List", systemImage: "cart")
                 }
                 .tag(AppTab.list)
+
+            ItemsView(apiClient: authViewModel.apiClient)
+                .tabItem {
+                    Label("Items", systemImage: "square.grid.2x2")
+                }
+                .tag(AppTab.items)
 
             AccountView()
                 .tabItem {
