@@ -66,8 +66,7 @@ struct ShoppingListView: View {
                     listView
                 }
             }
-            .navigationTitle("Shopping List")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbarBackground(.clear, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)

@@ -51,7 +51,7 @@ struct RootView: View {
 
     var body: some View {
         if authViewModel.isAuthenticated {
-            ShoppingListView(apiClient: authViewModel.apiClient)
+            AppTabsView()
         } else {
             LoginView()
         }
