@@ -77,7 +77,9 @@ struct ShoppingListView: View {
             .toolbar { toolbarContent }
             .refreshable { await refreshIfNeeded() }
             .task { await viewModel.load() }
-            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            .onReceive(
+                NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
+            ) { _ in
                 handleDidBecomeActive()
             }
             .onAppear { reconcileStoreSelection() }
@@ -92,7 +94,8 @@ struct ShoppingListView: View {
                     AddItemBar(
                         search: { viewModel.searchItems(query: $0) },
                         onAdd: { itemID, name, quantity in
-                            try await viewModel.addItem(itemID: itemID, name: name, quantity: quantity)
+                            try await viewModel.addItem(
+                                itemID: itemID, name: name, quantity: quantity)
                         }
                     )
 
@@ -218,7 +221,9 @@ struct ShoppingListView: View {
                         )
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(storeChipAccessibilityLabel(for: store, isComplete: isComplete))
+                    .accessibilityLabel(
+                        storeChipAccessibilityLabel(for: store, isComplete: isComplete)
+                    )
                     .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
                 }
             }
