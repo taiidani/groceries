@@ -147,7 +147,7 @@ final class ItemsViewModel {
 
     func setInList(itemID: Int, isInList: Bool) async -> Bool {
         guard !mutatingItemIDs.contains(itemID) else { return false }
-        guard items.contains(where: { $0.id == itemID }) else { return false }
+        guard let targetIndex = items.firstIndex(where: { $0.id == itemID }) else { return false }
 
         mutatingItemIDs.insert(itemID)
         defer { mutatingItemIDs.remove(itemID) }
@@ -159,9 +159,17 @@ final class ItemsViewModel {
                 try await api.removeItemFromList(itemID: itemID)
             }
 
-            items = try await api.listItems(inList: nil)
-            mutationErrorMessage = nil
-            applyFilters()
+            let existing = items[targetIndex]
+            let updatedMembership = isInList
+                ? ListItemSummary(id: existing.list?.id ?? itemID, quantity: existing.list?.quantity ?? "", done: existing.list?.done ?? false)
+                : nil
+            items[targetIndex] = Item(
+                id: existing.id,
+                categoryID: existing.categoryID,
+                categoryName: existing.categoryName,
+                name: existing.name,
+                list: updatedMembership
+            )
 
             notificationCenter.post(
                 name: AppEvents.MembershipChanged.name,
@@ -172,6 +180,12 @@ final class ItemsViewModel {
                     AppEvents.MembershipChanged.changedAtKey: Date(),
                 ]
             )
+
+            if let refreshed = try? await api.listItems(inList: nil) {
+                items = refreshed
+            }
+            mutationErrorMessage = nil
+            applyFilters()
             return true
         } catch {
             mutationErrorMessage = errorDescription(error)

@@ -454,6 +454,104 @@ final class ItemsViewModelTests: XCTestCase {
         XCTAssertEqual(userInfo[AppEvents.MembershipChanged.isInListKey] as? Bool, false)
     }
 
+    func test_setInListToggleOn_refreshFailure_stillSucceedsPostsNotificationAndUpdatesLocalState() async throws {
+        let notificationCenter = NotificationCenter()
+        let original = try decodeItem(
+            """
+            {
+              "id": 1,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Milk"
+            }
+            """
+        )
+        let inListItem = try decodeItem(
+            """
+            {
+              "id": 1,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Milk",
+              "list": { "id": 22, "quantity": "1", "done": false }
+            }
+            """
+        )
+
+        let api = MockItemsAPI(categories: [], items: [original])
+        api.listItemsAfterSetInList = [inListItem]
+        api.listItemsErrorByCall[2] = APIError.serverError("refresh fail")
+
+        let viewModel = ItemsViewModel(api: api, notificationCenter: notificationCenter)
+        await viewModel.load()
+
+        let recorder = NotificationRecorder()
+        let token = notificationCenter.addObserver(
+            forName: AppEvents.MembershipChanged.name,
+            object: nil,
+            queue: nil
+        ) { note in
+            recorder.record(note)
+        }
+        defer { notificationCenter.removeObserver(token) }
+
+        let result = await viewModel.setInList(itemID: 1, isInList: true)
+
+        XCTAssertTrue(result)
+        XCTAssertEqual(api.addItemToListCallCount, 1)
+        XCTAssertEqual(api.listItemsCallCount, 2)
+        XCTAssertNotNil(viewModel.items.first?.list)
+        XCTAssertEqual(recorder.count, 1)
+
+        let notification = try XCTUnwrap(recorder.lastNotification)
+        let userInfo = try XCTUnwrap(notification.userInfo)
+        XCTAssertEqual(userInfo[AppEvents.MembershipChanged.itemIDKey] as? Int, 1)
+        XCTAssertEqual(userInfo[AppEvents.MembershipChanged.isInListKey] as? Bool, true)
+    }
+
+    func test_setInListToggleOff_refreshFailure_stillSucceedsPostsNotificationAndUpdatesLocalState() async throws {
+        let notificationCenter = NotificationCenter()
+        let original = try decodeItem(
+            """
+            {
+              "id": 1,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Milk",
+              "list": { "id": 22, "quantity": "1", "done": false }
+            }
+            """
+        )
+        let api = MockItemsAPI(categories: [], items: [original])
+        api.listItemsErrorByCall[2] = APIError.serverError("refresh fail")
+
+        let viewModel = ItemsViewModel(api: api, notificationCenter: notificationCenter)
+        await viewModel.load()
+
+        let recorder = NotificationRecorder()
+        let token = notificationCenter.addObserver(
+            forName: AppEvents.MembershipChanged.name,
+            object: nil,
+            queue: nil
+        ) { note in
+            recorder.record(note)
+        }
+        defer { notificationCenter.removeObserver(token) }
+
+        let result = await viewModel.setInList(itemID: 1, isInList: false)
+
+        XCTAssertTrue(result)
+        XCTAssertEqual(api.removeItemFromListCallCount, 1)
+        XCTAssertEqual(api.listItemsCallCount, 2)
+        XCTAssertNil(viewModel.items.first?.list)
+        XCTAssertEqual(recorder.count, 1)
+
+        let notification = try XCTUnwrap(recorder.lastNotification)
+        let userInfo = try XCTUnwrap(notification.userInfo)
+        XCTAssertEqual(userInfo[AppEvents.MembershipChanged.itemIDKey] as? Int, 1)
+        XCTAssertEqual(userInfo[AppEvents.MembershipChanged.isInListKey] as? Bool, false)
+    }
+
     func test_setInListToggleOffFailure_preservesStateAndDoesNotPostNotification() async throws {
         let notificationCenter = NotificationCenter()
         let original = try decodeItem(
@@ -1210,6 +1308,7 @@ private final class MockItemsAPI: ItemsAPI {
 
     var listCategoriesError: Error?
     var listItemsError: Error?
+    var listItemsErrorByCall: [Int: Error] = [:]
     var createItemError: Error?
     var updateItemError: Error?
     var deleteItemError: Error?
@@ -1265,6 +1364,10 @@ private final class MockItemsAPI: ItemsAPI {
     func listItems(inList: Bool?) async throws -> [Item] {
         listItemsCallCount += 1
         let callIndex = listItemsCallCount
+
+        if let listItemsErrorByCall = listItemsErrorByCall[callIndex] {
+            throw listItemsErrorByCall
+        }
 
         if let listItemsError {
             throw listItemsError
