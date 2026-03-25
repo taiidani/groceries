@@ -259,11 +259,6 @@ struct ShoppingListView: View {
                         }
                     }
                 }
-            } header: {
-                Text(store.name)
-                    .foregroundStyle(.white)
-                    .textCase(nil)
-                    .font(.headline)
             }
         }
         .listStyle(.insetGrouped)
