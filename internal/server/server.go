@@ -90,6 +90,7 @@ func (s *Server) addRoutes(mux *http.ServeMux) {
 	mux.Handle("POST /list/finish", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.finishHandler)))))
 
 	mux.Handle("GET /cart", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.indexCartHandler))))
+	mux.Handle("GET /account", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.accountHandler))))
 
 	mux.Handle("GET /categories", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.categoriesHandler)))))
 	mux.Handle("GET /category/{id}", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.categoryHandler)))))

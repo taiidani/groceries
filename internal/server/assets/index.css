@@ -4,6 +4,21 @@ body {
     background-repeat: repeat;
     background-color: var(--background-color);
     color: var(--text-color);
+    padding-bottom: 5rem;
+}
+
+.bottom-nav-wrap {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+}
+
+.bottom-nav {
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.5rem 1rem;
 }
 
 /* Used in list/table rows to denote a tag being on the target resource */

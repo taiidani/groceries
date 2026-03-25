@@ -1,0 +1,12 @@
+{{ template "header.gohtml" . }}
+
+<main class="responsive">
+    <section>
+        <article class="large-blur">
+            <h5><i>person</i> Account</h5>
+            <p>Username: <strong>{{ .User.Name }}</strong></p>
+        </article>
+    </section>
+</main>
+
+{{ template "footer.gohtml" . }}
