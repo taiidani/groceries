@@ -4,6 +4,13 @@ import XCTest
 
 // MARK: - GroceriesAPIClientTests
 
+private enum TestJSONHelper {
+    static func jsonObject(from body: Data) throws -> [String: Any] {
+        let object = try JSONSerialization.jsonObject(with: body)
+        return try XCTUnwrap(object as? [String: Any])
+    }
+}
+
 final class GroceriesAPIClientTests: XCTestCase {
 
     override func tearDown() {
@@ -391,6 +398,131 @@ final class GroceriesAPIClientTests: XCTestCase {
         XCTAssertEqual(items[0].name, "Apples")
     }
 
+    func testListItems_withCategoryIDQueryEncodesCategoryIDOnly() async throws {
+        let responseJSON = """
+            [
+                {
+                    "id": 3,
+                    "category_id": 10,
+                    "category_name": "Produce",
+                    "name": "Carrots"
+                }
+            ]
+            """
+
+        MockURLProtocol.setRequestHandler { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.url?.path, "/api/v1/items")
+
+            let queryItems = URLComponents(url: try XCTUnwrap(request.url), resolvingAgainstBaseURL: false)?.queryItems
+            XCTAssertEqual(queryItems?.count, 1)
+            XCTAssertEqual(queryItems?.first?.name, "category_id")
+            XCTAssertEqual(queryItems?.first?.value, "10")
+
+            let data = try XCTUnwrap(responseJSON.data(using: .utf8))
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+
+            return (response, data)
+        }
+
+        let client = makeClient()
+        let items = try await client.listItems(categoryID: 10)
+
+        XCTAssertEqual(items.count, 1)
+        XCTAssertEqual(items[0].name, "Carrots")
+    }
+
+    func testListItems_withInListFalseQueryEncodesFalse() async throws {
+        let responseJSON = """
+            [
+                {
+                    "id": 4,
+                    "category_id": 12,
+                    "category_name": "Pantry",
+                    "name": "Pasta"
+                }
+            ]
+            """
+
+        MockURLProtocol.setRequestHandler { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.url?.path, "/api/v1/items")
+
+            let queryItems = URLComponents(url: try XCTUnwrap(request.url), resolvingAgainstBaseURL: false)?.queryItems
+            XCTAssertEqual(queryItems?.count, 1)
+            XCTAssertEqual(queryItems?.first?.name, "in_list")
+            XCTAssertEqual(queryItems?.first?.value, "false")
+
+            let data = try XCTUnwrap(responseJSON.data(using: .utf8))
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+
+            return (response, data)
+        }
+
+        let client = makeClient()
+        let items = try await client.listItems(inList: false)
+
+        XCTAssertEqual(items.count, 1)
+        XCTAssertEqual(items[0].name, "Pasta")
+    }
+
+    func testListItems_withCategoryIDAndInListQueryEncodesBothItems() async throws {
+        let responseJSON = """
+            [
+                {
+                    "id": 5,
+                    "category_id": 2,
+                    "category_name": "Dairy",
+                    "name": "Yogurt"
+                }
+            ]
+            """
+
+        MockURLProtocol.setRequestHandler { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.url?.path, "/api/v1/items")
+
+            let queryItems = URLComponents(url: try XCTUnwrap(request.url), resolvingAgainstBaseURL: false)?.queryItems ?? []
+            XCTAssertEqual(queryItems.count, 2)
+
+            let queryByName = Dictionary(uniqueKeysWithValues: queryItems.map { ($0.name, $0.value) })
+            XCTAssertEqual(queryByName["category_id"], "2")
+            XCTAssertEqual(queryByName["in_list"], "false")
+
+            let data = try XCTUnwrap(responseJSON.data(using: .utf8))
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+
+            return (response, data)
+        }
+
+        let client = makeClient()
+        let items = try await client.listItems(categoryID: 2, inList: false)
+
+        XCTAssertEqual(items.count, 1)
+        XCTAssertEqual(items[0].name, "Yogurt")
+    }
+
     func testCreateItem_postsExpectedBody() async throws {
         let responseJSON = """
             {
@@ -406,9 +538,10 @@ final class GroceriesAPIClientTests: XCTestCase {
             XCTAssertEqual(request.url?.path, "/api/v1/items")
 
             let body = try XCTUnwrap(MockURLProtocol.requestBodyData(from: request))
-            let bodyString = try XCTUnwrap(String(data: body, encoding: .utf8))
-            XCTAssertTrue(bodyString.contains("\"category_id\":4"))
-            XCTAssertTrue(bodyString.contains("\"name\":\"Bagels\""))
+            let payload = try TestJSONHelper.jsonObject(from: body)
+            XCTAssertEqual(payload["category_id"] as? Int, 4)
+            XCTAssertEqual(payload["name"] as? String, "Bagels")
+            XCTAssertNil(payload["categoryID"])
 
             let data = try XCTUnwrap(responseJSON.data(using: .utf8))
             let response = try XCTUnwrap(
@@ -446,9 +579,10 @@ final class GroceriesAPIClientTests: XCTestCase {
             XCTAssertEqual(request.url?.path, "/api/v1/items/21")
 
             let body = try XCTUnwrap(MockURLProtocol.requestBodyData(from: request))
-            let bodyString = try XCTUnwrap(String(data: body, encoding: .utf8))
-            XCTAssertTrue(bodyString.contains("\"category_id\":5"))
-            XCTAssertTrue(bodyString.contains("\"name\":\"Granola\""))
+            let payload = try TestJSONHelper.jsonObject(from: body)
+            XCTAssertEqual(payload["category_id"] as? Int, 5)
+            XCTAssertEqual(payload["name"] as? String, "Granola")
+            XCTAssertNil(payload["categoryID"])
 
             let data = try XCTUnwrap(responseJSON.data(using: .utf8))
             let response = try XCTUnwrap(
@@ -531,9 +665,9 @@ final class GroceriesAPIClientTests: XCTestCase {
             XCTAssertEqual(request.url?.path, "/api/v1/items/999")
 
             let body = try XCTUnwrap(MockURLProtocol.requestBodyData(from: request))
-            let bodyString = try XCTUnwrap(String(data: body, encoding: .utf8))
-            XCTAssertTrue(bodyString.contains("\"category_id\":5"))
-            XCTAssertTrue(bodyString.contains("\"name\":\"Granola\""))
+            let payload = try TestJSONHelper.jsonObject(from: body)
+            XCTAssertEqual(payload["category_id"] as? Int, 5)
+            XCTAssertEqual(payload["name"] as? String, "Granola")
 
             let data = try XCTUnwrap("{\"error\":\"item not found\"}".data(using: .utf8))
             let response = try XCTUnwrap(
