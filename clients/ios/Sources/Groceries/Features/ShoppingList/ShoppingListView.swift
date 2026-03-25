@@ -1,5 +1,6 @@
 import GroceriesAPI
 import SwiftUI
+import UIKit
 
 // MARK: - Background
 
@@ -39,6 +40,8 @@ struct ShoppingListView: View {
 
     @State private var showFinishConfirmation: Bool = false
     @State private var selectedStoreID: Int?
+    @State private var autoRefreshCoordinator = ShoppingListAutoRefreshCoordinator()
+    @State private var isRefreshingList = false
 
     // MARK: - Init
 
@@ -62,7 +65,7 @@ struct ShoppingListView: View {
                 if viewModel.isLoading && viewModel.isEmpty {
                     loadingView
                 } else if viewModel.nonEmptyStoreGroups.isEmpty && !viewModel.isLoading {
-                    emptyStateView
+                    emptyStateListView
                 } else {
                     listView
                 }
@@ -72,9 +75,15 @@ struct ShoppingListView: View {
             .toolbarBackground(.clear, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbar { toolbarContent }
-            .refreshable { await viewModel.refresh() }
+            .refreshable { await refreshIfNeeded() }
             .task { await viewModel.load() }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                handleDidBecomeActive()
+            }
             .onAppear { reconcileStoreSelection() }
+            .onChange(of: viewModel.hasInFlightListMutation) { _, isBusy in
+                handleMutationStateChange(isBusy: isBusy)
+            }
             .onChange(of: availableStoreIDs) { _, _ in
                 reconcileStoreSelection()
             }
@@ -271,12 +280,50 @@ struct ShoppingListView: View {
 
     // MARK: - Empty state
 
+    private var emptyStateListView: some View {
+        List {
+            Section {
+                emptyStateView
+                    .listRowInsets(.init(top: 56, leading: 24, bottom: 56, trailing: 24))
+                    .listRowBackground(Color.clear)
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .environment(\.colorScheme, .dark)
+    }
+
     private var emptyStateView: some View {
         ContentUnavailableView(
             "Your list is empty",
             systemImage: "cart",
             description: Text("Add items to your shopping list and they'll appear here.")
         )
+    }
+
+    private func handleDidBecomeActive() {
+        let action = autoRefreshCoordinator.appDidBecomeActive(
+            isBusy: viewModel.hasInFlightListMutation
+        )
+        if action == .refreshNow {
+            Task { await refreshIfNeeded() }
+        }
+    }
+
+    private func handleMutationStateChange(isBusy: Bool) {
+        let action = autoRefreshCoordinator.mutationStateDidChange(isBusy: isBusy)
+        if action == .refreshNow {
+            Task { await refreshIfNeeded() }
+        }
+    }
+
+    private func refreshIfNeeded() async {
+        guard !isRefreshingList else { return }
+
+        isRefreshingList = true
+        defer { isRefreshingList = false }
+
+        await viewModel.refresh()
     }
 
     // MARK: - Error banner
