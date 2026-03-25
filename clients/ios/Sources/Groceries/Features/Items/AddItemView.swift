@@ -1,6 +1,32 @@
 import SwiftUI
 import GroceriesAPI
 
+enum AddItemViewAccessibility {
+    static let categoryLabel = "Item category"
+    static let nameLabel = "Item name"
+    static let cancelButtonLabel = "Cancel add item"
+    static let saveButtonLabel = "Save item"
+    static let errorLabel = "Add item error"
+}
+
+enum AddItemViewUX {
+    static func cancelDisabled(isAdding: Bool) -> Bool {
+        isAdding
+    }
+
+    static func saveDisabled(isAdding: Bool, baseSaveDisabled: Bool) -> Bool {
+        isAdding || baseSaveDisabled
+    }
+
+    static func categoryDisabled(isAdding: Bool) -> Bool {
+        isAdding
+    }
+
+    static func nameDisabled(isAdding: Bool) -> Bool {
+        isAdding
+    }
+}
+
 struct AddItemView: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -19,12 +45,21 @@ struct AddItemView: View {
                             Text(category.name).tag(Optional(category.id))
                         }
                     }
-                    .disabled(viewModel.isAddCategoryPickerDisabled)
-                    .accessibilityLabel("Item category")
+                    .disabled(AddItemViewUX.categoryDisabled(isAdding: viewModel.isAdding))
+                    .accessibilityLabel(AddItemViewAccessibility.categoryLabel)
 
                     TextField("Item name", text: $name)
-                        .disabled(viewModel.isAddNameFieldDisabled)
-                        .accessibilityLabel("Item name")
+                        .disabled(AddItemViewUX.nameDisabled(isAdding: viewModel.isAdding))
+                        .accessibilityLabel(AddItemViewAccessibility.nameLabel)
+                }
+
+                if let errorMessage = viewModel.errorMessage {
+                    Section {
+                        Text(errorMessage)
+                            .foregroundStyle(.red)
+                            .accessibilityLabel(AddItemViewAccessibility.errorLabel)
+                            .accessibilityValue(errorMessage)
+                    }
                 }
             }
             .navigationTitle("Add Item")
@@ -34,8 +69,8 @@ struct AddItemView: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                    .disabled(viewModel.isAdding)
-                    .accessibilityLabel("Cancel add item")
+                    .disabled(AddItemViewUX.cancelDisabled(isAdding: viewModel.isAdding))
+                    .accessibilityLabel(AddItemViewAccessibility.cancelButtonLabel)
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
@@ -47,8 +82,16 @@ struct AddItemView: View {
                             }
                         }
                     }
-                    .disabled(viewModel.isAddButtonDisabled(name: name, categoryID: selectedCategoryID))
-                    .accessibilityLabel("Save item")
+                    .disabled(
+                        AddItemViewUX.saveDisabled(
+                            isAdding: viewModel.isAdding,
+                            baseSaveDisabled: viewModel.isAddButtonDisabled(
+                                name: name,
+                                categoryID: selectedCategoryID
+                            )
+                        )
+                    )
+                    .accessibilityLabel(AddItemViewAccessibility.saveButtonLabel)
                 }
             }
         }

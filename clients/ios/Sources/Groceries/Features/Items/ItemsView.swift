@@ -1,6 +1,18 @@
 import SwiftUI
 import GroceriesAPI
 
+enum ItemsViewAccessibility {
+    static let searchFieldLabel = "Item search"
+    static let inListOnlyToggleLabel = "In List only"
+    static let addItemButtonLabel = "Add item"
+}
+
+enum ItemsViewUX {
+    static func addSheetInteractiveDismissDisabled(isAdding: Bool) -> Bool {
+        isAdding
+    }
+}
+
 struct ItemsView: View {
     let apiClient: GroceriesAPIClient
 
@@ -26,7 +38,7 @@ struct ItemsView: View {
                                 set: { viewModel.searchText = $0 }
                             )
                         )
-                        .accessibilityLabel("Item search")
+                        .accessibilityLabel(ItemsViewAccessibility.searchFieldLabel)
 
                         Toggle(
                             "In List only",
@@ -35,7 +47,7 @@ struct ItemsView: View {
                                 set: { viewModel.inListOnly = $0 }
                             )
                         )
-                        .accessibilityLabel("In List only")
+                        .accessibilityLabel(ItemsViewAccessibility.inListOnlyToggleLabel)
                     }
 
                     if viewModel.filteredItems.isEmpty && !viewModel.isLoading {
@@ -78,12 +90,13 @@ struct ItemsView: View {
                     } label: {
                         Label("Add Item", systemImage: "plus")
                     }
-                    .accessibilityLabel("Add item")
+                    .accessibilityLabel(ItemsViewAccessibility.addItemButtonLabel)
                 }
             }
             .task { await viewModel.load() }
             .sheet(isPresented: $isPresentingAddItem) {
                 AddItemView(viewModel: viewModel)
+                    .interactiveDismissDisabled(ItemsViewUX.addSheetInteractiveDismissDisabled(isAdding: viewModel.isAdding))
             }
         }
     }
