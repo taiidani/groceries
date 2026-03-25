@@ -37,7 +37,7 @@ jobs:
           xcodebuild test \
             -project Groceries.xcodeproj \
             -scheme GroceriesAPI \
-            -destination 'platform=iOS Simulator,OS=26.3.1,name=iPhone 17'
+            -destination 'platform=iOS Simulator,name=iPhone 17'
 
       - name: Run Groceries app feature unit tests
         working-directory: clients/ios
@@ -45,4 +45,4 @@ jobs:
           xcodebuild test \
             -project Groceries.xcodeproj \
             -scheme GroceriesTests \
-            -destination 'platform=iOS Simulator,OS=26.3.1,name=iPhone 17'
+            -destination 'platform=iOS Simulator,name=iPhone 17'
