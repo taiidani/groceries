@@ -268,7 +268,81 @@ final class ItemsViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.items.isEmpty)
     }
 
-    func test_setInListSuccess_postsMembershipNotificationPayloadTypes() async throws {
+    func test_load_forceOverlap_keepsNewestLoadResults() async throws {
+        let staleCategory = try decodeCategory(
+            """
+            {
+              "id": 1,
+              "store_id": 1,
+              "name": "Stale",
+              "description": "",
+              "item_count": 1
+            }
+            """
+        )
+        let freshCategory = try decodeCategory(
+            """
+            {
+              "id": 2,
+              "store_id": 1,
+              "name": "Fresh",
+              "description": "",
+              "item_count": 1
+            }
+            """
+        )
+        let staleItem = try decodeItem(
+            """
+            {
+              "id": 1,
+              "category_id": 1,
+              "category_name": "Stale",
+              "name": "Stale Item"
+            }
+            """
+        )
+        let freshItem = try decodeItem(
+            """
+            {
+              "id": 2,
+              "category_id": 2,
+              "category_name": "Fresh",
+              "name": "Fresh Item"
+            }
+            """
+        )
+
+        let api = MockItemsAPI(categories: [staleCategory], items: [staleItem])
+        api.listItemsResponsesByCall = [
+            1: [staleItem],
+            2: [freshItem],
+        ]
+        api.blockedListItemsCallIndices = [1]
+
+        let parked = expectation(description: "first listItems call parked")
+        api.onListItemsCallParked = { callIndex in
+            if callIndex == 1 {
+                parked.fulfill()
+            }
+        }
+
+        let viewModel = ItemsViewModel(api: api)
+
+        let firstLoad = Task { await viewModel.load() }
+        await fulfillment(of: [parked], timeout: 1.0)
+
+        api.categories = [freshCategory]
+        let forcedRefresh = Task { await viewModel.retryLoad() }
+        await forcedRefresh.value
+
+        api.releaseListItemsCall(1)
+        await firstLoad.value
+
+        XCTAssertEqual(viewModel.items.map(\.name), ["Fresh Item"])
+        XCTAssertEqual(viewModel.categories.map(\.name), ["Fresh"])
+    }
+
+    func test_setInListSuccess_postsMembershipNotificationContract() async throws {
         let notificationCenter = NotificationCenter()
         let api = MockItemsAPI(
             categories: [],
@@ -315,10 +389,16 @@ final class ItemsViewModelTests: XCTestCase {
         let ok = await viewModel.setInList(itemID: 1, isInList: true)
 
         XCTAssertTrue(ok)
-        let userInfo = try XCTUnwrap(recorder.lastUserInfo)
-        XCTAssertTrue(userInfo[AppEvents.MembershipChanged.itemIDKey] is Int)
-        XCTAssertTrue(userInfo[AppEvents.MembershipChanged.isInListKey] is Bool)
-        XCTAssertTrue(userInfo[AppEvents.MembershipChanged.changedAtKey] is Date)
+        XCTAssertEqual(recorder.count, 1)
+
+        let notification = try XCTUnwrap(recorder.lastNotification)
+        XCTAssertEqual(notification.name, AppEvents.MembershipChanged.name)
+        XCTAssertNil(notification.object)
+
+        let userInfo = try XCTUnwrap(notification.userInfo)
+        XCTAssertEqual(userInfo[AppEvents.MembershipChanged.itemIDKey] as? Int, 1)
+        XCTAssertEqual(userInfo[AppEvents.MembershipChanged.isInListKey] as? Bool, true)
+        XCTAssertNotNil(userInfo[AppEvents.MembershipChanged.changedAtKey] as? Date)
     }
 
     func test_toggleAndDeleteFailure_preserveState_andToggleFailureDoesNotPostNotification() async throws {
@@ -371,20 +451,204 @@ final class ItemsViewModelTests: XCTestCase {
             }
             """
         )
-        api.waitForCreate = true
+        api.blockedCreateCallIndices = [1]
+
+        let parked = expectation(description: "create call parked")
+        api.onCreateCallParked = { callIndex in
+            if callIndex == 1 {
+                parked.fulfill()
+            }
+        }
 
         let viewModel = ItemsViewModel(api: api)
 
         let first = Task { await viewModel.addItem(name: "Milk", categoryID: 1) }
-        let second = Task { await viewModel.addItem(name: "Milk", categoryID: 1) }
+        await fulfillment(of: [parked], timeout: 1.0)
 
-        await Task.yield()
-        api.releaseCreateContinuation()
+        let second = Task { await viewModel.addItem(name: "Milk", categoryID: 1) }
+        api.releaseCreateCall(1)
 
         _ = await first.value
         _ = await second.value
 
         XCTAssertEqual(api.createItemCallCount, 1)
+    }
+
+    func test_updateItem_duplicateInFlightCall_isRejected() async throws {
+        let existingItem = try decodeItem(
+            """
+            {
+              "id": 10,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Milk"
+            }
+            """
+        )
+        let updatedItem = try decodeItem(
+            """
+            {
+              "id": 10,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Oat Milk"
+            }
+            """
+        )
+
+        let api = MockItemsAPI(categories: [], items: [existingItem])
+        api.updateItemResult = updatedItem
+        api.blockedUpdateCallIndices = [1]
+
+        let parked = expectation(description: "update call parked")
+        api.onUpdateCallParked = { callIndex in
+            if callIndex == 1 {
+                parked.fulfill()
+            }
+        }
+
+        let viewModel = ItemsViewModel(api: api)
+
+        let first = Task { await viewModel.updateItem(id: 10, name: "Oat Milk", categoryID: 1) }
+        await fulfillment(of: [parked], timeout: 1.0)
+        let second = Task { await viewModel.updateItem(id: 10, name: "Oat Milk", categoryID: 1) }
+
+        api.releaseUpdateCall(1)
+
+        let firstResult = await first.value
+        let secondResult = await second.value
+
+        XCTAssertTrue(firstResult)
+        XCTAssertFalse(secondResult)
+        XCTAssertEqual(api.updateItemCallCount, 1)
+    }
+
+    func test_deleteItem_duplicateInFlightCall_isRejected() async throws {
+        let item = try decodeItem(
+            """
+            {
+              "id": 7,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Yogurt"
+            }
+            """
+        )
+
+        let api = MockItemsAPI(categories: [], items: [item])
+        api.blockedDeleteCallIndices = [1]
+
+        let parked = expectation(description: "delete call parked")
+        api.onDeleteCallParked = { callIndex in
+            if callIndex == 1 {
+                parked.fulfill()
+            }
+        }
+
+        let viewModel = ItemsViewModel(api: api)
+
+        let first = Task { await viewModel.deleteItem(id: 7) }
+        await fulfillment(of: [parked], timeout: 1.0)
+        let second = Task { await viewModel.deleteItem(id: 7) }
+
+        api.releaseDeleteCall(1)
+
+        let firstResult = await first.value
+        let secondResult = await second.value
+
+        XCTAssertTrue(firstResult)
+        XCTAssertFalse(secondResult)
+        XCTAssertEqual(api.deleteItemCallCount, 1)
+    }
+
+    func test_setInList_duplicateInFlightCall_isRejected() async throws {
+        let item = try decodeItem(
+            """
+            {
+              "id": 5,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Cream"
+            }
+            """
+        )
+        let inListItem = try decodeItem(
+            """
+            {
+              "id": 5,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Cream",
+              "list": { "id": 31, "quantity": "1", "done": false }
+            }
+            """
+        )
+
+        let api = MockItemsAPI(categories: [], items: [item])
+        api.listItemsAfterSetInList = [inListItem]
+        api.blockedAddItemToListCallIndices = [1]
+
+        let parked = expectation(description: "addItemToList call parked")
+        api.onAddItemToListCallParked = { callIndex in
+            if callIndex == 1 {
+                parked.fulfill()
+            }
+        }
+
+        let viewModel = ItemsViewModel(api: api)
+        await viewModel.load()
+
+        let first = Task { await viewModel.setInList(itemID: 5, isInList: true) }
+        await fulfillment(of: [parked], timeout: 1.0)
+        let second = Task { await viewModel.setInList(itemID: 5, isInList: true) }
+
+        api.releaseAddItemToListCall(1)
+
+        let firstResult = await first.value
+        let secondResult = await second.value
+
+        XCTAssertTrue(firstResult)
+        XCTAssertFalse(secondResult)
+        XCTAssertEqual(api.addItemToListCallCount, 1)
+    }
+
+    func test_setInList_rejectedWhileDeleteInFlightForSameItem() async throws {
+        let item = try decodeItem(
+            """
+            {
+              "id": 9,
+              "category_id": 1,
+              "category_name": "Dairy",
+              "name": "Cheese"
+            }
+            """
+        )
+
+        let api = MockItemsAPI(categories: [], items: [item])
+        api.blockedDeleteCallIndices = [1]
+
+        let parked = expectation(description: "delete call parked")
+        api.onDeleteCallParked = { callIndex in
+            if callIndex == 1 {
+                parked.fulfill()
+            }
+        }
+
+        let viewModel = ItemsViewModel(api: api)
+
+        let deleteTask = Task { await viewModel.deleteItem(id: 9) }
+        await fulfillment(of: [parked], timeout: 1.0)
+
+        let toggleResult = await viewModel.setInList(itemID: 9, isInList: true)
+        api.releaseDeleteCall(1)
+
+        XCTAssertFalse(toggleResult)
+        let deleteResult = await deleteTask.value
+
+        XCTAssertTrue(deleteResult)
+        XCTAssertEqual(api.deleteItemCallCount, 1)
+        XCTAssertEqual(api.addItemToListCallCount, 0)
+        XCTAssertEqual(api.removeItemFromListCallCount, 0)
     }
 
     func test_retryAndRefresh_refetchAndReplaceStaleCache() async throws {
@@ -492,6 +756,7 @@ private func decodeItem(_ json: String) throws -> Item {
 
 private final class NotificationRecorder: @unchecked Sendable {
     private let lock = NSLock()
+    private var notifications: [Notification] = []
     private var storedUserInfo: [AnyHashable: Any]?
     private var storedCount = 0
 
@@ -507,8 +772,15 @@ private final class NotificationRecorder: @unchecked Sendable {
         return storedCount
     }
 
+    var lastNotification: Notification? {
+        lock.lock()
+        defer { lock.unlock() }
+        return notifications.last
+    }
+
     func record(_ notification: Notification) {
         lock.lock()
+        notifications.append(notification)
         storedUserInfo = notification.userInfo
         storedCount += 1
         lock.unlock()
@@ -537,9 +809,25 @@ private final class MockItemsAPI: ItemsAPI {
     var createItemResult: Item?
     var updateItemResult: Item?
     var listItemsAfterSetInList: [Item]?
+    var listItemsResponsesByCall: [Int: [Item]] = [:]
 
-    var waitForCreate = false
-    private var createContinuation: CheckedContinuation<Void, Never>?
+    var blockedListItemsCallIndices: Set<Int> = []
+    var blockedCreateCallIndices: Set<Int> = []
+    var blockedUpdateCallIndices: Set<Int> = []
+    var blockedDeleteCallIndices: Set<Int> = []
+    var blockedAddItemToListCallIndices: Set<Int> = []
+
+    var onListItemsCallParked: ((Int) -> Void)?
+    var onCreateCallParked: ((Int) -> Void)?
+    var onUpdateCallParked: ((Int) -> Void)?
+    var onDeleteCallParked: ((Int) -> Void)?
+    var onAddItemToListCallParked: ((Int) -> Void)?
+
+    private var listItemsContinuations: [Int: CheckedContinuation<Void, Never>] = [:]
+    private var createContinuations: [Int: CheckedContinuation<Void, Never>] = [:]
+    private var updateContinuations: [Int: CheckedContinuation<Void, Never>] = [:]
+    private var deleteContinuations: [Int: CheckedContinuation<Void, Never>] = [:]
+    private var addItemToListContinuations: [Int: CheckedContinuation<Void, Never>] = [:]
 
     private(set) var createItemCallCount = 0
     private(set) var updateItemCallCount = 0
@@ -566,26 +854,45 @@ private final class MockItemsAPI: ItemsAPI {
 
     func listItems(inList: Bool?) async throws -> [Item] {
         listItemsCallCount += 1
+        let callIndex = listItemsCallCount
+
         if let listItemsError {
             throw listItemsError
         }
 
-        if let listItemsAfterSetInList {
-            return listItemsAfterSetInList
+        let response: [Item]
+        if let callSpecificResponse = listItemsResponsesByCall[callIndex] {
+            response = callSpecificResponse
+        } else if let listItemsAfterSetInList {
+            response = listItemsAfterSetInList
+        } else if let inList {
+            response = items.filter { ($0.list != nil) == inList }
+        } else {
+            response = items
         }
 
-        if let inList {
-            return items.filter { ($0.list != nil) == inList }
+        if blockedListItemsCallIndices.contains(callIndex) {
+            await withCheckedContinuation { continuation in
+                listItemsContinuations[callIndex] = continuation
+                onListItemsCallParked?(callIndex)
+            }
         }
-        return items
+
+        return response
+    }
+
+    func releaseListItemsCall(_ callIndex: Int) {
+        listItemsContinuations.removeValue(forKey: callIndex)?.resume()
     }
 
     func createItem(categoryID: Int, name: String) async throws -> Item {
         createItemCallCount += 1
+        let callIndex = createItemCallCount
 
-        if waitForCreate {
+        if blockedCreateCallIndices.contains(callIndex) {
             await withCheckedContinuation { continuation in
-                createContinuation = continuation
+                createContinuations[callIndex] = continuation
+                onCreateCallParked?(callIndex)
             }
         }
 
@@ -600,6 +907,14 @@ private final class MockItemsAPI: ItemsAPI {
 
     func updateItem(id: Int, categoryID: Int, name: String) async throws -> Item {
         updateItemCallCount += 1
+        let callIndex = updateItemCallCount
+
+        if blockedUpdateCallIndices.contains(callIndex) {
+            await withCheckedContinuation { continuation in
+                updateContinuations[callIndex] = continuation
+                onUpdateCallParked?(callIndex)
+            }
+        }
 
         if let updateItemError {
             throw updateItemError
@@ -614,6 +929,15 @@ private final class MockItemsAPI: ItemsAPI {
 
     func deleteItem(id: Int) async throws {
         deleteItemCallCount += 1
+        let callIndex = deleteItemCallCount
+
+        if blockedDeleteCallIndices.contains(callIndex) {
+            await withCheckedContinuation { continuation in
+                deleteContinuations[callIndex] = continuation
+                onDeleteCallParked?(callIndex)
+            }
+        }
+
         if let deleteItemError {
             throw deleteItemError
         }
@@ -622,6 +946,15 @@ private final class MockItemsAPI: ItemsAPI {
 
     func addItemToList(itemID: Int) async throws -> Item {
         addItemToListCallCount += 1
+        let callIndex = addItemToListCallCount
+
+        if blockedAddItemToListCallIndices.contains(callIndex) {
+            await withCheckedContinuation { continuation in
+                addItemToListContinuations[callIndex] = continuation
+                onAddItemToListCallParked?(callIndex)
+            }
+        }
+
         if let addItemToListError {
             throw addItemToListError
         }
@@ -647,8 +980,19 @@ private final class MockItemsAPI: ItemsAPI {
         }
     }
 
-    func releaseCreateContinuation() {
-        createContinuation?.resume()
-        createContinuation = nil
+    func releaseCreateCall(_ callIndex: Int) {
+        createContinuations.removeValue(forKey: callIndex)?.resume()
+    }
+
+    func releaseUpdateCall(_ callIndex: Int) {
+        updateContinuations.removeValue(forKey: callIndex)?.resume()
+    }
+
+    func releaseDeleteCall(_ callIndex: Int) {
+        deleteContinuations.removeValue(forKey: callIndex)?.resume()
+    }
+
+    func releaseAddItemToListCall(_ callIndex: Int) {
+        addItemToListContinuations.removeValue(forKey: callIndex)?.resume()
     }
 }

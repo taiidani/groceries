@@ -49,6 +49,8 @@ final class ItemsViewModel {
 
     private let api: any ItemsAPI
     private let notificationCenter: NotificationCenter
+    private var activeLoadCount = 0
+    private var latestLoadID = 0
 
     init(api: any ItemsAPI, notificationCenter: NotificationCenter = .default) {
         self.api = api
@@ -165,19 +167,29 @@ final class ItemsViewModel {
     private func load(force: Bool) async {
         guard force || !isLoading else { return }
 
+        latestLoadID += 1
+        let loadID = latestLoadID
+
+        activeLoadCount += 1
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            activeLoadCount = max(0, activeLoadCount - 1)
+            isLoading = activeLoadCount > 0
+        }
 
         do {
             async let categoriesFetch = api.listCategories()
             async let itemsFetch = api.listItems(inList: nil)
             let (fetchedCategories, fetchedItems) = try await (categoriesFetch, itemsFetch)
 
+            guard loadID == latestLoadID else { return }
+
             categories = fetchedCategories
             items = fetchedItems
             errorMessage = nil
             applyFilters()
         } catch {
+            guard loadID == latestLoadID else { return }
             errorMessage = errorDescription(error)
         }
     }
