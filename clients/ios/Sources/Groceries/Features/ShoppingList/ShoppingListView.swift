@@ -21,7 +21,7 @@ struct AppBackground: View {
 /// - Uses `List` with swipe actions for destructive operations.
 /// - Groups items by category using `Section`.
 /// - Pull-to-refresh via `.refreshable`.
-/// - Toolbar "Finish Shopping" button only visible when there are done items.
+/// - Global progress summary shown once for the whole shopping list.
 /// - Empty state with a friendly illustration and message.
 /// - Inline error banner rather than disruptive alerts.
 struct ShoppingListView: View {
@@ -29,6 +29,7 @@ struct ShoppingListView: View {
     // MARK: - Dependencies
 
     @Environment(AuthViewModel.self) private var authViewModel
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     // MARK: - View model
 
@@ -98,11 +99,14 @@ struct ShoppingListView: View {
             }
             .animation(.easeInOut(duration: 0.25), value: viewModel.errorMessage)
             .confirmationDialog(
-                "Finish Shopping?",
+                "Clear Done Items?",
                 isPresented: $showFinishConfirmation,
                 titleVisibility: .visible
             ) {
-                Button("Remove \(viewModel.totalDone) done item(s)", role: .destructive) {
+                Button(
+                    "Remove \(viewModel.totalDone) done \(doneItemWord(for: viewModel.totalDone))",
+                    role: .destructive
+                ) {
                     Task { await viewModel.finishShopping() }
                 }
                 Button("Cancel", role: .cancel) {}
@@ -116,6 +120,8 @@ struct ShoppingListView: View {
 
     private var listView: some View {
         VStack(spacing: 12) {
+            listHeader
+
             storeChipsView
 
             TabView(selection: $selectedStoreID) {
@@ -129,6 +135,50 @@ struct ShoppingListView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .animation(.default, value: availableStoreIDs)
+    }
+
+    @ViewBuilder
+    private var listHeader: some View {
+        if viewModel.total > 0 {
+            Group {
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 10) {
+                        headerProgressSummary
+                        clearDoneButton
+                    }
+                } else {
+                    HStack(alignment: .center, spacing: 12) {
+                        headerProgressSummary
+                        clearDoneButton
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+
+    private var headerProgressSummary: some View {
+        ProgressSummaryView(
+            total: viewModel.total,
+            done: viewModel.totalDone
+        )
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var clearDoneButton: some View {
+        if viewModel.hasDoneItems {
+            Button {
+                showFinishConfirmation = true
+            } label: {
+                Label("Clear Done", systemImage: "checkmark.circle")
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(viewModel.isMutating)
+            .accessibilityLabel(
+                "Clear done items — remove \(viewModel.totalDone) done \(doneItemWord(for: viewModel.totalDone))"
+            )
+        }
     }
 
     private var storeChipsView: some View {
@@ -170,8 +220,6 @@ struct ShoppingListView: View {
 
     private func storeList(store: StoreGroup) -> some View {
         List {
-            progressSection
-
             Section {
                 ForEach(store.categories) { category in
                     // Category name as a row header within the store section.
@@ -208,22 +256,6 @@ struct ShoppingListView: View {
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .environment(\.colorScheme, .dark)
-    }
-
-    // MARK: - Progress section
-
-    /// A compact progress summary at the top of the list.
-    @ViewBuilder
-    private var progressSection: some View {
-        if viewModel.total > 0 {
-            Section {
-                ProgressSummaryView(
-                    total: viewModel.total,
-                    done: viewModel.totalDone
-                )
-            }
-            .listRowInsets(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
-        }
     }
 
     // MARK: - Loading view
@@ -284,20 +316,6 @@ struct ShoppingListView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
-            if viewModel.hasDoneItems {
-                Button {
-                    showFinishConfirmation = true
-                } label: {
-                    Label("Finish Shopping", systemImage: "checkmark.circle")
-                }
-                .disabled(viewModel.isMutating)
-                .accessibilityLabel(
-                    "Finish Shopping — remove \(viewModel.totalDone) done item(s)"
-                )
-            }
-        }
-
         ToolbarItem(placement: .topBarLeading) {
             if viewModel.isMutating {
                 ProgressView()
@@ -320,6 +338,10 @@ struct ShoppingListView: View {
             return "\(store.name), \(totals.total) \(itemWord), all done"
         }
         return "\(store.name), \(totals.total) \(itemWord)"
+    }
+
+    private func doneItemWord(for count: Int) -> String {
+        count == 1 ? "item" : "items"
     }
 }
 
