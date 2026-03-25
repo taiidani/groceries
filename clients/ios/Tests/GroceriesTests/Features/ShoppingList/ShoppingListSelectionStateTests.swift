@@ -1,5 +1,6 @@
 import XCTest
-@testable import GroceriesT
+
+@testable import Aisle4
 
 final class ShoppingListSelectionStateTests: XCTestCase {
     func test_selectionTransitionsAcrossStoreSnapshots() {
@@ -28,13 +29,16 @@ final class ShoppingListSelectionStateTests: XCTestCase {
         var current: Int? = nil
         var observed: [Int?] = []
 
-        current = StoreSelectionReconciler.reconcile(current: current, availableStoreIDs: [2, 8, 10])
+        current = StoreSelectionReconciler.reconcile(
+            current: current, availableStoreIDs: [2, 8, 10])
         observed.append(current)
 
-        current = StoreSelectionReconciler.reconcile(current: current, availableStoreIDs: [10, 2, 8])
+        current = StoreSelectionReconciler.reconcile(
+            current: current, availableStoreIDs: [10, 2, 8])
         observed.append(current)
 
-        current = StoreSelectionReconciler.reconcile(current: current, availableStoreIDs: [8, 2, 10])
+        current = StoreSelectionReconciler.reconcile(
+            current: current, availableStoreIDs: [8, 2, 10])
         observed.append(current)
 
         XCTAssertEqual(observed, [2, 2, 2])

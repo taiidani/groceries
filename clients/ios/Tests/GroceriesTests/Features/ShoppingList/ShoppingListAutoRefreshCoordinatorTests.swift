@@ -1,5 +1,6 @@
 import XCTest
-@testable import GroceriesT
+
+@testable import Aisle4
 
 final class ShoppingListAutoRefreshCoordinatorTests: XCTestCase {
     func test_appDidBecomeActive_whenIdle_refreshesImmediately() {

@@ -9,7 +9,7 @@ let project = Project(
     ),
     targets: [
         .target(
-            name: "GroceriesT",
+            name: "Aisle4",
             destinations: .iOS,
             product: .app,
             bundleId: "com.ryannixon.groceries",
@@ -112,8 +112,8 @@ let project = Project(
             infoPlist: .default,
             sources: ["Tests/GroceriesTests/**"],
             dependencies: [
-                .target(name: "GroceriesT"),
-                .target(name: "GroceriesAPI")
+                .target(name: "Aisle4"),
+                .target(name: "GroceriesAPI"),
             ],
             settings: .settings(
                 base: [

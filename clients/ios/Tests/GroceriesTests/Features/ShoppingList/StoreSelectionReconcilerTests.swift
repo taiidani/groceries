@@ -1,5 +1,6 @@
 import XCTest
-@testable import GroceriesT
+
+@testable import Aisle4
 
 final class StoreSelectionReconcilerTests: XCTestCase {
     func test_keepsSelectionWhenStillAvailable() {
@@ -28,7 +29,8 @@ final class StoreSelectionReconcilerTests: XCTestCase {
     }
 
     func test_keepsCurrentEvenWhenNotFirst() {
-        let selected = StoreSelectionReconciler.reconcile(current: 11, availableStoreIDs: [9, 11, 12])
+        let selected = StoreSelectionReconciler.reconcile(
+            current: 11, availableStoreIDs: [9, 11, 12])
         XCTAssertEqual(selected, 11)
     }
 }

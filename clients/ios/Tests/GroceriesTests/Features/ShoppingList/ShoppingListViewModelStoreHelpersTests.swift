@@ -1,6 +1,7 @@
-import XCTest
-@testable import GroceriesT
 import GroceriesAPI
+import XCTest
+
+@testable import Aisle4
 
 @MainActor
 final class ShoppingListViewModelStoreHelpersTests: XCTestCase {
@@ -37,7 +38,9 @@ final class ShoppingListViewModelStoreHelpersTests: XCTestCase {
                 """
             ),
             items: [
-                ListItem(id: 100, itemID: 1000, itemName: "Apple", categoryID: 10, quantity: "1", done: false)
+                ListItem(
+                    id: 100, itemID: 1000, itemName: "Apple", categoryID: 10, quantity: "1",
+                    done: false)
             ]
         )
 
@@ -77,9 +80,15 @@ final class ShoppingListViewModelStoreHelpersTests: XCTestCase {
                 """
             ),
             items: [
-                ListItem(id: 100, itemID: 1000, itemName: "Apple", categoryID: 10, quantity: "1", done: true),
-                ListItem(id: 101, itemID: 1001, itemName: "Pear", categoryID: 10, quantity: "1", done: true),
-                ListItem(id: 200, itemID: 2000, itemName: "Sourdough", categoryID: 20, quantity: "1", done: false)
+                ListItem(
+                    id: 100, itemID: 1000, itemName: "Apple", categoryID: 10, quantity: "1",
+                    done: true),
+                ListItem(
+                    id: 101, itemID: 1001, itemName: "Pear", categoryID: 10, quantity: "1",
+                    done: true),
+                ListItem(
+                    id: 200, itemID: 2000, itemName: "Sourdough", categoryID: 20, quantity: "1",
+                    done: false),
             ]
         )
 
@@ -121,9 +130,15 @@ final class ShoppingListViewModelStoreHelpersTests: XCTestCase {
                 """
             ),
             items: [
-                ListItem(id: 100, itemID: 1000, itemName: "Apple", categoryID: 10, quantity: "1", done: true),
-                ListItem(id: 101, itemID: 1001, itemName: "Pear", categoryID: 10, quantity: "1", done: false),
-                ListItem(id: 200, itemID: 2000, itemName: "Sourdough", categoryID: 20, quantity: "1", done: false)
+                ListItem(
+                    id: 100, itemID: 1000, itemName: "Apple", categoryID: 10, quantity: "1",
+                    done: true),
+                ListItem(
+                    id: 101, itemID: 1001, itemName: "Pear", categoryID: 10, quantity: "1",
+                    done: false),
+                ListItem(
+                    id: 200, itemID: 2000, itemName: "Sourdough", categoryID: 20, quantity: "1",
+                    done: false),
             ]
         )
 
@@ -173,8 +188,12 @@ final class ShoppingListViewModelStoreHelpersTests: XCTestCase {
                 """
             ),
             items: [
-                ListItem(id: 100, itemID: 1000, itemName: "Apple", categoryID: 10, quantity: "1", done: false),
-                ListItem(id: 200, itemID: 2000, itemName: "Bread", categoryID: 20, quantity: "1", done: false)
+                ListItem(
+                    id: 100, itemID: 1000, itemName: "Apple", categoryID: 10, quantity: "1",
+                    done: false),
+                ListItem(
+                    id: 200, itemID: 2000, itemName: "Bread", categoryID: 20, quantity: "1",
+                    done: false),
             ]
         )
 
@@ -183,7 +202,8 @@ final class ShoppingListViewModelStoreHelpersTests: XCTestCase {
     }
 
     private func makeViewModel() -> ShoppingListViewModel {
-        ShoppingListViewModel(apiClient: GroceriesAPIClient(baseURL: URL(string: "http://localhost:3000")!))
+        ShoppingListViewModel(
+            apiClient: GroceriesAPIClient(baseURL: URL(string: "http://localhost:3000")!))
     }
 
     private func decodeStores(_ json: String) throws -> [Store] {

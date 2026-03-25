@@ -1,5 +1,6 @@
 import XCTest
-@testable import GroceriesT
+
+@testable import Aisle4
 
 final class AppNavigationTests: XCTestCase {
     func test_appTabsIncludeListAndAccount() {
