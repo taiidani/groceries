@@ -35,22 +35,19 @@ jobs:
         working-directory: clients/ios
         run: |
           python3 - <<'PY'
+          import json
           import os
           import re
           import subprocess
           import sys
 
-          output = subprocess.check_output(
-              [
-                  "xcodebuild",
-                  "-showdestinations",
-                  "-project",
-                  "Groceries.xcodeproj",
-                  "-scheme",
-                  "GroceriesAPI",
-              ],
+          result = subprocess.run(
+              ["xcodebuild", "-showdestinations", "-project", "Groceries.xcodeproj", "-scheme", "GroceriesAPI"],
               text=True,
+              capture_output=True,
+              check=False,
           )
+          output = f"{result.stdout}\n{result.stderr}"
 
           pattern = re.compile(
               r"\{ platform:iOS Simulator, arch:[^,]+, id:([^,]+), OS:([^,]+), name:([^}]+) \}"
@@ -67,6 +64,31 @@ jobs:
 
           preferred = [d for d in destinations if "iPhone" in d["name"]]
           selected = preferred[0] if preferred else (destinations[0] if destinations else None)
+
+          if selected is None:
+              simctl = json.loads(
+                  subprocess.check_output(
+                      ["xcrun", "simctl", "list", "devices", "available", "-j"],
+                      text=True,
+                  )
+              )
+
+              fallback = []
+              for runtime, devices in sorted(simctl.get("devices", {}).items()):
+                  if "iOS" not in runtime:
+                      continue
+                  for device in devices:
+                      if device.get("isAvailable"):
+                          fallback.append(
+                              {
+                                  "id": device["udid"],
+                                  "name": device["name"],
+                                  "os": runtime,
+                              }
+                          )
+
+              preferred_fallback = [d for d in fallback if "iPhone" in d["name"]]
+              selected = preferred_fallback[0] if preferred_fallback else (fallback[0] if fallback else None)
 
           if selected is not None:
               with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env_file:
