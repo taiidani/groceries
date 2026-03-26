@@ -31,96 +31,18 @@ jobs:
         working-directory: clients/ios
         run: xcodebuild -list -project Groceries.xcodeproj
 
-      - name: Select available iOS simulator
-        working-directory: clients/ios
-        run: |
-          python3 - <<'PY'
-          import json
-          import os
-          import re
-          import subprocess
-          import sys
-
-          result = subprocess.run(
-              ["xcodebuild", "-showdestinations", "-project", "Groceries.xcodeproj", "-scheme", "GroceriesAPI"],
-              text=True,
-              capture_output=True,
-              check=False,
-          )
-          output = f"{result.stdout}\n{result.stderr}"
-
-          pattern = re.compile(
-              r"\{ platform:iOS Simulator, arch:[^,]+, id:([^,]+), OS:([^,]+), name:([^}]+) \}"
-          )
-
-          destinations = [
-              {
-                  "id": match.group(1).strip(),
-                  "os": match.group(2).strip(),
-                  "name": match.group(3).strip(),
-              }
-              for match in pattern.finditer(output)
-          ]
-
-          preferred = [d for d in destinations if "iPhone" in d["name"]]
-          selected = preferred[0] if preferred else (destinations[0] if destinations else None)
-
-          if selected is None:
-              simctl = json.loads(
-                  subprocess.check_output(
-                      ["xcrun", "simctl", "list", "devices", "available", "-j"],
-                      text=True,
-                  )
-              )
-
-              fallback = []
-              for runtime, devices in sorted(simctl.get("devices", {}).items()):
-                  if "iOS" not in runtime:
-                      continue
-                  for device in devices:
-                      if device.get("isAvailable"):
-                          fallback.append(
-                              {
-                                  "id": device["udid"],
-                                  "name": device["name"],
-                                  "os": runtime,
-                              }
-                          )
-
-              preferred_fallback = [d for d in fallback if "iPhone" in d["name"]]
-              selected = preferred_fallback[0] if preferred_fallback else (fallback[0] if fallback else None)
-
-          if selected is not None:
-              with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env_file:
-                  env_file.write(f"IOS_SIMULATOR_ID={selected['id']}\n")
-                  env_file.write(
-                      f"IOS_SIMULATOR_NAME={selected['name']} (iOS {selected['os']})\n"
-                  )
-              print(f"Using simulator: {selected['name']} (iOS {selected['os']})")
-              sys.exit(0)
-
-          print("No eligible iOS simulator destination found", file=sys.stderr)
-          sys.exit(1)
-          PY
-
       - name: Run Groceries API unit tests
         working-directory: clients/ios
         run: |
-          echo "Testing on $IOS_SIMULATOR_NAME"
-          xcrun simctl boot "$IOS_SIMULATOR_ID" || true
-          xcrun simctl bootstatus "$IOS_SIMULATOR_ID" -b
           xcodebuild test \
             -project Groceries.xcodeproj \
             -scheme GroceriesAPI \
-            -destination "platform=iOS Simulator,id=$IOS_SIMULATOR_ID"
+            -destination "platform=iOS Simulator,name=iPhone 16 Pro,OS=latest"
 
       - name: Run Groceries app feature unit tests
         working-directory: clients/ios
         run: |
-          echo "Testing on $IOS_SIMULATOR_NAME"
-          xcrun simctl boot "$IOS_SIMULATOR_ID" || true
-          xcrun simctl bootstatus "$IOS_SIMULATOR_ID" -b
           xcodebuild test \
             -project Groceries.xcodeproj \
             -scheme GroceriesTests \
-            -destination "platform=iOS Simulator,id=$IOS_SIMULATOR_ID"
+            -destination "platform=iOS Simulator,name=iPhone 16 Pro,OS=latest"
