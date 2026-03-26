@@ -31,6 +31,13 @@ clients/ios/
 │   │       │   ├── AuthViewModel.swift
 │   │       │   ├── LoginView.swift
 │   │       │   └── KeychainStore.swift
+│   │       ├── Navigation/
+│   │       │   └── AppTabsView.swift
+│   │       ├── Items/
+│   │       │   ├── ItemsViewModel.swift
+│   │       │   ├── ItemsView.swift
+│   │       │   ├── AddItemView.swift
+│   │       │   └── ItemEditorView.swift
 │   │       └── ShoppingList/
 │   │           ├── ShoppingListViewModel.swift
 │   │           └── ShoppingListView.swift
@@ -38,9 +45,11 @@ clients/ios/
 │       ├── GroceriesAPIClient.swift
 │       ├── Models.swift
 │       ├── AuthEndpoints.swift
-│       └── ListEndpoints.swift
+│       ├── ListEndpoints.swift
+│       └── ItemEndpoints.swift
 └── Tests/
-    └── GroceriesAPITests/     # Unit tests for the API layer
+    ├── GroceriesAPITests/     # Unit tests for the API layer
+    └── GroceriesTests/        # Unit tests for app features/view models
 ```
 
 > **Xcode project files (`.xcodeproj`, `.xcworkspace`, `Derived/`) are git-ignored.**
@@ -133,8 +142,11 @@ GroceriesApp (@main)
 └── RootView               — routes between Login and main content
     ├── LoginView          — username/password form
     │   └── AuthViewModel  — owns GroceriesAPIClient, manages token lifecycle
-    └── ShoppingListView   — main list screen
-        └── ShoppingListViewModel — list state, optimistic updates
+    └── AppTabsView        — authenticated shell tab order: List -> Items -> Account
+        ├── ShoppingListView      — list screen with deduped auto-refresh coordinator
+        │   └── ShoppingListViewModel — list state and list mutations
+        └── ItemsView             — item management screen
+            └── ItemsViewModel    — item filtering, add/edit/delete, membership updates
 ```
 
 ### Key design decisions
@@ -144,7 +156,8 @@ GroceriesApp (@main)
 | `GroceriesAPI` is a separate framework target | Keeps networking/model code testable in isolation, independent of SwiftUI |
 | `GroceriesAPIClient` is an `actor` | Ensures token mutation is data-race safe across async contexts |
 | Bearer token stored in Keychain | Survives app restarts; more secure than `UserDefaults` |
-| Optimistic UI updates | Toggle/remove operations feel instant; rolled back on API error |
+| Dedicated `Features/Items` module | Keeps item CRUD and editor-only membership logic isolated from shopping list state |
+| Notification-based cross-tab sync | Item membership changes publish an app event consumed by shopping list refresh coordination |
 | No third-party dependencies (yet) | Reduces build complexity; revisit when pagination or richer offline support is needed |
 
 ## Running Tests
@@ -157,8 +170,8 @@ Or in Xcode: **⌘U**.
 
 ## Future Work
 
-- Category browsing and item search
-- Add items to the list from within the app
+- Offline caching/sync for list and item data
+- Bulk item operations (multi-select delete/category move)
 - Recipe support
 - macOS Catalyst / dedicated macOS target
 - Real-time updates via Server-Sent Events

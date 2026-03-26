@@ -4,6 +4,13 @@ import XCTest
 
 // MARK: - GroceriesAPIClientTests
 
+private enum TestJSONHelper {
+    static func jsonObject(from body: Data) throws -> [String: Any] {
+        let object = try JSONSerialization.jsonObject(with: body)
+        return try XCTUnwrap(object as? [String: Any])
+    }
+}
+
 final class GroceriesAPIClientTests: XCTestCase {
 
     override func tearDown() {
@@ -205,6 +212,26 @@ final class GroceriesAPIClientTests: XCTestCase {
         XCTAssertFalse(json.contains("\"quantity\""))
     }
 
+    func testEncodeCreateItemRequest() throws {
+        let request = CreateItemRequest(categoryID: 7, name: "Apples")
+        let data = try JSONEncoder.apiEncoder.encode(request)
+        let json = try XCTUnwrap(String(data: data, encoding: .utf8))
+
+        XCTAssertTrue(json.contains("\"category_id\":7"))
+        XCTAssertTrue(json.contains("\"name\":\"Apples\""))
+        XCTAssertFalse(json.contains("\"categoryID\""))
+    }
+
+    func testEncodeUpdateItemRequest() throws {
+        let request = UpdateItemRequest(categoryID: 4, name: "Bread")
+        let data = try JSONEncoder.apiEncoder.encode(request)
+        let json = try XCTUnwrap(String(data: data, encoding: .utf8))
+
+        XCTAssertTrue(json.contains("\"category_id\":4"))
+        XCTAssertTrue(json.contains("\"name\":\"Bread\""))
+        XCTAssertFalse(json.contains("\"categoryID\""))
+    }
+
     // MARK: - APIError descriptions
 
     func testAPIErrorUnauthorizedDescription() {
@@ -328,6 +355,379 @@ final class GroceriesAPIClientTests: XCTestCase {
         XCTAssertEqual(items.count, 2)
         XCTAssertEqual(items[0].name, "Apples")
         XCTAssertEqual(items[1].name, "Bread")
+    }
+
+    func testListItems_withInListQueryEncodesQueryItem() async throws {
+        let responseJSON = """
+            [
+                {
+                    "id": 1,
+                    "category_id": 10,
+                    "category_name": "Produce",
+                    "name": "Apples"
+                }
+            ]
+            """
+
+        MockURLProtocol.setRequestHandler { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.url?.path, "/api/v1/items")
+
+            let queryItems = URLComponents(url: try XCTUnwrap(request.url), resolvingAgainstBaseURL: false)?.queryItems
+            XCTAssertEqual(queryItems?.count, 1)
+            XCTAssertEqual(queryItems?.first?.name, "in_list")
+            XCTAssertEqual(queryItems?.first?.value, "true")
+
+            let data = try XCTUnwrap(responseJSON.data(using: .utf8))
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+
+            return (response, data)
+        }
+
+        let client = makeClient()
+        let items = try await client.listItems(inList: true)
+
+        XCTAssertEqual(items.count, 1)
+        XCTAssertEqual(items[0].name, "Apples")
+    }
+
+    func testListItems_withCategoryIDQueryEncodesCategoryIDOnly() async throws {
+        let responseJSON = """
+            [
+                {
+                    "id": 3,
+                    "category_id": 10,
+                    "category_name": "Produce",
+                    "name": "Carrots"
+                }
+            ]
+            """
+
+        MockURLProtocol.setRequestHandler { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.url?.path, "/api/v1/items")
+
+            let queryItems = URLComponents(url: try XCTUnwrap(request.url), resolvingAgainstBaseURL: false)?.queryItems
+            XCTAssertEqual(queryItems?.count, 1)
+            XCTAssertEqual(queryItems?.first?.name, "category_id")
+            XCTAssertEqual(queryItems?.first?.value, "10")
+
+            let data = try XCTUnwrap(responseJSON.data(using: .utf8))
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+
+            return (response, data)
+        }
+
+        let client = makeClient()
+        let items = try await client.listItems(categoryID: 10)
+
+        XCTAssertEqual(items.count, 1)
+        XCTAssertEqual(items[0].name, "Carrots")
+    }
+
+    func testListItems_withInListFalseQueryEncodesFalse() async throws {
+        let responseJSON = """
+            [
+                {
+                    "id": 4,
+                    "category_id": 12,
+                    "category_name": "Pantry",
+                    "name": "Pasta"
+                }
+            ]
+            """
+
+        MockURLProtocol.setRequestHandler { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.url?.path, "/api/v1/items")
+
+            let queryItems = URLComponents(url: try XCTUnwrap(request.url), resolvingAgainstBaseURL: false)?.queryItems
+            XCTAssertEqual(queryItems?.count, 1)
+            XCTAssertEqual(queryItems?.first?.name, "in_list")
+            XCTAssertEqual(queryItems?.first?.value, "false")
+
+            let data = try XCTUnwrap(responseJSON.data(using: .utf8))
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+
+            return (response, data)
+        }
+
+        let client = makeClient()
+        let items = try await client.listItems(inList: false)
+
+        XCTAssertEqual(items.count, 1)
+        XCTAssertEqual(items[0].name, "Pasta")
+    }
+
+    func testListItems_withCategoryIDAndInListQueryEncodesBothItems() async throws {
+        let responseJSON = """
+            [
+                {
+                    "id": 5,
+                    "category_id": 2,
+                    "category_name": "Dairy",
+                    "name": "Yogurt"
+                }
+            ]
+            """
+
+        MockURLProtocol.setRequestHandler { request in
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.url?.path, "/api/v1/items")
+
+            let queryItems = URLComponents(url: try XCTUnwrap(request.url), resolvingAgainstBaseURL: false)?.queryItems ?? []
+            XCTAssertEqual(queryItems.count, 2)
+
+            let queryByName = Dictionary(uniqueKeysWithValues: queryItems.map { ($0.name, $0.value) })
+            XCTAssertEqual(queryByName["category_id"], "2")
+            XCTAssertEqual(queryByName["in_list"], "false")
+
+            let data = try XCTUnwrap(responseJSON.data(using: .utf8))
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+
+            return (response, data)
+        }
+
+        let client = makeClient()
+        let items = try await client.listItems(categoryID: 2, inList: false)
+
+        XCTAssertEqual(items.count, 1)
+        XCTAssertEqual(items[0].name, "Yogurt")
+    }
+
+    func testCreateItem_postsExpectedBody() async throws {
+        let responseJSON = """
+            {
+                "id": 21,
+                "category_id": 4,
+                "category_name": "Bakery",
+                "name": "Bagels"
+            }
+            """
+
+        MockURLProtocol.setRequestHandler { request in
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.url?.path, "/api/v1/items")
+
+            let body = try XCTUnwrap(MockURLProtocol.requestBodyData(from: request))
+            let payload = try TestJSONHelper.jsonObject(from: body)
+            XCTAssertEqual(payload["category_id"] as? Int, 4)
+            XCTAssertEqual(payload["name"] as? String, "Bagels")
+            XCTAssertNil(payload["categoryID"])
+
+            let data = try XCTUnwrap(responseJSON.data(using: .utf8))
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+
+            return (response, data)
+        }
+
+        let client = makeClient()
+        let item = try await client.createItem(categoryID: 4, name: "Bagels")
+
+        XCTAssertEqual(item.id, 21)
+        XCTAssertEqual(item.name, "Bagels")
+        XCTAssertEqual(item.categoryID, 4)
+    }
+
+    func testUpdateItem_putsExpectedBody() async throws {
+        let responseJSON = """
+            {
+                "id": 21,
+                "category_id": 5,
+                "category_name": "Pantry",
+                "name": "Granola"
+            }
+            """
+
+        MockURLProtocol.setRequestHandler { request in
+            XCTAssertEqual(request.httpMethod, "PUT")
+            XCTAssertEqual(request.url?.path, "/api/v1/items/21")
+
+            let body = try XCTUnwrap(MockURLProtocol.requestBodyData(from: request))
+            let payload = try TestJSONHelper.jsonObject(from: body)
+            XCTAssertEqual(payload["category_id"] as? Int, 5)
+            XCTAssertEqual(payload["name"] as? String, "Granola")
+            XCTAssertNil(payload["categoryID"])
+
+            let data = try XCTUnwrap(responseJSON.data(using: .utf8))
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+
+            return (response, data)
+        }
+
+        let client = makeClient()
+        let item = try await client.updateItem(id: 21, categoryID: 5, name: "Granola")
+
+        XCTAssertEqual(item.id, 21)
+        XCTAssertEqual(item.name, "Granola")
+        XCTAssertEqual(item.categoryID, 5)
+    }
+
+    func testDeleteItem_sendsDelete() async throws {
+        MockURLProtocol.setRequestHandler { request in
+            XCTAssertEqual(request.httpMethod, "DELETE")
+            XCTAssertEqual(request.url?.path, "/api/v1/items/21")
+
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 204,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+
+            return (response, Data())
+        }
+
+        let client = makeClient()
+        try await client.deleteItem(id: 21)
+    }
+
+    func testDeleteItem_conflict_throws409() async throws {
+        MockURLProtocol.setRequestHandler { request in
+            XCTAssertEqual(request.httpMethod, "DELETE")
+            XCTAssertEqual(request.url?.path, "/api/v1/items/21")
+
+            let data = try XCTUnwrap("{\"error\":\"item is on the shopping list\"}".data(using: .utf8))
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 409,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+
+            return (response, data)
+        }
+
+        let client = makeClient()
+
+        do {
+            try await client.deleteItem(id: 21)
+            XCTFail("Expected conflict error")
+        } catch let error as APIError {
+            switch error {
+            case .conflict(let message):
+                XCTAssertEqual(message, "item is on the shopping list")
+            default:
+                XCTFail("Expected APIError.conflict, got \(error)")
+            }
+        }
+    }
+
+    func testUpdateItem_notFound_throws404() async throws {
+        MockURLProtocol.setRequestHandler { request in
+            XCTAssertEqual(request.httpMethod, "PUT")
+            XCTAssertEqual(request.url?.path, "/api/v1/items/999")
+
+            let body = try XCTUnwrap(MockURLProtocol.requestBodyData(from: request))
+            let payload = try TestJSONHelper.jsonObject(from: body)
+            XCTAssertEqual(payload["category_id"] as? Int, 5)
+            XCTAssertEqual(payload["name"] as? String, "Granola")
+
+            let data = try XCTUnwrap("{\"error\":\"item not found\"}".data(using: .utf8))
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 404,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+
+            return (response, data)
+        }
+
+        let client = makeClient()
+
+        do {
+            _ = try await client.updateItem(id: 999, categoryID: 5, name: "Granola")
+            XCTFail("Expected notFound error")
+        } catch let error as APIError {
+            switch error {
+            case .notFound(let message):
+                XCTAssertEqual(message, "item not found")
+            default:
+                XCTFail("Expected APIError.notFound, got \(error)")
+            }
+        }
+    }
+
+    func testDeleteItem_notFound_throws404() async throws {
+        MockURLProtocol.setRequestHandler { request in
+            XCTAssertEqual(request.httpMethod, "DELETE")
+            XCTAssertEqual(request.url?.path, "/api/v1/items/999")
+
+            let data = try XCTUnwrap("{\"error\":\"item not found\"}".data(using: .utf8))
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: try XCTUnwrap(request.url),
+                    statusCode: 404,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+
+            return (response, data)
+        }
+
+        let client = makeClient()
+
+        do {
+            try await client.deleteItem(id: 999)
+            XCTFail("Expected notFound error")
+        } catch let error as APIError {
+            switch error {
+            case .notFound(let message):
+                XCTAssertEqual(message, "item not found")
+            default:
+                XCTFail("Expected APIError.notFound, got \(error)")
+            }
+        }
     }
 
     func testAddItemToList_existingItem() async throws {

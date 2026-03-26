@@ -65,12 +65,50 @@ public struct Item: Decodable, Identifiable, Sendable {
     /// Present when this item is currently on the shopping list.
     public let list: ListItemSummary?
 
+    public init(id: Int, categoryID: Int, categoryName: String, name: String, list: ListItemSummary?) {
+        self.id = id
+        self.categoryID = categoryID
+        self.categoryName = categoryName
+        self.name = name
+        self.list = list
+    }
+
     enum CodingKeys: String, CodingKey {
         case id
         case categoryID = "category_id"
         case categoryName = "category_name"
         case name
         case list
+    }
+}
+
+public struct CreateItemRequest: Encodable, Sendable {
+    public let categoryID: Int
+    public let name: String
+
+    public init(categoryID: Int, name: String) {
+        self.categoryID = categoryID
+        self.name = name
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case categoryID = "category_id"
+        case name
+    }
+}
+
+public struct UpdateItemRequest: Encodable, Sendable {
+    public let categoryID: Int
+    public let name: String
+
+    public init(categoryID: Int, name: String) {
+        self.categoryID = categoryID
+        self.name = name
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case categoryID = "category_id"
+        case name
     }
 }
 
@@ -82,6 +120,12 @@ public struct ListItemSummary: Decodable, Identifiable, Sendable {
     public let id: Int
     public let quantity: String
     public let done: Bool
+
+    public init(id: Int, quantity: String, done: Bool) {
+        self.id = id
+        self.quantity = quantity
+        self.done = done
+    }
 }
 
 /// A full list entry as returned by `GET /api/v1/list`.

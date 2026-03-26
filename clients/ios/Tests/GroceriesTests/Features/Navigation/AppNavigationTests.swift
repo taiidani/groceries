@@ -3,8 +3,15 @@ import XCTest
 @testable import Aisle4
 
 final class AppNavigationTests: XCTestCase {
-    func test_appTabsIncludeListAndAccount() {
-        XCTAssertEqual(AppTab.allCases, [.list, .account])
+    func test_appTabsIncludeListItemsAndAccount() {
+        XCTAssertEqual(AppTab.allCases, [.list, .items, .account])
+    }
+
+    func test_itemsMembershipDidChangeNotificationPayloadKeys() {
+        XCTAssertEqual(AppEvents.MembershipChanged.name.rawValue, "itemsMembershipDidChange")
+        XCTAssertEqual(AppEvents.MembershipChanged.itemIDKey, "itemID")
+        XCTAssertEqual(AppEvents.MembershipChanged.isInListKey, "isInList")
+        XCTAssertEqual(AppEvents.MembershipChanged.changedAtKey, "changedAt")
     }
 
     func test_accountDisplayUsernameText_usesUserName() {

@@ -41,7 +41,8 @@ struct ShoppingListView: View {
     @State private var showFinishConfirmation: Bool = false
     @State private var selectedStoreID: Int?
     @State private var autoRefreshCoordinator = ShoppingListAutoRefreshCoordinator()
-    @State private var isRefreshingList = false
+    @State private var refreshRequestGate = ShoppingListRefreshRequestGate()
+    @State private var membershipRefreshObserver = ShoppingListMembershipRefreshObserver()
 
     // MARK: - Init
 
@@ -82,7 +83,16 @@ struct ShoppingListView: View {
             ) { _ in
                 handleDidBecomeActive()
             }
-            .onAppear { reconcileStoreSelection() }
+            .onAppear {
+                reconcileStoreSelection()
+                membershipRefreshObserver.start {
+                    Task { @MainActor in
+                        requestAutoRefresh(trigger: .membershipChanged)
+                    }
+                }
+                requestAutoRefresh(trigger: .onAppear)
+            }
+            .onDisappear { membershipRefreshObserver.stop() }
             .onChange(of: viewModel.hasInFlightListMutation) { _, isBusy in
                 handleMutationStateChange(isBusy: isBusy)
             }
@@ -306,23 +316,35 @@ struct ShoppingListView: View {
             isBusy: viewModel.hasInFlightListMutation
         )
         if action == .refreshNow {
-            Task { await refreshIfNeeded() }
+            requestAutoRefresh(trigger: .appDidBecomeActive)
         }
     }
 
     private func handleMutationStateChange(isBusy: Bool) {
         let action = autoRefreshCoordinator.mutationStateDidChange(isBusy: isBusy)
         if action == .refreshNow {
-            Task { await refreshIfNeeded() }
+            requestAutoRefresh(trigger: .mutationBecameIdle)
+        }
+    }
+
+    private func requestAutoRefresh(trigger: ShoppingListRefreshRequestGate.Trigger) {
+        guard refreshRequestGate.shouldStartRefresh(trigger: trigger) else {
+            return
+        }
+
+        Task {
+            await runRefresh()
         }
     }
 
     private func refreshIfNeeded() async {
-        guard !isRefreshingList else { return }
+        guard refreshRequestGate.shouldStartRefresh(trigger: .pullToRefresh) else { return }
 
-        isRefreshingList = true
-        defer { isRefreshingList = false }
+        await runRefresh()
+    }
 
+    private func runRefresh() async {
+        defer { refreshRequestGate.refreshCompleted() }
         await viewModel.refresh()
     }
 
@@ -388,6 +410,77 @@ struct ShoppingListView: View {
 
     private func doneItemWord(for count: Int) -> String {
         count == 1 ? "item" : "items"
+    }
+}
+
+struct ShoppingListRefreshRequestGate {
+    enum Trigger {
+        case onAppear
+        case appDidBecomeActive
+        case membershipChanged
+        case mutationBecameIdle
+        case pullToRefresh
+    }
+
+    private let dedupeWindow: TimeInterval
+    private(set) var isRefreshInFlight = false
+    private var lastRefreshRequestAt: Date?
+
+    init(dedupeWindow: TimeInterval = 0.3) {
+        self.dedupeWindow = dedupeWindow
+    }
+
+    mutating func shouldStartRefresh(trigger: Trigger, now: Date = Date()) -> Bool {
+        _ = trigger
+
+        guard !isRefreshInFlight else {
+            return false
+        }
+
+        if let lastRefreshRequestAt,
+            now.timeIntervalSince(lastRefreshRequestAt) < dedupeWindow
+        {
+            return false
+        }
+
+        isRefreshInFlight = true
+        self.lastRefreshRequestAt = now
+        return true
+    }
+
+    mutating func refreshCompleted() {
+        isRefreshInFlight = false
+    }
+}
+
+final class ShoppingListMembershipRefreshObserver {
+    private let notificationCenter: NotificationCenter
+    private var token: NSObjectProtocol?
+
+    init(notificationCenter: NotificationCenter = .default) {
+        self.notificationCenter = notificationCenter
+    }
+
+    deinit {
+        stop()
+    }
+
+    func start(onMembershipChanged: @escaping @Sendable () -> Void) {
+        guard token == nil else { return }
+
+        token = notificationCenter.addObserver(
+            forName: AppEvents.MembershipChanged.name,
+            object: nil,
+            queue: .main
+        ) { _ in
+            onMembershipChanged()
+        }
+    }
+
+    func stop() {
+        guard let token else { return }
+        notificationCenter.removeObserver(token)
+        self.token = nil
     }
 }
 
