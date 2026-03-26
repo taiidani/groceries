@@ -31,18 +31,57 @@ jobs:
         working-directory: clients/ios
         run: xcodebuild -list -project Groceries.xcodeproj
 
+      - name: Select available iOS simulator
+        working-directory: clients/ios
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          import sys
+
+          data = json.loads(
+              subprocess.check_output(
+                  ["xcrun", "simctl", "list", "devices", "available", "-j"],
+                  text=True,
+              )
+          )
+
+          for runtime, devices in sorted(data.get("devices", {}).items()):
+              if "iOS" not in runtime:
+                  continue
+              for device in devices:
+                  if device.get("isAvailable") and "iPhone" in device.get("name", ""):
+                      with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env_file:
+                          env_file.write(f"IOS_SIMULATOR_ID={device['udid']}\n")
+                          env_file.write(
+                              f"IOS_SIMULATOR_NAME={device['name']} ({runtime})\n"
+                          )
+                      print(f"Using simulator: {device['name']} ({runtime})")
+                      sys.exit(0)
+
+          print("No available iPhone iOS simulator found", file=sys.stderr)
+          sys.exit(1)
+          PY
+
       - name: Run Groceries API unit tests
         working-directory: clients/ios
         run: |
+          echo "Testing on $IOS_SIMULATOR_NAME"
+          xcrun simctl boot "$IOS_SIMULATOR_ID" || true
+          xcrun simctl bootstatus "$IOS_SIMULATOR_ID" -b
           xcodebuild test \
             -project Groceries.xcodeproj \
             -scheme GroceriesAPI \
-            -destination 'platform=iOS Simulator,name=iPhone 17'
+            -destination "platform=iOS Simulator,id=$IOS_SIMULATOR_ID"
 
       - name: Run Groceries app feature unit tests
         working-directory: clients/ios
         run: |
+          echo "Testing on $IOS_SIMULATOR_NAME"
+          xcrun simctl boot "$IOS_SIMULATOR_ID" || true
+          xcrun simctl bootstatus "$IOS_SIMULATOR_ID" -b
           xcodebuild test \
             -project Groceries.xcodeproj \
             -scheme GroceriesTests \
-            -destination 'platform=iOS Simulator,name=iPhone 17'
+            -destination "platform=iOS Simulator,id=$IOS_SIMULATOR_ID"
