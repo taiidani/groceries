@@ -35,32 +35,49 @@ jobs:
         working-directory: clients/ios
         run: |
           python3 - <<'PY'
-          import json
           import os
+          import re
           import subprocess
           import sys
 
-          data = json.loads(
-              subprocess.check_output(
-                  ["xcrun", "simctl", "list", "devices", "available", "-j"],
-                  text=True,
-              )
+          output = subprocess.check_output(
+              [
+                  "xcodebuild",
+                  "-showdestinations",
+                  "-project",
+                  "Groceries.xcodeproj",
+                  "-scheme",
+                  "GroceriesAPI",
+              ],
+              text=True,
           )
 
-          for runtime, devices in sorted(data.get("devices", {}).items()):
-              if "iOS" not in runtime:
-                  continue
-              for device in devices:
-                  if device.get("isAvailable") and "iPhone" in device.get("name", ""):
-                      with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env_file:
-                          env_file.write(f"IOS_SIMULATOR_ID={device['udid']}\n")
-                          env_file.write(
-                              f"IOS_SIMULATOR_NAME={device['name']} ({runtime})\n"
-                          )
-                      print(f"Using simulator: {device['name']} ({runtime})")
-                      sys.exit(0)
+          pattern = re.compile(
+              r"\{ platform:iOS Simulator, arch:[^,]+, id:([^,]+), OS:([^,]+), name:([^}]+) \}"
+          )
 
-          print("No available iPhone iOS simulator found", file=sys.stderr)
+          destinations = [
+              {
+                  "id": match.group(1).strip(),
+                  "os": match.group(2).strip(),
+                  "name": match.group(3).strip(),
+              }
+              for match in pattern.finditer(output)
+          ]
+
+          preferred = [d for d in destinations if "iPhone" in d["name"]]
+          selected = preferred[0] if preferred else (destinations[0] if destinations else None)
+
+          if selected is not None:
+              with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env_file:
+                  env_file.write(f"IOS_SIMULATOR_ID={selected['id']}\n")
+                  env_file.write(
+                      f"IOS_SIMULATOR_NAME={selected['name']} (iOS {selected['os']})\n"
+                  )
+              print(f"Using simulator: {selected['name']} (iOS {selected['os']})")
+              sys.exit(0)
+
+          print("No eligible iOS simulator destination found", file=sys.stderr)
           sys.exit(1)
           PY
 
