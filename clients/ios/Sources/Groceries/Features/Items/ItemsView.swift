@@ -24,6 +24,10 @@ enum ItemsViewAccessibility {
 }
 
 enum ItemsViewUX {
+    static func shouldUsePathDrivenNavigation() -> Bool {
+        false
+    }
+
     static func editorRoute(for item: Item) -> ItemsViewRoute {
         .editor(itemID: item.id)
     }
@@ -58,15 +62,13 @@ struct ItemsView: View {
 
     @State private var viewModel: ItemsViewModel
     @State private var isPresentingAddItem = false
-    @State private var navigationPath: [ItemsViewRoute] = []
-
     init(apiClient: GroceriesAPIClient) {
         self.apiClient = apiClient
         _viewModel = State(initialValue: ItemsViewModel(api: apiClient))
     }
 
     var body: some View {
-        NavigationStack(path: $navigationPath) {
+        NavigationStack {
             ZStack {
                 AppBackground()
 
@@ -121,7 +123,9 @@ struct ItemsView: View {
                     } else {
                         Section {
                             ForEach(viewModel.filteredItems) { item in
-                                NavigationLink(value: ItemsViewUX.editorRoute(for: item)) {
+                                NavigationLink {
+                                    ItemEditorView(item: item, viewModel: viewModel)
+                                } label: {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(item.name)
                                             .foregroundStyle(.white)
@@ -159,17 +163,6 @@ struct ItemsView: View {
                 }
             }
             .task { await viewModel.load() }
-            .navigationDestination(for: ItemsViewRoute.self) { route in
-                if let item = ItemsViewUX.editorItem(for: route, items: viewModel.items) {
-                    ItemEditorView(item: item, viewModel: viewModel)
-                } else {
-                    ContentUnavailableView(
-                        "Item unavailable",
-                        systemImage: "questionmark.square",
-                        description: Text("This item could not be found.")
-                    )
-                }
-            }
             .sheet(isPresented: $isPresentingAddItem) {
                 AddItemView(viewModel: viewModel)
                     .interactiveDismissDisabled(ItemsViewUX.addSheetInteractiveDismissDisabled(isAdding: viewModel.isAdding))

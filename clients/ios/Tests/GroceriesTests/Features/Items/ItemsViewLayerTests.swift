@@ -5,6 +5,10 @@ import GroceriesAPI
 
 @MainActor
 final class ItemsViewLayerTests: XCTestCase {
+    func test_itemSelectionNavigation_isNotPathDriven() {
+        XCTAssertFalse(ItemsViewUX.shouldUsePathDrivenNavigation())
+    }
+
     func test_itemSelectionRoutesToEditorByItemID() throws {
         let item = try makeItem(
             """
