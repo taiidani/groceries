@@ -1,0 +1,9 @@
+{
+	"id": "aisle4",
+	"name": "Aisle4",
+	"version": "1.0.0",
+	"minAppVersion": "1.0.0",
+	"description": "Send recipe ingredients to your Aisle4 grocery list.",
+	"author": "rnixon",
+	"isDesktopOnly": false
+}

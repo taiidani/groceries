@@ -17,6 +17,7 @@ GOOSE_MIGRATION_DIR = "./internal/db/migrations"
 [tools]
 go = "1.25.1"
 tuist = "latest"
+"go:github.com/evanw/esbuild/cmd/esbuild" = "latest"
 
 [vars]
 filename = 'groceries'
@@ -60,3 +61,21 @@ run = ["go tool goose --no-versioning up"]
 [tasks.lint]
 depends = ["dependencies"]
 run = ["go vet ./...", "go tool staticcheck ./..."]
+
+[tasks.plugin]
+description = "Bundle and deploy the Aisle4 Obsidian plugin to the vault"
+sources = ["obsidian/aisle4/src/**", "obsidian/aisle4/manifest.json", "obsidian/aisle4/styles.css"]
+outputs = ["obsidian/aisle4/main.js"]
+run = """
+  set -e
+  esbuild obsidian/aisle4/src/main.js \\
+    --bundle \\
+    --platform=node \\
+    --format=cjs \\
+    --external:obsidian \\
+    --outfile=obsidian/aisle4/main.js
+  DEST="$HOME/Obsidian/merrett and ryan/.obsidian/plugins/aisle4"
+  mkdir -p "$DEST"
+  cp obsidian/aisle4/main.js obsidian/aisle4/manifest.json obsidian/aisle4/styles.css "$DEST/"
+  echo "Deployed to $DEST"
+"""
