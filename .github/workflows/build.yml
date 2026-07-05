@@ -5,28 +5,10 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      filename: ${{ steps.filename.outputs.filename }}
     steps:
       - uses: actions/checkout@v6
       - uses: jdx/mise-action@v3
-
-      - name: build
-        run: mise build
-
-      - name: filename
-        id: filename
-        run: echo "filename=groceries-$(date +'%Y.%m.%d')-${GITHUB_SHA::6}_linux_amd64.tgz" >> "$GITHUB_OUTPUT"
-
-      - name: package
-        run: tar cvzf ./${{ steps.filename.outputs.filename }} groceries
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: "artifact"
-          path: ./${{ steps.filename.outputs.filename }}
-          if-no-files-found: error
-          retention-days: 1
+      - run: mise run build
 
   lint:
     runs-on: ubuntu-latest
@@ -49,10 +31,37 @@ jobs:
       - uses: jdx/mise-action@v3
       - run: mise run test:e2e
 
-  deploy:
-    uses: taiidani/deploy-action/.github/workflows/deploy.yml@main
+  release:
+    runs-on: ubuntu-latest
     needs: [build, lint, test, e2e]
     if: ${{ github.ref == 'refs/heads/main' }}
-    with:
-      filename: "${{ needs.build.outputs.filename }}"
-      url: https://groceries.taiidani.com
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: jdx/mise-action@v3
+
+      - name: Determine version
+        id: version
+        run: |
+          VERSION="v$(date +'%Y').$(date +'%-m').$(date +'%-d')+$(git rev-parse --short HEAD)"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.version.outputs.version }}" -m "Release ${{ steps.version.outputs.version }}"
+          git push origin "${{ steps.version.outputs.version }}"
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
