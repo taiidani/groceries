@@ -42,9 +42,16 @@ jobs:
       - uses: jdx/mise-action@v3
       - run: mise run test
 
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: jdx/mise-action@v3
+      - run: mise run test:e2e
+
   deploy:
     uses: taiidani/deploy-action/.github/workflows/deploy.yml@main
-    needs: [build, lint, test]
+    needs: [build, lint, test, e2e]
     if: ${{ github.ref == 'refs/heads/main' }}
     with:
       filename: "${{ needs.build.outputs.filename }}"
