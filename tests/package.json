@@ -1,0 +1,11 @@
+{
+  "name": "groceries-e2e-tests",
+  "private": true,
+  "description": "Playwright end-to-end tests for the Groceries web app",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
+  }
+}

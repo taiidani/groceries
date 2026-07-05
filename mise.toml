@@ -17,6 +17,7 @@ GOOSE_MIGRATION_DIR = "./internal/db/migrations"
 [tools]
 go = "1.25.1"
 tuist = "latest"
+node = "24.18.0"
 "go:github.com/evanw/esbuild/cmd/esbuild" = "latest"
 
 [vars]
@@ -61,6 +62,11 @@ run = ["go tool goose --no-versioning up"]
 [tasks.lint]
 depends = ["dependencies"]
 run = ["go vet ./...", "go tool staticcheck ./..."]
+
+[tasks."test:e2e"]
+description = "Run Playwright end-to-end browser tests against a live instance of the app"
+depends = ["build"]
+run = ["./tests/run.sh"]
 
 [tasks.plugin]
 description = "Bundle and deploy the Aisle4 Obsidian plugin to the vault"
