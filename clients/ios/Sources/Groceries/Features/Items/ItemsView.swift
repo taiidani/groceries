@@ -1,5 +1,5 @@
-import SwiftUI
 import GroceriesAPI
+import SwiftUI
 
 enum ItemsViewRoute: Hashable {
     case editor(itemID: Int)
@@ -74,15 +74,6 @@ struct ItemsView: View {
 
                 List {
                     Section {
-                        TextField(
-                            "Search items",
-                            text: Binding(
-                                get: { viewModel.searchText },
-                                set: { viewModel.searchText = $0 }
-                            )
-                        )
-                        .accessibilityLabel(ItemsViewAccessibility.searchFieldLabel)
-
                         Toggle(
                             "In List only",
                             isOn: Binding(
@@ -102,13 +93,16 @@ struct ItemsView: View {
                                 mutationErrorMessage: viewModel.mutationErrorMessage
                             ) {
                                 ContentUnavailableView {
-                                    Label("Unable to load items", systemImage: "exclamationmark.triangle")
+                                    Label(
+                                        "Unable to load items",
+                                        systemImage: "exclamationmark.triangle")
                                 } description: {
                                     Text("Please try again.")
                                 } actions: {
                                     Button("Retry") {
                                         Task {
-                                            await ItemsViewUX.performRetry(using: viewModel.retryLoad)
+                                            await ItemsViewUX.performRetry(
+                                                using: viewModel.retryLoad)
                                         }
                                     }
                                 }
@@ -134,7 +128,10 @@ struct ItemsView: View {
                                             .foregroundStyle(.white.opacity(0.75))
                                     }
                                     .accessibilityElement(children: .combine)
-                                    .accessibilityLabel(item.list == nil ? "\(item.name), \(item.categoryName)" : "\(item.name), \(item.categoryName), in list")
+                                    .accessibilityLabel(
+                                        item.list == nil
+                                            ? "\(item.name), \(item.categoryName)"
+                                            : "\(item.name), \(item.categoryName), in list")
                                 }
                             }
                         }
@@ -146,9 +143,18 @@ struct ItemsView: View {
                 .refreshable {
                     await viewModel.refresh()
                 }
+                .scrollDismissesKeyboard(.immediately)
             }
             .navigationTitle("Items")
             .navigationBarTitleDisplayMode(.inline)
+            .searchable(
+                text: Binding(
+                    get: { viewModel.searchText },
+                    set: { viewModel.searchText = $0 }
+                ),
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: "Search items"
+            )
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbarBackground(.clear, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
@@ -165,7 +171,9 @@ struct ItemsView: View {
             .task { await viewModel.load() }
             .sheet(isPresented: $isPresentingAddItem) {
                 AddItemView(viewModel: viewModel)
-                    .interactiveDismissDisabled(ItemsViewUX.addSheetInteractiveDismissDisabled(isAdding: viewModel.isAdding))
+                    .interactiveDismissDisabled(
+                        ItemsViewUX.addSheetInteractiveDismissDisabled(isAdding: viewModel.isAdding)
+                    )
             }
         }
     }
