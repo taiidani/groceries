@@ -5,7 +5,9 @@ import XCTest
 
 @MainActor
 final class ItemsViewModelTests: XCTestCase {
-    func test_filteredItems_matchesCaseInsensitiveSubstring() async throws {
+    func test_filteredItems_matchesCaseInsensitiveSubstring_andClearingSearchRestoresFullList()
+        async throws
+    {
         let api = MockItemsAPI(
             categories: try decodeCategories(
                 """
@@ -51,6 +53,10 @@ final class ItemsViewModelTests: XCTestCase {
         viewModel.searchText = "mIlK"
 
         XCTAssertEqual(viewModel.filteredItems.map(\.name), ["Almond Milk", "Whole Milk"])
+
+        viewModel.searchText = ""
+
+        XCTAssertEqual(viewModel.filteredItems.map(\.name), ["Almond Milk", "Whole Milk", "Bread"])
     }
 
     func test_filteredItems_composesInListOnlyAndSearch() async throws {
@@ -259,7 +265,8 @@ final class ItemsViewModelTests: XCTestCase {
         XCTAssertTrue(addOK)
         XCTAssertEqual(viewModel.items.map(\.name), ["Oat Milk"])
 
-        let updateOK = await viewModel.updateItem(id: 10, name: "Oat Milk Unsweetened", categoryID: 1)
+        let updateOK = await viewModel.updateItem(
+            id: 10, name: "Oat Milk Unsweetened", categoryID: 1)
         XCTAssertTrue(updateOK)
         XCTAssertEqual(viewModel.items.map(\.name), ["Oat Milk Unsweetened"])
 
@@ -401,7 +408,8 @@ final class ItemsViewModelTests: XCTestCase {
         XCTAssertNotNil(userInfo[AppEvents.MembershipChanged.changedAtKey] as? Date)
     }
 
-    func test_setInListToggleOffSuccess_callsRemoveRefreshesAndPostsFalseNotification() async throws {
+    func test_setInListToggleOffSuccess_callsRemoveRefreshesAndPostsFalseNotification() async throws
+    {
         let notificationCenter = NotificationCenter()
         let original = try decodeItem(
             """
@@ -454,7 +462,9 @@ final class ItemsViewModelTests: XCTestCase {
         XCTAssertEqual(userInfo[AppEvents.MembershipChanged.isInListKey] as? Bool, false)
     }
 
-    func test_setInListToggleOn_refreshFailure_stillSucceedsPostsNotificationAndUpdatesLocalState() async throws {
+    func test_setInListToggleOn_refreshFailure_stillSucceedsPostsNotificationAndUpdatesLocalState()
+        async throws
+    {
         let notificationCenter = NotificationCenter()
         let original = try decodeItem(
             """
@@ -509,7 +519,9 @@ final class ItemsViewModelTests: XCTestCase {
         XCTAssertEqual(userInfo[AppEvents.MembershipChanged.isInListKey] as? Bool, true)
     }
 
-    func test_setInListToggleOff_refreshFailure_stillSucceedsPostsNotificationAndUpdatesLocalState() async throws {
+    func test_setInListToggleOff_refreshFailure_stillSucceedsPostsNotificationAndUpdatesLocalState()
+        async throws
+    {
         let notificationCenter = NotificationCenter()
         let original = try decodeItem(
             """
@@ -591,7 +603,9 @@ final class ItemsViewModelTests: XCTestCase {
         XCTAssertEqual(recorder.count, 0)
     }
 
-    func test_toggleAndDeleteFailure_preserveState_andToggleFailureDoesNotPostNotification() async throws {
+    func test_toggleAndDeleteFailure_preserveState_andToggleFailureDoesNotPostNotification()
+        async throws
+    {
         let notificationCenter = NotificationCenter()
         let original = try decodeItem(
             """
@@ -1187,7 +1201,8 @@ final class ItemsViewModelTests: XCTestCase {
 
     func test_itemEditorControlsDisabled_whileMutationInFlight() {
         XCTAssertTrue(ItemEditorViewUX.cancelDisabled(isMutationInFlight: true))
-        XCTAssertTrue(ItemEditorViewUX.saveDisabled(isMutationInFlight: true, baseSaveDisabled: false))
+        XCTAssertTrue(
+            ItemEditorViewUX.saveDisabled(isMutationInFlight: true, baseSaveDisabled: false))
         XCTAssertTrue(ItemEditorViewUX.nameDisabled(isMutationInFlight: true))
         XCTAssertTrue(ItemEditorViewUX.categoryDisabled(isMutationInFlight: true))
         XCTAssertTrue(ItemEditorViewUX.membershipToggleDisabled(isMutationInFlight: true))
@@ -1197,7 +1212,8 @@ final class ItemsViewModelTests: XCTestCase {
     func test_itemEditorAccessibilityLabels_remainStable() {
         XCTAssertEqual(ItemEditorViewAccessibility.categoryLabel, "Edit item category")
         XCTAssertEqual(ItemEditorViewAccessibility.nameLabel, "Edit item name")
-        XCTAssertEqual(ItemEditorViewAccessibility.membershipToggleLabel, "Include item in shopping list")
+        XCTAssertEqual(
+            ItemEditorViewAccessibility.membershipToggleLabel, "Include item in shopping list")
         XCTAssertEqual(ItemEditorViewAccessibility.cancelButtonLabel, "Cancel edit item")
         XCTAssertEqual(ItemEditorViewAccessibility.saveButtonLabel, "Save item changes")
         XCTAssertEqual(ItemEditorViewAccessibility.deleteButtonLabel, "Delete item")
@@ -1346,7 +1362,10 @@ private final class MockItemsAPI: ItemsAPI {
     private(set) var addItemToListCallCount = 0
     private(set) var removeItemFromListCallCount = 0
 
-    init(categories: [GroceriesAPI.Category], items: [Item], listCategoriesError: Error? = nil, listItemsError: Error? = nil) {
+    init(
+        categories: [GroceriesAPI.Category], items: [Item], listCategoriesError: Error? = nil,
+        listItemsError: Error? = nil
+    ) {
         self.categories = categories
         self.items = items
         self.listCategoriesError = listCategoriesError
