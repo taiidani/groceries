@@ -57,7 +57,7 @@ public struct Category: Decodable, Identifiable, Sendable {
 
 // MARK: - Item
 
-public struct Item: Decodable, Identifiable, Sendable {
+public struct Item: Decodable, Identifiable, Hashable, Sendable {
     public let id: Int
     public let categoryID: Int
     public let categoryName: String
@@ -65,7 +65,9 @@ public struct Item: Decodable, Identifiable, Sendable {
     /// Present when this item is currently on the shopping list.
     public let list: ListItemSummary?
 
-    public init(id: Int, categoryID: Int, categoryName: String, name: String, list: ListItemSummary?) {
+    public init(
+        id: Int, categoryID: Int, categoryName: String, name: String, list: ListItemSummary?
+    ) {
         self.id = id
         self.categoryID = categoryID
         self.categoryName = categoryName
@@ -115,7 +117,7 @@ public struct UpdateItemRequest: Encodable, Sendable {
 // MARK: - Shopping List
 
 /// A lightweight summary of a list entry embedded inside an `Item`.
-public struct ListItemSummary: Decodable, Identifiable, Sendable {
+public struct ListItemSummary: Decodable, Identifiable, Hashable, Sendable {
     /// The list-entry ID (not the item ID).
     public let id: Int
     public let quantity: String
