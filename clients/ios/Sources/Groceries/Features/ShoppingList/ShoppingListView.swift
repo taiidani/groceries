@@ -14,6 +14,29 @@ struct AppBackground: View {
     }
 }
 
+// MARK: - Long-press-to-edit navigation
+
+enum ShoppingListRowAccessibility {
+    static let editActionLabel = "Edit item"
+}
+
+enum ShoppingListEditorUX {
+    /// How long a press must be held before it's treated as a long press.
+    static let longPressMinimumDuration: TimeInterval = 0.5
+
+    /// Long-press-to-edit is suppressed while the row's own mutation
+    /// (done toggle) is in flight, to avoid racing edits against it.
+    static func isLongPressEditAvailable(isMutating: Bool) -> Bool {
+        !isMutating
+    }
+
+    /// Resolves the full `Item` (needed by `ItemEditorView`) matching a
+    /// list row's underlying item ID.
+    static func editorItem(for itemID: Int, in items: [Item]) -> Item? {
+        items.first(where: { $0.id == itemID })
+    }
+}
+
 // MARK: - ShoppingListView
 
 /// The main shopping list screen.
@@ -25,6 +48,9 @@ struct AppBackground: View {
 /// - Global progress summary shown once for the whole shopping list.
 /// - Empty state with a friendly illustration and message.
 /// - Inline error banner rather than disruptive alerts.
+/// - Tapping a row toggles done; long-pressing a row navigates to the item
+///   editor (also reachable from the Items tab), matching the pattern of
+///   "tap for primary action, long-press for secondary/edit".
 struct ShoppingListView: View {
 
     // MARK: - Dependencies
@@ -36,6 +62,11 @@ struct ShoppingListView: View {
 
     @State private var viewModel: ShoppingListViewModel
 
+    /// A dedicated `ItemsViewModel` used only to power the long-press-to-edit
+    /// navigation. Kept separate from `viewModel` because the shopping list
+    /// and item editor operate on different models (`ListItem` vs `Item`).
+    @State private var editorViewModel: ItemsViewModel
+
     // MARK: - Local UI state
 
     @State private var showFinishConfirmation: Bool = false
@@ -44,10 +75,15 @@ struct ShoppingListView: View {
     @State private var refreshRequestGate = ShoppingListRefreshRequestGate()
     @State private var membershipRefreshObserver = ShoppingListMembershipRefreshObserver()
 
+    /// The item currently being edited, if any. Setting this pushes the
+    /// editor onto the navigation stack via `.navigationDestination(item:)`.
+    @State private var editingItem: Item?
+
     // MARK: - Init
 
     init(apiClient: GroceriesAPIClient) {
         _viewModel = State(initialValue: ShoppingListViewModel(apiClient: apiClient))
+        _editorViewModel = State(initialValue: ItemsViewModel(api: apiClient))
     }
 
     // MARK: - Computed
@@ -78,6 +114,13 @@ struct ShoppingListView: View {
             .toolbar { toolbarContent }
             .refreshable { await refreshIfNeeded() }
             .task { await viewModel.load() }
+            .navigationDestination(item: $editingItem) { item in
+                ItemEditorView(item: item, viewModel: editorViewModel)
+            }
+            .onChange(of: editingItem != nil) { wasPresented, isPresented in
+                guard wasPresented && !isPresented else { return }
+                Task { await viewModel.load() }
+            }
             .onReceive(
                 NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
             ) { _ in
@@ -258,6 +301,16 @@ struct ShoppingListView: View {
                             isMutating: viewModel.mutatingItemIDs.contains(item.itemID),
                             onToggleDone: {
                                 Task { await viewModel.toggleDone(for: item) }
+                            },
+                            onLongPressEdit: {
+                                let isMutating = viewModel.mutatingItemIDs.contains(item.itemID)
+                                guard
+                                    ShoppingListEditorUX.isLongPressEditAvailable(
+                                        isMutating: isMutating)
+                                else {
+                                    return
+                                }
+                                presentEditor(for: item)
                             }
                         )
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -309,6 +362,20 @@ struct ShoppingListView: View {
             systemImage: "cart",
             description: Text("Add items to your shopping list and they'll appear here.")
         )
+    }
+
+    // MARK: - Long-press-to-edit navigation
+
+    /// Loads the editor's item catalog and, once available, navigates to
+    /// the matching item's editor screen.
+    private func presentEditor(for item: ListItem) {
+        Task {
+            await editorViewModel.load()
+            editingItem = ShoppingListEditorUX.editorItem(
+                for: item.itemID,
+                in: editorViewModel.items
+            )
+        }
     }
 
     private func handleDidBecomeActive() {
@@ -489,53 +556,58 @@ final class ShoppingListMembershipRefreshObserver {
 /// A single row in the shopping list.
 ///
 /// Tapping the leading checkmark area toggles the done state.
+/// Long-pressing navigates to the item's editor screen.
 /// The row dims when a mutation for this item is in flight.
 private struct ShoppingListRow: View {
 
     let item: ListItem
     let isMutating: Bool
     let onToggleDone: () -> Void
+    let onLongPressEdit: () -> Void
 
     var body: some View {
-        Button(action: onToggleDone) {
-            HStack(spacing: 14) {
-                // Done indicator
-                Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
-                    .font(.title3)
-                    .foregroundStyle(item.done ? Color.accentColor : Color.secondary)
+        HStack(spacing: 14) {
+            // Done indicator
+            Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
+                .font(.title3)
+                .foregroundStyle(item.done ? Color.accentColor : Color.secondary)
+                .animation(.easeInOut(duration: 0.15), value: item.done)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.itemName)
+                    .font(.body)
+                    .strikethrough(item.done, color: .secondary)
+                    .foregroundStyle(item.done ? .secondary : .primary)
                     .animation(.easeInOut(duration: 0.15), value: item.done)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.itemName)
-                        .font(.body)
-                        .strikethrough(item.done, color: .secondary)
-                        .foregroundStyle(item.done ? .secondary : .primary)
-                        .animation(.easeInOut(duration: 0.15), value: item.done)
-
-                    if !item.quantity.isEmpty {
-                        Text(item.quantity)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Spacer()
-
-                if isMutating {
-                    ProgressView()
-                        .scaleEffect(0.8)
+                if !item.quantity.isEmpty {
+                    Text(item.quantity)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
-            .contentShape(Rectangle())
+
+            Spacer()
+
+            if isMutating {
+                ProgressView()
+                    .scaleEffect(0.8)
+            }
         }
-        .buttonStyle(.plain)
-        .disabled(isMutating)
+        .contentShape(Rectangle())
         .opacity(isMutating ? 0.6 : 1)
+        .allowsHitTesting(!isMutating)
         .animation(.easeInOut(duration: 0.15), value: isMutating)
+        .onTapGesture(perform: onToggleDone)
+        .onLongPressGesture(
+            minimumDuration: ShoppingListEditorUX.longPressMinimumDuration,
+            perform: onLongPressEdit
+        )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(item.done ? "Tap to mark as not done" : "Tap to mark as done")
         .accessibilityAddTraits(item.done ? [.isButton, .isSelected] : .isButton)
+        .accessibilityAction(named: ShoppingListRowAccessibility.editActionLabel, onLongPressEdit)
     }
 
     private var accessibilityLabel: String {
