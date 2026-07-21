@@ -1,9 +1,5 @@
 -- +goose Up
 -- +goose StatementBegin
-DELETE FROM "recipe_item";
-ALTER SEQUENCE "recipe_item_id_seq" RESTART WITH 1;
-DELETE FROM "recipe";
-ALTER SEQUENCE "recipe_id_seq" RESTART WITH 1;
 DELETE FROM item_bag;
 ALTER SEQUENCE item_bag_id_seq RESTART WITH 1;
 DELETE FROM item_list;

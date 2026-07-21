@@ -87,16 +87,6 @@ func (s *Server) addRoutes(mux *http.ServeMux) {
 	mux.Handle("DELETE /api/v1/list/items/{id}", wrap(http.HandlerFunc(s.listRemoveItemHandler)))
 	mux.Handle("POST /api/v1/list/finish", wrap(http.HandlerFunc(s.listFinishHandler)))
 
-	// Recipes
-	mux.Handle("GET /api/v1/recipes", wrap(http.HandlerFunc(s.recipesListHandler)))
-	mux.Handle("POST /api/v1/recipes", wrap(http.HandlerFunc(s.recipesCreateHandler)))
-	mux.Handle("GET /api/v1/recipes/{id}", wrap(http.HandlerFunc(s.recipesGetHandler)))
-	mux.Handle("PUT /api/v1/recipes/{id}", wrap(http.HandlerFunc(s.recipesUpdateHandler)))
-	mux.Handle("DELETE /api/v1/recipes/{id}", wrap(http.HandlerFunc(s.recipesDeleteHandler)))
-	mux.Handle("POST /api/v1/recipes/{id}/items", wrap(http.HandlerFunc(s.recipesAddItemHandler)))
-	mux.Handle("DELETE /api/v1/recipes/{id}/items/{itemId}", wrap(http.HandlerFunc(s.recipesRemoveItemHandler)))
-	mux.Handle("POST /api/v1/recipes/{id}/add-to-list", wrap(http.HandlerFunc(s.recipesAddToListHandler)))
-
 	// Not found handler for /api/v1/ prefix
 	mux.Handle("/api/", sentryHandler.Handle(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		renderError(w, http.StatusNotFound, fmt.Errorf("endpoint not found"))

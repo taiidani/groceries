@@ -172,6 +172,5 @@ Or in Xcode: **⌘U**.
 
 - Offline caching/sync for list and item data
 - Bulk item operations (multi-select delete/category move)
-- Recipe support
 - macOS Catalyst / dedicated macOS target
 - Real-time updates via Server-Sent Events

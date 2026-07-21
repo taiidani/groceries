@@ -208,56 +208,6 @@ public struct UpdateListItemRequest: Encodable, Sendable {
     }
 }
 
-// MARK: - Recipe
-
-public struct RecipeItem: Decodable, Identifiable, Sendable {
-    public let id: Int
-    public let recipeID: Int
-    public let itemID: Int
-    public let itemName: String
-    public let quantity: String
-    public let inList: Bool
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case recipeID = "recipe_id"
-        case itemID = "item_id"
-        case itemName = "item_name"
-        case quantity
-        case inList = "in_list"
-    }
-}
-
-public struct Recipe: Decodable, Identifiable, Sendable {
-    public let id: Int
-    public let name: String
-    public let description: String
-    public let createdAt: Date
-    public let items: [RecipeItem]
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case description
-        case createdAt = "created_at"
-        case items
-    }
-}
-
-public struct RecipeSummary: Decodable, Identifiable, Sendable {
-    public let id: Int
-    public let name: String
-    public let description: String
-    public let createdAt: Date
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case description
-        case createdAt = "created_at"
-    }
-}
-
 // MARK: - Errors
 
 /// A structured error returned by the API.
