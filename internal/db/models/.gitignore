@@ -1,0 +1,4 @@
+# sqlc generated models
+db.go
+models.go
+*.sql.go

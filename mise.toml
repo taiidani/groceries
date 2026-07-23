@@ -18,6 +18,7 @@ GOOSE_MIGRATION_DIR = "./internal/db/migrations"
 go = "1.25.1"
 tuist = "latest"
 node = "24.18.0"
+sqlc = "latest"
 "go:github.com/evanw/esbuild/cmd/esbuild" = "latest"
 
 [vars]
@@ -25,12 +26,12 @@ filename = 'groceries'
 
 [tasks.default]
 description = "Execute the app in development mode"
-depends = ["dependencies", "test", "lint", "build"]
+depends = ["test", "lint*", "build"]
 run = ["./{{vars.filename}}"]
 
 [tasks.build]
 description = "Build the server binary"
-depends = ["dependencies"]
+depends = ["dependencies", "generate*"]
 sources = ["internal/**/*.go", "main.go", "go.*"]
 outputs = ["./{{vars.filename}}"]
 env.CGO_ENABLED = "0"
@@ -43,6 +44,10 @@ run = [
     "curl --fail --silent --location --output internal/server/assets/htmx.dist.js https://unpkg.com/htmx.org@2.0.0",
     "curl --fail --silent --location --output internal/server/assets/htmx-sse.dist.js https://unpkg.com/htmx-ext-sse@2.2.2",
 ]
+
+[tasks."generate:sqlc"]
+description = "Generate SQLC code"
+run = ["sqlc generate"]
 
 [tasks.test]
 description = "Unit tests"
@@ -57,11 +62,12 @@ depends = []
 env.GOOSE_MIGRATION_DIR = "./internal/db/seeds"
 run = ["go tool goose --no-versioning up"]
 
-
-
 [tasks.lint]
 depends = ["dependencies"]
 run = ["go vet ./...", "go tool staticcheck ./..."]
+
+[tasks."lint:sqlc"]
+run = ["sqlc diff", "sqlc vet"]
 
 [tasks."test:e2e"]
 description = "Run Playwright end-to-end browser tests against a live instance of the app"
