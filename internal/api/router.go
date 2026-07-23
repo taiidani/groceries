@@ -5,27 +5,32 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/go-redis/redis/v8"
 	"github.com/taiidani/groceries/internal/cache"
+	"github.com/taiidani/groceries/internal/db/models"
 	"github.com/taiidani/groceries/internal/events"
 )
 
 // Server is the API server instance.
 type Server struct {
 	ctx       context.Context
+	db        *models.Queries
 	cache     cache.Cache
 	sseServer events.PubSub
 }
 
 // NewServer creates a new API server and registers all routes onto the provided mux.
 // Routes are mounted under /api/v1/.
-func NewServer(ctx context.Context, rds *redis.Client, mux *http.ServeMux) *Server {
+func NewServer(ctx context.Context, conn *sql.DB, rds *redis.Client, mux *http.ServeMux) *Server {
 	srv := &Server{
 		ctx:       ctx,
+		db:        models.New(conn),
 		cache:     cache.NewRedisCache(rds),
 		sseServer: events.NewRedisPubSub(rds),
 	}
@@ -91,4 +96,12 @@ func (s *Server) addRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/", sentryHandler.Handle(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		renderError(w, http.StatusNotFound, fmt.Errorf("endpoint not found"))
 	})))
+}
+
+func parseId(id string) (int32, error) {
+	i, err := strconv.ParseInt(id, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	return int32(i), nil
 }

@@ -9,12 +9,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/taiidani/groceries/internal/cache"
-	"github.com/taiidani/groceries/internal/models"
 )
 
 const defaultSessionExpiration = time.Duration(time.Hour * 720)
 
-func NewSession(ctx context.Context, sess models.Session, backend cache.Cache) (*http.Cookie, error) {
+func NewSession(ctx context.Context, sess Session, backend cache.Cache) (*http.Cookie, error) {
 	sessionKey := uuid.New().String()
 	err := backend.Set(ctx, "session:"+sessionKey, sess, defaultSessionExpiration)
 	if err != nil {
@@ -44,8 +43,8 @@ func DeleteSession() *http.Cookie {
 	return &cookie
 }
 
-func GetSession(r *http.Request, cache cache.Cache) (*models.Session, error) {
-	var sess *models.Session
+func GetSession(r *http.Request, cache cache.Cache) (*Session, error) {
+	var sess *Session
 	cookie, err := r.Cookie("session")
 	if err != nil {
 		// No cookie 🍪
@@ -60,7 +59,7 @@ func GetSession(r *http.Request, cache cache.Cache) (*models.Session, error) {
 	return sess, nil
 }
 
-func UpdateSession(r *http.Request, sess *models.Session, backend cache.Cache) error {
+func UpdateSession(r *http.Request, sess *Session, backend cache.Cache) error {
 	cookie, err := r.Cookie("session")
 	if err != nil {
 		// No cookie 🍪

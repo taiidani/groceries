@@ -6,8 +6,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/taiidani/groceries/internal/authz"
 	"github.com/taiidani/groceries/internal/cache"
-	"github.com/taiidani/groceries/internal/models"
+	"github.com/taiidani/groceries/internal/db/models"
 )
 
 type contextKey string
@@ -35,7 +36,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		}
 
 		// Look up the token in the cache
-		var tokenData models.APIToken
+		var tokenData authz.APIToken
 		err := s.cache.Get(r.Context(), tokenCacheKey(token), &tokenData)
 		if err != nil {
 			if err == cache.ErrKeyNotFound {
@@ -48,7 +49,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		}
 
 		// Load the associated user
-		user, err := models.GetUser(r.Context(), tokenData.UserID)
+		user, err := s.db.GetUser(r.Context(), tokenData.UserID)
 		if err != nil {
 			slog.ErrorContext(r.Context(), "failed to load user for API token", "userID", tokenData.UserID, "error", err)
 			errorJSON(w, http.StatusUnauthorized, "invalid or expired token")

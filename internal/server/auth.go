@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/taiidani/groceries/internal/authz"
-	"github.com/taiidani/groceries/internal/models"
 )
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
@@ -21,8 +20,13 @@ func (s *Server) auth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := authz.ValidateCredentials(r.FormValue("password")); err != nil {
+		errorResponse(w, r, http.StatusUnauthorized, fmt.Errorf("invalid credentials: %w", err))
+		return
+	}
+
 	// They know the password! Load the user
-	user, err := models.GetUserByCredentials(r.Context(), r.FormValue("username"), r.FormValue("password"))
+	user, err := s.db.GetUserByName(r.Context(), r.FormValue("username"))
 	if err != nil {
 		errorResponse(w, r, http.StatusUnauthorized, fmt.Errorf("invalid credentials: %w", err))
 	}
@@ -35,7 +39,7 @@ func (s *Server) auth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sess := models.Session{UserID: user.ID, APIToken: apiToken}
+	sess := authz.Session{UserID: user.ID, APIToken: apiToken}
 	cookie, err := authz.NewSession(r.Context(), sess, s.cache)
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("could not create session: %w", err))

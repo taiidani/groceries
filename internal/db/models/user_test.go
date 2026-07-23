@@ -1,7 +1,6 @@
 package models
 
 import (
-	"context"
 	"testing"
 )
 
@@ -51,8 +50,8 @@ func TestUser_Validate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
-			err := tt.user.Validate(ctx)
+			q := Queries{}
+			err := q.ValidateUser(t.Context(), tt.user)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("User.Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}

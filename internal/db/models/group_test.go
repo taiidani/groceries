@@ -68,7 +68,8 @@ func TestGroup_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			err := tt.group.Validate(ctx)
+			q := Queries{}
+			err := q.ValidateGroup(ctx, tt.group)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Group.Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}

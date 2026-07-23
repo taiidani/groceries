@@ -5,6 +5,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"embed"
 	"fmt"
 	"html/template"
@@ -12,16 +13,19 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strconv"
 
 	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/go-redis/redis/v8"
+	"github.com/taiidani/groceries/internal/authz"
 	"github.com/taiidani/groceries/internal/cache"
+	"github.com/taiidani/groceries/internal/db/models"
 	"github.com/taiidani/groceries/internal/events"
-	"github.com/taiidani/groceries/internal/models"
 )
 
 type Server struct {
 	ctx       context.Context
+	db        *models.Queries
 	cache     cache.Cache
 	publicURL string
 	port      string
@@ -35,7 +39,7 @@ var templates embed.FS
 // DevMode can be toggled to pull rendered files from the filesystem or the embedded FS.
 var DevMode = os.Getenv("DEV") == "true"
 
-func NewServer(ctx context.Context, rds *redis.Client, port string, mux *http.ServeMux) *Server {
+func NewServer(ctx context.Context, conn *sql.DB, rds *redis.Client, port string, mux *http.ServeMux) *Server {
 
 	publicURL := os.Getenv("PUBLIC_URL")
 	if publicURL == "" {
@@ -48,6 +52,7 @@ func NewServer(ctx context.Context, rds *redis.Client, port string, mux *http.Se
 			Handler: mux,
 		},
 		ctx:       ctx,
+		db:        models.New(conn),
 		publicURL: publicURL,
 		port:      port,
 		cache:     cache.NewRedisCache(rds),
@@ -140,7 +145,7 @@ func getTemplate() (*template.Template, error) {
 
 type baseBag struct {
 	Redirect string
-	Session  *models.Session
+	Session  *authz.Session
 	User     *models.User
 }
 
@@ -151,7 +156,7 @@ func (s *Server) newBag(ctx context.Context) baseBag {
 		ret.Redirect = redirect
 	}
 
-	if sess, ok := ctx.Value(sessionKey).(*models.Session); ok {
+	if sess, ok := ctx.Value(sessionKey).(*authz.Session); ok {
 		ret.Session = sess
 	}
 
@@ -160,4 +165,12 @@ func (s *Server) newBag(ctx context.Context) baseBag {
 	}
 
 	return ret
+}
+
+func parseId(id string) (int32, error) {
+	i, err := strconv.ParseInt(id, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	return int32(i), nil
 }

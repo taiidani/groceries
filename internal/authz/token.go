@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/taiidani/groceries/internal/cache"
-	"github.com/taiidani/groceries/internal/models"
 )
 
 const defaultTokenExpiration = time.Duration(time.Hour * 720)
@@ -17,7 +16,7 @@ const defaultTokenExpiration = time.Duration(time.Hour * 720)
 // user, stores it in the cache with the standard expiration, and returns the
 // raw token string. The caller is responsible for delivering the token to the
 // client.
-func NewAPIToken(ctx context.Context, userID int, backend cache.Cache) (string, time.Time, error) {
+func NewAPIToken(ctx context.Context, userID int32, backend cache.Cache) (string, time.Time, error) {
 	raw := make([]byte, 32)
 	if _, err := rand.Read(raw); err != nil {
 		return "", time.Time{}, fmt.Errorf("could not generate token: %w", err)
@@ -26,7 +25,7 @@ func NewAPIToken(ctx context.Context, userID int, backend cache.Cache) (string, 
 	token := hex.EncodeToString(raw)
 	expiresAt := time.Now().Add(defaultTokenExpiration)
 
-	data := models.APIToken{
+	data := APIToken{
 		UserID:    userID,
 		ExpiresAt: expiresAt,
 	}
@@ -43,7 +42,7 @@ func NewAPIToken(ctx context.Context, userID int, backend cache.Cache) (string, 
 func RevokeAPIToken(ctx context.Context, token string, backend cache.Cache) error {
 	// The cache interface only exposes Set/Get, so we overwrite with a zero-value
 	// and a 1-second TTL rather than requiring a Delete method.
-	return backend.Set(ctx, apiTokenCacheKey(token), models.APIToken{}, time.Second)
+	return backend.Set(ctx, apiTokenCacheKey(token), APIToken{}, time.Second)
 }
 
 // apiTokenCacheKey returns the Redis key used to store an API token.

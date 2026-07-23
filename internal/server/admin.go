@@ -3,9 +3,8 @@ package server
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
-	"github.com/taiidani/groceries/internal/models"
+	"github.com/taiidani/groceries/internal/db/models"
 )
 
 type adminBag struct {
@@ -18,13 +17,13 @@ func (s *Server) adminHandler(w http.ResponseWriter, r *http.Request) {
 	bag := adminBag{baseBag: s.newBag(r.Context())}
 
 	var err error
-	bag.Users, err = models.LoadUsers(r.Context())
+	bag.Users, err = s.db.ListUsers(r.Context())
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	bag.Groups, err = models.LoadGroups(r.Context())
+	bag.Groups, err = s.db.ListGroups(r.Context())
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
@@ -35,13 +34,13 @@ func (s *Server) adminHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) userUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.FormValue("id"))
+	id, err := parseId(r.FormValue("id"))
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	user, err := models.GetUser(r.Context(), id)
+	user, err := s.db.GetUser(r.Context(), id)
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
@@ -50,7 +49,11 @@ func (s *Server) userUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	user.Admin = r.FormValue("admin") == "on" || r.FormValue("admin") == "true"
 	user.Name = r.FormValue("name")
 
-	err = models.EditUser(r.Context(), user)
+	user, err = s.db.UpdateUser(r.Context(), models.UpdateUserParams{
+		ID:    id,
+		Name:  user.Name,
+		Admin: user.Admin,
+	})
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
@@ -64,12 +67,10 @@ func (s *Server) userUpdateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) userAddHandler(w http.ResponseWriter, r *http.Request) {
-	newUser := models.User{
+	_, err := s.db.CreateUser(r.Context(), models.CreateUserParams{
 		Name:  r.FormValue("name"),
 		Admin: r.FormValue("admin") == "on" || r.FormValue("admin") == "true",
-	}
-
-	err := models.AddUser(r.Context(), newUser)
+	})
 	if err != nil {
 		err = fmt.Errorf("could not add user: %w", err)
 		errorResponse(w, r, http.StatusInternalServerError, err)
@@ -84,13 +85,13 @@ func (s *Server) userAddHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) userDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
+	id, err := parseId(r.PathValue("id"))
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	err = models.DeleteUser(r.Context(), id)
+	err = s.db.DeleteUser(r.Context(), id)
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
@@ -104,13 +105,13 @@ func (s *Server) userDeleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) groupUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.FormValue("id"))
+	id, err := parseId(r.FormValue("id"))
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	group, err := models.GetGroup(r.Context(), id)
+	group, err := s.db.GetGroup(r.Context(), id)
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
@@ -118,7 +119,10 @@ func (s *Server) groupUpdateHandler(w http.ResponseWriter, r *http.Request) {
 
 	group.Name = r.FormValue("name")
 
-	err = models.EditGroup(r.Context(), group)
+	group, err = s.db.UpdateGroup(r.Context(), models.UpdateGroupParams{
+		ID:   id,
+		Name: group.Name,
+	})
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
@@ -132,11 +136,7 @@ func (s *Server) groupUpdateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) groupAddHandler(w http.ResponseWriter, r *http.Request) {
-	newGroup := models.Group{
-		Name: r.FormValue("name"),
-	}
-
-	err := models.AddGroup(r.Context(), newGroup)
+	_, err := s.db.CreateGroup(r.Context(), r.FormValue("name"))
 	if err != nil {
 		err = fmt.Errorf("could not add group: %w", err)
 		errorResponse(w, r, http.StatusInternalServerError, err)
@@ -151,13 +151,13 @@ func (s *Server) groupAddHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) groupDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
+	id, err := parseId(r.PathValue("id"))
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	err = models.DeleteGroup(r.Context(), id)
+	err = s.db.DeleteGroup(r.Context(), id)
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return

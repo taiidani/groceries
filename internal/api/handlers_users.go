@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 
-	"github.com/taiidani/groceries/internal/models"
+	"github.com/taiidani/groceries/internal/db/models"
 )
 
 func (s *Server) usersListHandler(w http.ResponseWriter, r *http.Request) {
-	users, err := models.LoadUsers(r.Context())
+	users, err := s.db.ListUsers(r.Context())
 	if err != nil {
 		internalError(w, err)
 		return
@@ -21,13 +20,13 @@ func (s *Server) usersListHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) usersGetHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
+	id, err := parseId(r.PathValue("id"))
 	if err != nil {
 		badRequest(w, "id must be an integer")
 		return
 	}
 
-	user, err := models.GetUser(r.Context(), id)
+	user, err := s.db.GetUser(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			notFound(w, "user")
@@ -55,21 +54,12 @@ func (s *Server) usersCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newUser := models.User{
+	created, err := s.db.CreateUser(r.Context(), models.CreateUserParams{
 		Name:  req.Name,
 		Admin: req.Admin,
-	}
-
-	if err := models.AddUser(r.Context(), newUser); err != nil {
-		internalError(w, err)
-		return
-	}
-
-	created, err := models.GetUserByCredentials(r.Context(), req.Name, "")
+	})
 	if err != nil {
-		// AddUser succeeded; we just can't fetch by credentials without a password.
-		// Return a minimal representation instead.
-		writeJSON(w, http.StatusCreated, newUser)
+		internalError(w, err)
 		return
 	}
 
@@ -77,13 +67,13 @@ func (s *Server) usersCreateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) usersUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
+	id, err := parseId(r.PathValue("id"))
 	if err != nil {
 		badRequest(w, "id must be an integer")
 		return
 	}
 
-	user, err := models.GetUser(r.Context(), id)
+	user, err := s.db.GetUser(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			notFound(w, "user")
@@ -102,14 +92,18 @@ func (s *Server) usersUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	updateParams := models.UpdateUserParams{
+		ID: user.ID,
+	}
 	if req.Name != nil {
-		user.Name = *req.Name
+		updateParams.Name = *req.Name
 	}
 	if req.Admin != nil {
-		user.Admin = *req.Admin
+		updateParams.Admin = *req.Admin
 	}
 
-	if err := models.EditUser(r.Context(), user); err != nil {
+	user, err = s.db.UpdateUser(r.Context(), updateParams)
+	if err != nil {
 		internalError(w, err)
 		return
 	}
@@ -118,13 +112,13 @@ func (s *Server) usersUpdateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) usersDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
+	id, err := parseId(r.PathValue("id"))
 	if err != nil {
 		badRequest(w, "id must be an integer")
 		return
 	}
 
-	if _, err := models.GetUser(r.Context(), id); err != nil {
+	if _, err := s.db.GetUser(r.Context(), id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			notFound(w, "user")
 		} else {
@@ -133,7 +127,7 @@ func (s *Server) usersDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.DeleteUser(r.Context(), id); err != nil {
+	if err := s.db.DeleteUser(r.Context(), id); err != nil {
 		internalError(w, err)
 		return
 	}

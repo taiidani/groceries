@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/taiidani/groceries/internal/authz"
-	"github.com/taiidani/groceries/internal/models"
 )
 
 func (s *Server) authLoginHandler(w http.ResponseWriter, r *http.Request) {
@@ -27,7 +26,12 @@ func (s *Server) authLoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := models.GetUserByCredentials(r.Context(), req.Username, req.Password)
+	if err := authz.ValidateCredentials(req.Password); err != nil {
+		errorJSON(w, http.StatusUnauthorized, "invalid credentials")
+		return
+	}
+
+	user, err := s.db.GetUserByName(r.Context(), req.Username)
 	if err != nil {
 		// Don't leak whether the user exists vs password was wrong
 		errorJSON(w, http.StatusUnauthorized, "invalid credentials")
@@ -66,7 +70,7 @@ func (s *Server) authMeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Re-fetch to ensure freshness
-	fresh, err := models.GetUser(r.Context(), user.ID)
+	fresh, err := s.db.GetUser(r.Context(), user.ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			errorJSON(w, http.StatusUnauthorized, "user no longer exists")

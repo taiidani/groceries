@@ -8,7 +8,7 @@ import (
 
 	"github.com/taiidani/groceries/internal/authz"
 	"github.com/taiidani/groceries/internal/client"
-	"github.com/taiidani/groceries/internal/models"
+	"github.com/taiidani/groceries/internal/db/models"
 )
 
 type contextKey string
@@ -53,7 +53,7 @@ func (s *Server) sessionMiddleware(next http.Handler) http.Handler {
 
 		// Got a session! Load the user
 		ctx := context.WithValue(r.Context(), sessionKey, sess)
-		user, err := models.GetUser(r.Context(), sess.UserID)
+		user, err := s.db.GetUser(r.Context(), sess.UserID)
 		if err != nil {
 			slog.Warn("Failed to retrieve user", "error", err)
 			http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)

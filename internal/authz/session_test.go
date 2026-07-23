@@ -9,19 +9,18 @@ import (
 	"time"
 
 	"github.com/taiidani/groceries/internal/cache"
-	"github.com/taiidani/groceries/internal/models"
 )
 
 func TestNewSession(t *testing.T) {
 	tests := []struct {
 		name    string
-		session models.Session
+		session Session
 		devMode bool
 		wantErr bool
 	}{
 		{
 			name: "create session for user 1",
-			session: models.Session{
+			session: Session{
 				UserID: 1,
 			},
 			devMode: true,
@@ -29,7 +28,7 @@ func TestNewSession(t *testing.T) {
 		},
 		{
 			name: "create session for user 42",
-			session: models.Session{
+			session: Session{
 				UserID: 42,
 			},
 			devMode: false,
@@ -37,7 +36,7 @@ func TestNewSession(t *testing.T) {
 		},
 		{
 			name: "create session with zero user ID",
-			session: models.Session{
+			session: Session{
 				UserID: 0,
 			},
 			devMode: true,
@@ -90,7 +89,7 @@ func TestNewSession(t *testing.T) {
 			}
 
 			// Verify session was stored in cache
-			var storedSession models.Session
+			var storedSession Session
 			err = store.Get(ctx, "session:"+cookie.Value, &storedSession)
 			if err != nil {
 				t.Errorf("Failed to retrieve session from cache: %v", err)
@@ -159,10 +158,10 @@ func TestGetSession(t *testing.T) {
 	tests := []struct {
 		name           string
 		setupSession   bool
-		sessionUserID  int
+		sessionUserID  int32
 		sessionKey     string
 		noCookie       bool
-		wantSession    *models.Session
+		wantSession    *Session
 		wantErr        bool
 		wantErrContain string
 	}{
@@ -171,7 +170,7 @@ func TestGetSession(t *testing.T) {
 			setupSession:  true,
 			sessionUserID: 123,
 			sessionKey:    "valid-session-key",
-			wantSession: &models.Session{
+			wantSession: &Session{
 				UserID: 123,
 			},
 			wantErr: false,
@@ -181,7 +180,7 @@ func TestGetSession(t *testing.T) {
 			setupSession:  true,
 			sessionUserID: 456,
 			sessionKey:    "another-session-key",
-			wantSession: &models.Session{
+			wantSession: &Session{
 				UserID: 456,
 			},
 			wantErr: false,
@@ -209,7 +208,7 @@ func TestGetSession(t *testing.T) {
 
 			// Setup session in cache if needed
 			if tt.setupSession {
-				sess := models.Session{UserID: tt.sessionUserID}
+				sess := Session{UserID: tt.sessionUserID}
 				err := store.Set(ctx, "session:"+tt.sessionKey, sess, time.Hour)
 				if err != nil {
 					t.Fatalf("Failed to setup session: %v", err)
@@ -260,7 +259,7 @@ func TestUpdateSession(t *testing.T) {
 		setupSession   bool
 		sessionKey     string
 		noCookie       bool
-		newUserID      int
+		newUserID      int32
 		wantErr        bool
 		wantErrContain string
 	}{
@@ -301,7 +300,7 @@ func TestUpdateSession(t *testing.T) {
 
 			// Setup initial session in cache if needed
 			if tt.setupSession {
-				sess := models.Session{UserID: 1}
+				sess := Session{UserID: 1}
 				err := store.Set(ctx, "session:"+tt.sessionKey, sess, time.Hour)
 				if err != nil {
 					t.Fatalf("Failed to setup session: %v", err)
@@ -319,7 +318,7 @@ func TestUpdateSession(t *testing.T) {
 			}
 
 			// Update the session
-			newSession := &models.Session{UserID: tt.newUserID}
+			newSession := &Session{UserID: tt.newUserID}
 			err := UpdateSession(req, newSession, store)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UpdateSession() error = %v, wantErr %v", err, tt.wantErr)
@@ -338,7 +337,7 @@ func TestUpdateSession(t *testing.T) {
 			}
 
 			// Verify the session was updated in cache
-			var storedSession models.Session
+			var storedSession Session
 			err = store.Get(ctx, "session:"+tt.sessionKey, &storedSession)
 			if err != nil {
 				t.Errorf("Failed to retrieve updated session from cache: %v", err)
@@ -359,7 +358,7 @@ func TestSessionLifecycle(t *testing.T) {
 	t.Setenv("DEV", "true")
 
 	// Create a session
-	originalSession := models.Session{UserID: 100}
+	originalSession := Session{UserID: 100}
 	cookie, err := NewSession(ctx, originalSession, store)
 	if err != nil {
 		t.Fatalf("NewSession() error = %v", err)
@@ -380,7 +379,7 @@ func TestSessionLifecycle(t *testing.T) {
 	}
 
 	// Update the session
-	updatedSession := &models.Session{UserID: 200}
+	updatedSession := &Session{UserID: 200}
 	err = UpdateSession(req, updatedSession, store)
 	if err != nil {
 		t.Fatalf("UpdateSession() error = %v", err)

@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"log/slog"
@@ -19,6 +20,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/taiidani/groceries/internal/api"
 	"github.com/taiidani/groceries/internal/cache"
+	"github.com/taiidani/groceries/internal/db"
 	"github.com/taiidani/groceries/internal/models"
 	"github.com/taiidani/groceries/internal/server"
 )
@@ -49,9 +51,16 @@ func main() {
 	// Set up the relational database
 	err = models.InitDB(ctx)
 	if err != nil {
-		sentry.CaptureException(err)
-		log.Fatalf("database init: %s", err)
+		slog.ErrorContext(ctx, "could not connect to database", "err", err)
+		os.Exit(2)
 	}
+
+	conn, err := db.New(ctx, os.Getenv("DATABASE_URL"))
+	if err != nil {
+		slog.ErrorContext(ctx, "could not connect to database", "err", err)
+		os.Exit(2)
+	}
+	defer conn.Close()
 
 	// Start the instances
 	wg := sync.WaitGroup{}
@@ -60,9 +69,9 @@ func main() {
 	go func() {
 		defer wg.Done()
 		// Start the web UI
-		if err := initServer(ctx, rds); err != nil {
-			sentry.CaptureException(err)
-			log.Fatal(err)
+		if err := initServer(ctx, conn, rds); err != nil {
+			slog.ErrorContext(ctx, "fatal server error", "err", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -104,7 +113,7 @@ func initLogging(ctx context.Context) {
 	slog.SetDefault(logger)
 }
 
-func initServer(ctx context.Context, rds *redis.Client) error {
+func initServer(ctx context.Context, conn *sql.DB, rds *redis.Client) error {
 	port := os.Getenv("PORT")
 	if port == "" {
 		return fmt.Errorf("required PORT environment variable not present")
@@ -113,8 +122,8 @@ func initServer(ctx context.Context, rds *redis.Client) error {
 	// The web server owns the mux. The API server registers its routes onto
 	// the same mux so both share a single listener and connection pool.
 	mux := http.NewServeMux()
-	api.NewServer(ctx, rds, mux)
-	srv := server.NewServer(ctx, rds, port, mux)
+	api.NewServer(ctx, conn, rds, mux)
+	srv := server.NewServer(ctx, conn, rds, port, mux)
 
 	go func() {
 		slog.Info("Server starting", "port", port)
