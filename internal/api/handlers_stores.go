@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 
-	"github.com/taiidani/groceries/internal/models"
+	"github.com/taiidani/groceries/internal/db/models"
 )
 
 func (s *Server) storesListHandler(w http.ResponseWriter, r *http.Request) {
-	stores, err := models.LoadStores(r.Context())
+	stores, err := s.db.ListStores(r.Context())
 	if err != nil {
 		internalError(w, err)
 		return
@@ -21,13 +20,13 @@ func (s *Server) storesListHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) storesGetHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
+	id, err := parseId(r.PathValue("id"))
 	if err != nil {
 		badRequest(w, "id must be an integer")
 		return
 	}
 
-	store, err := models.GetStore(r.Context(), id)
+	store, err := s.db.GetStore(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			notFound(w, "store")
@@ -37,7 +36,7 @@ func (s *Server) storesGetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	categories, err := store.Categories(r.Context())
+	categories, err := s.db.ListCategoriesForStore(r.Context(), store.ID)
 	if err != nil {
 		internalError(w, err)
 		return
@@ -63,41 +62,28 @@ func (s *Server) storesCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Name == "" {
-		badRequest(w, "name is required")
+	if err := s.db.ValidateStore(r.Context(), models.Store{Name: req.Name}); err != nil {
+		badRequest(w, err.Error())
 		return
 	}
 
-	newStore := models.Store{Name: req.Name}
-	if err := models.AddStore(r.Context(), newStore); err != nil {
-		internalError(w, err)
-		return
-	}
-
-	created, err := models.LoadStores(r.Context())
+	store, err := s.db.CreateStore(r.Context(), req.Name)
 	if err != nil {
 		internalError(w, err)
 		return
 	}
 
-	for _, s := range created {
-		if s.Name == req.Name {
-			writeJSON(w, http.StatusCreated, s)
-			return
-		}
-	}
-
-	errorJSON(w, http.StatusInternalServerError, "store created but could not be retrieved")
+	writeJSON(w, http.StatusCreated, store)
 }
 
 func (s *Server) storesUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
+	id, err := parseId(r.PathValue("id"))
 	if err != nil {
 		badRequest(w, "id must be an integer")
 		return
 	}
 
-	existing, err := models.GetStore(r.Context(), id)
+	existing, err := s.db.GetStore(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			notFound(w, "store")
@@ -115,34 +101,32 @@ func (s *Server) storesUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Name == "" {
-		badRequest(w, "name is required")
+	if err := s.db.ValidateStore(r.Context(), models.Store{ID: id, Name: req.Name}); err != nil {
+		badRequest(w, err.Error())
 		return
 	}
 
 	existing.Name = req.Name
-	if err := models.EditStore(r.Context(), existing); err != nil {
-		internalError(w, err)
-		return
-	}
-
-	updated, err := models.GetStore(r.Context(), id)
+	store, err := s.db.UpdateStore(r.Context(), models.UpdateStoreParams{
+		ID:   id,
+		Name: req.Name,
+	})
 	if err != nil {
 		internalError(w, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, updated)
+	writeJSON(w, http.StatusOK, store)
 }
 
 func (s *Server) storesDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
+	id, err := parseId(r.PathValue("id"))
 	if err != nil {
 		badRequest(w, "id must be an integer")
 		return
 	}
 
-	if _, err := models.GetStore(r.Context(), id); err != nil {
+	if _, err := s.db.GetStore(r.Context(), id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			notFound(w, "store")
 		} else {
@@ -151,7 +135,7 @@ func (s *Server) storesDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := models.DeleteStore(r.Context(), id); err != nil {
+	if err := s.db.DeleteStore(r.Context(), id); err != nil {
 		// DeleteStore returns a descriptive error when the store is in use
 		conflict(w, err.Error())
 		return

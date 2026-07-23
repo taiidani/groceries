@@ -9,7 +9,7 @@ import (
 // Store mirrors the API's Store response shape. It is intentionally separate
 // from models.Store so the client is not coupled to the internal model struct.
 type Store struct {
-	ID         int        `json:"id"`
+	ID         int32      `json:"id"`
 	Name       string     `json:"name"`
 	Categories []Category `json:"categories,omitempty"`
 }
@@ -17,7 +17,7 @@ type Store struct {
 // Category is the minimal category representation returned alongside a store.
 type Category struct {
 	ID          int    `json:"id"`
-	StoreID     int    `json:"store_id"`
+	StoreID     int32  `json:"store_id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	ItemCount   int    `json:"item_count"`
@@ -39,7 +39,7 @@ func (c *Client) ListStores(ctx context.Context) ([]Store, error) {
 }
 
 // GetStore returns a single store by ID, including its categories.
-func (c *Client) GetStore(ctx context.Context, id int) (Store, error) {
+func (c *Client) GetStore(ctx context.Context, id int32) (Store, error) {
 	resp, err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/stores/%d", id), nil)
 	if err != nil {
 		return Store{}, err
@@ -73,7 +73,7 @@ func (c *Client) CreateStore(ctx context.Context, name string) (Store, error) {
 }
 
 // UpdateStore updates a store's name and returns the updated store.
-func (c *Client) UpdateStore(ctx context.Context, id int, name string) (Store, error) {
+func (c *Client) UpdateStore(ctx context.Context, id int32, name string) (Store, error) {
 	body := struct {
 		Name string `json:"name"`
 	}{Name: name}
@@ -92,7 +92,7 @@ func (c *Client) UpdateStore(ctx context.Context, id int, name string) (Store, e
 }
 
 // DeleteStore deletes a store by ID.
-func (c *Client) DeleteStore(ctx context.Context, id int) error {
+func (c *Client) DeleteStore(ctx context.Context, id int32) error {
 	resp, err := c.do(ctx, http.MethodDelete, fmt.Sprintf("/api/v1/stores/%d", id), nil)
 	if err != nil {
 		return err

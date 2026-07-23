@@ -16,10 +16,6 @@ type Category struct {
 
 const UncategorizedCategoryID int = 0
 
-func (c *Category) Store(ctx context.Context) (Store, error) {
-	return GetStore(ctx, c.StoreID)
-}
-
 func (c *Category) Items(ctx context.Context) ([]Item, error) {
 	items, err := LoadItems(ctx)
 	if err != nil {
@@ -41,10 +37,6 @@ func (c *Category) Validate(ctx context.Context) error {
 
 	if len(c.Name) < 3 {
 		vErr = errors.Join(vErr, errors.New("provided name needs to be at least 3 characters"))
-	}
-
-	if _, err := GetStore(ctx, c.StoreID); err != nil {
-		vErr = errors.Join(vErr, fmt.Errorf("store not found: %w", err))
 	}
 
 	// Check for existing category

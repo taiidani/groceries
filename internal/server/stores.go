@@ -2,22 +2,21 @@ package server
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/taiidani/groceries/internal/client"
+	"github.com/taiidani/groceries/internal/db/models"
 )
 
 func (s *Server) storesHandler(w http.ResponseWriter, r *http.Request) {
 	type data struct {
 		baseBag
-		Stores []client.Store
-		Store  client.Store
+		Stores []models.Store
+		Store  models.Store
 	}
 
 	bag := data{baseBag: s.newBag(r.Context())}
 
-	apiClient := clientFromContext(r.Context())
-	stores, err := apiClient.ListStores(r.Context())
+	stores, err := s.db.ListStores(r.Context())
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
@@ -31,27 +30,32 @@ func (s *Server) storesHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) storeHandler(w http.ResponseWriter, r *http.Request) {
 	type data struct {
 		baseBag
-		Store      client.Store
-		Categories []client.Category
+		Store      models.Store
+		Categories []models.Category
 	}
 
 	bag := data{baseBag: s.newBag(r.Context())}
 
-	id, err := strconv.Atoi(r.PathValue("id"))
+	id, err := parseId(r.PathValue("id"))
 	if err != nil {
 		errorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
-	apiClient := clientFromContext(r.Context())
-	store, err := apiClient.GetStore(r.Context(), id)
+	store, err := s.db.GetStore(r.Context(), id)
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
+
+	categories, err := s.db.ListCategoriesForStore(r.Context(), store.ID)
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
 	bag.Store = store
-	bag.Categories = store.Categories
+	bag.Categories = categories
 
 	renderHtml(w, http.StatusOK, "store.gohtml", bag)
 }
@@ -68,14 +72,16 @@ func (s *Server) storeAddHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) storeEditHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.FormValue("id"))
+	id, err := parseId(r.FormValue("id"))
 	if err != nil {
 		errorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
-	apiClient := clientFromContext(r.Context())
-	_, err = apiClient.UpdateStore(r.Context(), id, r.FormValue("name"))
+	_, err = s.db.UpdateStore(r.Context(), models.UpdateStoreParams{
+		ID:   id,
+		Name: r.FormValue("name"),
+	})
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
@@ -85,14 +91,13 @@ func (s *Server) storeEditHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) storeDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.FormValue("id"))
+	id, err := parseId(r.FormValue("id"))
 	if err != nil {
 		errorResponse(w, r, http.StatusBadRequest, err)
 		return
 	}
 
-	apiClient := clientFromContext(r.Context())
-	if err := apiClient.DeleteStore(r.Context(), id); err != nil {
+	if err := s.db.DeleteStore(r.Context(), id); err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
