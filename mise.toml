@@ -31,7 +31,7 @@ run = ["./{{vars.filename}}"]
 
 [tasks.build]
 description = "Build the server binary"
-depends = ["dependencies", "generate*"]
+depends = ["dependencies", "generate:*"]
 sources = ["internal/**/*.go", "main.go", "go.*"]
 outputs = ["./{{vars.filename}}"]
 env.CGO_ENABLED = "0"
@@ -51,7 +51,7 @@ run = ["sqlc generate"]
 
 [tasks.test]
 description = "Unit tests"
-depends = ["dependencies"]
+depends = ["dependencies", "generate:*"]
 env.DEV = "false"
 env.CGO_ENABLED = 1                                    # Required for -race
 run = ["go test -race -covermode=atomic -cover ./..."]
@@ -63,7 +63,7 @@ env.GOOSE_MIGRATION_DIR = "./internal/db/seeds"
 run = ["go tool goose --no-versioning up"]
 
 [tasks.lint]
-depends = ["dependencies"]
+depends = ["dependencies", "generate:*"]
 run = ["go vet ./...", "go tool staticcheck ./..."]
 
 [tasks."lint:sqlc"]
