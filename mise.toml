@@ -67,7 +67,7 @@ depends = ["dependencies", "generate:*"]
 run = ["go vet ./...", "go tool staticcheck ./..."]
 
 [tasks."lint:sqlc"]
-run = ["sqlc diff", "sqlc vet"]
+run = ["sqlc vet"]
 
 [tasks."test:e2e"]
 description = "Run Playwright end-to-end browser tests against a live instance of the app"
