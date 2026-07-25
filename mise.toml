@@ -1,7 +1,5 @@
 [env]
 _.file = ".env"
-SENTRY_DSN = "https://b7c94726c8e39af642f012583a6be274@o55858.ingest.us.sentry.io/4508903750434816"
-SENTRY_ENVIRONMENT = "dev"
 PORT = "3000"
 URL = "http://localhost:3000"
 DEV = "true"

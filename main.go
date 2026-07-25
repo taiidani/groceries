@@ -15,14 +15,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/getsentry/sentry-go"
-	sentryslog "github.com/getsentry/sentry-go/slog"
 	"github.com/go-redis/redis/v8"
 	"github.com/taiidani/groceries/internal/api"
 	"github.com/taiidani/groceries/internal/cache"
 	"github.com/taiidani/groceries/internal/db"
 	"github.com/taiidani/groceries/internal/models"
 	"github.com/taiidani/groceries/internal/server"
+	"github.com/taiidani/groceries/internal/telemetry"
 )
 
 func main() {
@@ -30,20 +29,23 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	defer cancel()
 
-	// Set up Sentry
-	err := sentry.Init(sentry.ClientOptions{
-		SampleRate:       1.0,
-		EnableTracing:    true,
-		TracesSampleRate: 1.0,
-		EnableLogs:       true,
-	})
-	if err != nil {
-		log.Fatalf("sentry.Init: %s", err)
-	}
-	defer sentry.Flush(2 * time.Second)
+	// Set up logging. Records are wrapped so that any log emitted with an
+	// active span context is annotated with trace_id/span_id for correlation
+	// with traces in the observability backend.
+	initLogging()
 
-	// Set up the structured logger
-	initLogging(ctx)
+	// Set up OpenTelemetry tracing
+	shutdownTelemetry, err := telemetry.Init(ctx)
+	if err != nil {
+		log.Fatalf("telemetry init: %s", err)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := shutdownTelemetry(shutdownCtx); err != nil {
+			slog.Error("telemetry shutdown", "err", err)
+		}
+	}()
 
 	// Set up the Redis/Memory database
 	rds := cache.NewClient(ctx)
@@ -80,37 +82,30 @@ func main() {
 	slog.Info("Shutdown successful")
 }
 
-func initLogging(ctx context.Context) {
-	var logger *slog.Logger
-
-	switch os.Getenv("SENTRY_ENVIRONMENT") {
-	case "prod", "production":
-		handler := sentryslog.Option{
-			// Explicitly specify the levels that you want to be captured.
-			EventLevel: []slog.Level{slog.LevelError},                                 // Captures only [slog.LevelError] as error events.
-			LogLevel:   []slog.Level{slog.LevelWarn, slog.LevelInfo, slog.LevelDebug}, // Captures remaining items as log entries.
-		}.NewSentryHandler(ctx)
-		logger = slog.New(handler)
+func initLogging() {
+	var level slog.Level
+	switch os.Getenv("LOG_LEVEL") {
+	case "error":
+		level = slog.LevelError
+	case "warn":
+		level = slog.LevelWarn
+	case "debug":
+		level = slog.LevelDebug
 	default:
-		var level slog.Level
-		switch os.Getenv("LOG_LEVEL") {
-		case "error":
-			level = slog.LevelError
-		case "warn":
-			level = slog.LevelWarn
-		case "debug":
-			level = slog.LevelDebug
-		default:
-			level = slog.LevelInfo
-		}
-
-		handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-			Level: level,
-		})
-		logger = slog.New(handler)
+		level = slog.LevelInfo
 	}
 
-	slog.SetDefault(logger)
+	// Dev mode emits human-readable text logs; otherwise structured JSON is
+	// emitted for ingestion by a log backend.
+	var handler slog.Handler
+	if os.Getenv("DEV") == "true" {
+		handler = slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})
+	} else {
+		handler = slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: level})
+	}
+	handler = telemetry.NewTraceHandler(handler)
+
+	slog.SetDefault(slog.New(handler))
 }
 
 func initServer(ctx context.Context, conn *sql.DB, rds *redis.Client) error {

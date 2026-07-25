@@ -15,12 +15,12 @@ import (
 	"os"
 	"strconv"
 
-	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/go-redis/redis/v8"
 	"github.com/taiidani/groceries/internal/authz"
 	"github.com/taiidani/groceries/internal/cache"
 	"github.com/taiidani/groceries/internal/db/models"
 	"github.com/taiidani/groceries/internal/events"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 type Server struct {
@@ -64,58 +64,63 @@ func NewServer(ctx context.Context, conn *sql.DB, rds *redis.Client, port string
 }
 
 func (s *Server) addRoutes(mux *http.ServeMux) {
-	sentryHandler := sentryhttp.New(sentryhttp.Options{})
+	// handle registers a route, wrapping its handler so each request produces a
+	// server span named after the matched route. otelhttp also extracts any
+	// incoming W3C trace context for distributed tracing.
+	handle := func(pattern string, h http.Handler) {
+		mux.Handle(pattern, otelhttp.NewHandler(h, pattern))
+	}
 
-	mux.Handle("GET /{$}", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.indexHandler))))
+	handle("GET /{$}", s.sessionMiddleware(http.HandlerFunc(s.indexHandler)))
 
-	mux.Handle("POST /auth", sentryHandler.Handle(http.HandlerFunc(s.auth)))
-	mux.Handle("GET /login", sentryHandler.Handle(http.HandlerFunc(s.login)))
-	mux.Handle("GET /logout", sentryHandler.Handle(http.HandlerFunc(s.logout)))
+	handle("POST /auth", http.HandlerFunc(s.auth))
+	handle("GET /login", http.HandlerFunc(s.login))
+	handle("GET /logout", http.HandlerFunc(s.logout))
 
-	mux.Handle("POST /admin/user/add", sentryHandler.Handle(s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.userAddHandler)))))
-	mux.Handle("POST /admin/user/delete/{id}", sentryHandler.Handle(s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.userDeleteHandler)))))
-	mux.Handle("POST /admin/user", sentryHandler.Handle(s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.userUpdateHandler)))))
-	mux.Handle("POST /admin/group/add", sentryHandler.Handle(s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.groupAddHandler)))))
-	mux.Handle("POST /admin/group/delete/{id}", sentryHandler.Handle(s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.groupDeleteHandler)))))
-	mux.Handle("POST /admin/group", sentryHandler.Handle(s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.groupUpdateHandler)))))
-	mux.Handle("GET /admin", sentryHandler.Handle(s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.adminHandler)))))
+	handle("POST /admin/user/add", s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.userAddHandler))))
+	handle("POST /admin/user/delete/{id}", s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.userDeleteHandler))))
+	handle("POST /admin/user", s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.userUpdateHandler))))
+	handle("POST /admin/group/add", s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.groupAddHandler))))
+	handle("POST /admin/group/delete/{id}", s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.groupDeleteHandler))))
+	handle("POST /admin/group", s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.groupUpdateHandler))))
+	handle("GET /admin", s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.adminHandler))))
 
-	mux.Handle("GET /items", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.itemsHandler)))))
-	mux.Handle("GET /item/{id}", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.itemHandler)))))
-	mux.Handle("POST /item", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.itemEditHandler)))))
-	mux.Handle("POST /item/add", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.itemAddHandler)))))
-	mux.Handle("POST /item/delete/{id}", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.itemDeleteHandler)))))
+	handle("GET /items", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.itemsHandler))))
+	handle("GET /item/{id}", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.itemHandler))))
+	handle("POST /item", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.itemEditHandler))))
+	handle("POST /item/add", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.itemAddHandler))))
+	handle("POST /item/delete/{id}", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.itemDeleteHandler))))
 
-	mux.Handle("GET /list", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.indexListHandler)))))
-	mux.Handle("POST /list/add", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.listAddHandler)))))
-	mux.Handle("POST /list/add/{id}", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.listAddHandler)))))
-	mux.Handle("POST /list/done", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.listDoneHandler)))))
-	mux.Handle("POST /list/undone", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.listUnDoneHandler)))))
-	mux.Handle("POST /list/delete/{id}", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.listDeleteHandler)))))
-	mux.Handle("POST /list/finish", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.finishHandler)))))
+	handle("GET /list", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.indexListHandler))))
+	handle("POST /list/add", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.listAddHandler))))
+	handle("POST /list/add/{id}", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.listAddHandler))))
+	handle("POST /list/done", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.listDoneHandler))))
+	handle("POST /list/undone", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.listUnDoneHandler))))
+	handle("POST /list/delete/{id}", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.listDeleteHandler))))
+	handle("POST /list/finish", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.finishHandler))))
 
-	mux.Handle("GET /cart", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.indexCartHandler))))
+	handle("GET /cart", s.sessionMiddleware(http.HandlerFunc(s.indexCartHandler)))
 
-	mux.Handle("GET /categories", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.categoriesHandler)))))
-	mux.Handle("GET /category/{id}", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.categoryHandler)))))
-	mux.Handle("POST /category", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.categoryEditHandler)))))
-	mux.Handle("POST /category/add", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.categoryAddHandler)))))
-	mux.Handle("POST /category/delete", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.categoryDeleteHandler)))))
+	handle("GET /categories", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.categoriesHandler))))
+	handle("GET /category/{id}", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.categoryHandler))))
+	handle("POST /category", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.categoryEditHandler))))
+	handle("POST /category/add", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.categoryAddHandler))))
+	handle("POST /category/delete", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.categoryDeleteHandler))))
 
-	mux.Handle("GET /stores", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.storesHandler)))))
-	mux.Handle("GET /store/{id}", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.storeHandler)))))
-	mux.Handle("POST /store", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.storeEditHandler)))))
-	mux.Handle("POST /store/add", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.storeAddHandler)))))
-	mux.Handle("POST /store/delete", sentryHandler.Handle(s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.storeDeleteHandler)))))
+	handle("GET /stores", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.storesHandler))))
+	handle("GET /store/{id}", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.storeHandler))))
+	handle("POST /store", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.storeEditHandler))))
+	handle("POST /store/add", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.storeAddHandler))))
+	handle("POST /store/delete", s.sessionMiddleware(s.redirectMiddleware(http.HandlerFunc(s.storeDeleteHandler))))
 
-	mux.Handle("GET /sse", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.sseHandler))))
+	handle("GET /sse", s.sessionMiddleware(http.HandlerFunc(s.sseHandler)))
 
-	mux.Handle("GET /partials/categories-list-for-store/{id}", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.partialCategoriesListForStoreHandler))))
+	handle("GET /partials/categories-list-for-store/{id}", s.sessionMiddleware(http.HandlerFunc(s.partialCategoriesListForStoreHandler)))
 
-	mux.Handle("/assets/", sentryHandler.Handle(http.HandlerFunc(s.assetsHandler)))
-	mux.Handle("/apple-touch-icon.png", sentryHandler.Handle(http.HandlerFunc(s.assetsHandler)))
+	handle("/assets/", http.HandlerFunc(s.assetsHandler))
+	handle("/apple-touch-icon.png", http.HandlerFunc(s.assetsHandler))
 
-	mux.Handle("/", sentryHandler.Handle(http.HandlerFunc(s.errorNotFoundHandler)))
+	handle("/", http.HandlerFunc(s.errorNotFoundHandler))
 }
 
 func renderHtml(w io.Writer, code int, file string, data any) {

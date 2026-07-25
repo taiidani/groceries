@@ -51,7 +51,7 @@ mise run seed               # Populate database with seed data
 - Template files in `internal/server/templates/` (embedded in binary via `//go:embed`)
 - Static assets in `internal/server/assets/` (HTMX libraries, images)
 - Routing uses standard library `http.ServeMux` with method-specific patterns (e.g., `GET /items`, `POST /item/add`)
-- All routes wrapped with Sentry middleware for error tracking
+- All routes wrapped with OpenTelemetry (`otelhttp`) middleware for request tracing
 - Session management via `sessionMiddleware`, admin access via `adminMiddleware`
 
 **Data Models** (`internal/models/`)
@@ -85,7 +85,7 @@ mise run seed               # Populate database with seed data
 
 ### Request Flow
 
-1. Request arrives → Sentry middleware → Session middleware
+1. Request arrives → OTel tracing middleware → Session middleware
 2. Session loaded from cookie → User retrieved from database
 3. Context populated with session/user data via `context.Value`
 4. Handler executes business logic
@@ -94,7 +94,7 @@ mise run seed               # Populate database with seed data
 
 ### Key Patterns
 
-- **Middleware stack**: Sentry → Session → Admin/Redirect → Handler
+- **Middleware stack**: OTel tracing → Session → Admin/Redirect → Handler
 - **Context keys**: `sessionKey`, `userKey`, `redirectKey` for passing data through middleware
 - **Template data**: Handlers create a `baseBag` via `s.newBag(ctx)` which includes session/user
 - **Error handling**: Custom error pages via `renderHtml()` with HTTP status codes
@@ -111,8 +111,14 @@ REDIS_HOST=localhost:6379    # Redis host:port
 DB_TYPE=postgres             # Database type (only postgres supported)
 DEV=true                     # Enable dev mode (live template reload)
 LOG_LEVEL=info               # Logging level (debug, info, warn, error)
-SENTRY_DSN=...               # Sentry error tracking DSN
-SENTRY_ENVIRONMENT=dev       # Sentry environment tag
+
+# OpenTelemetry tracing (all optional; standard OTEL variables):
+OTEL_SERVICE_NAME=groceries  # Service name reported to the trace backend
+OTEL_TRACES_EXPORTER=otlp    # Exporter selection: otlp (default), console, or none
+OTEL_EXPORTER_OTLP_ENDPOINT=...  # OTLP collector/agent endpoint
+OTEL_EXPORTER_OTLP_PROTOCOL=grpc # grpc or http/protobuf
+OTEL_TRACES_SAMPLER=parentbased_always_on  # Sampling strategy (default)
+OTEL_RESOURCE_ATTRIBUTES=deployment.environment=dev  # Extra resource attributes
 ```
 
 User defined environment variables may be set in `.env` file (loaded by mise) and are gitignored.
