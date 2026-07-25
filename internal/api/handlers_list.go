@@ -76,8 +76,7 @@ func (s *Server) listAddItemHandler(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, sql.ErrNoRows) {
 			// Create a new uncategorized item on the fly
 			newItem := models.Item{
-				Name:       req.Name,
-				CategoryID: models.UncategorizedCategoryID,
+				Name: req.Name,
 			}
 			if addErr := models.AddItem(r.Context(), newItem); addErr != nil {
 				internalError(w, addErr)

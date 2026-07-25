@@ -19,9 +19,10 @@ FROM category
 WHERE store_id = $1
 ORDER BY name;
 
--- name: ListCategoriesWithItemCount :many
+-- name: ListCategoriesForStoreWithItemCount :many
 SELECT *, (SELECT COUNT(item.id) FROM item WHERE item.category_id = category.id) as item_count
 FROM category
+WHERE store_id = $1
 ORDER BY category.name;
 
 -- name: CreateCategory :one

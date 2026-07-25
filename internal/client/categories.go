@@ -9,11 +9,11 @@ import (
 // CategoryDetail is the full category representation returned by the get-by-ID endpoint,
 // including the items assigned to it.
 type CategoryDetail struct {
-	ID          int    `json:"id"`
-	StoreID     int    `json:"store_id"`
+	ID          int32  `json:"id"`
+	StoreID     int32  `json:"store_id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	ItemCount   int    `json:"item_count"`
+	ItemCount   int32  `json:"item_count"`
 	Items       []Item `json:"items"`
 }
 
@@ -33,7 +33,7 @@ func (c *Client) ListCategories(ctx context.Context) ([]Category, error) {
 }
 
 // GetCategory returns a single category by ID, including its items.
-func (c *Client) GetCategory(ctx context.Context, id int) (CategoryDetail, error) {
+func (c *Client) GetCategory(ctx context.Context, id int32) (CategoryDetail, error) {
 	resp, err := c.do(ctx, http.MethodGet, fmt.Sprintf("/api/v1/categories/%d", id), nil)
 	if err != nil {
 		return CategoryDetail{}, err
@@ -48,9 +48,9 @@ func (c *Client) GetCategory(ctx context.Context, id int) (CategoryDetail, error
 }
 
 // CreateCategory creates a new category and returns it with its assigned ID.
-func (c *Client) CreateCategory(ctx context.Context, storeID int, name, description string) (Category, error) {
+func (c *Client) CreateCategory(ctx context.Context, storeID int32, name, description string) (Category, error) {
 	body := struct {
-		StoreID     int    `json:"store_id"`
+		StoreID     int32  `json:"store_id"`
 		Name        string `json:"name"`
 		Description string `json:"description"`
 	}{
@@ -73,9 +73,9 @@ func (c *Client) CreateCategory(ctx context.Context, storeID int, name, descript
 }
 
 // UpdateCategory updates a category and returns the updated category.
-func (c *Client) UpdateCategory(ctx context.Context, id, storeID int, name, description string) (Category, error) {
+func (c *Client) UpdateCategory(ctx context.Context, id, storeID int32, name, description string) (Category, error) {
 	body := struct {
-		StoreID     int    `json:"store_id"`
+		StoreID     int32  `json:"store_id"`
 		Name        string `json:"name"`
 		Description string `json:"description"`
 	}{

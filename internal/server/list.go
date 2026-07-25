@@ -20,8 +20,7 @@ func (s *Server) listAddHandler(w http.ResponseWriter, r *http.Request) {
 			// The item doesn't exist yet. That's okay!
 			// Let's create a new one
 			item = models.Item{
-				Name:       r.FormValue("name"),
-				CategoryID: models.UncategorizedCategoryID,
+				Name: r.FormValue("name"),
 			}
 			err = models.AddItem(r.Context(), item)
 			if err != nil {

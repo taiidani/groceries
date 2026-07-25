@@ -46,20 +46,10 @@
         <header><h5><i>category</i> Categories <span class="loading-indicator" aria-busy="true" /></h5></header>
 
         <div id="categories-items">
-            {{ range .Categories }}
+            {{ range .Stores }}
                 <h6>{{ .Name }}</h6>
 
-                <ul>
-                {{ range .Categories }}
-                    <li class="category">
-                        <span class="name">
-                            <strong><a href="/category/{{.ID}}">{{ .Name }}</a></strong>
-                            ({{ .ItemCount }} item{{ if ne .ItemCount 1 }}s{{end}})
-                            <br/><em>{{ .Description }}</em>
-                        </span>
-                    </li>
-                {{ end }}
-                </ul>
+                <ul hx-get="/partials/categories-list-for-store/{{ .ID }}" hx-trigger="load"></ul>
             {{ end }}
         </div>
     </article>

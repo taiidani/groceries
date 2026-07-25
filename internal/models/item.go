@@ -37,16 +37,12 @@ func (i *Item) CategoryName() string {
 	return i.categoryName
 }
 
-func (i *Item) Category(ctx context.Context) (Category, error) {
-	return GetCategory(ctx, i.CategoryID)
-}
-
 func (i *Item) Validate(ctx context.Context) error {
 	var vErr error
 
-	if _, err := GetCategory(ctx, i.CategoryID); err != nil {
-		vErr = errors.Join(vErr, fmt.Errorf("category not found: %w", err))
-	}
+	// if _, err := GetCategory(ctx, i.CategoryID); err != nil {
+	// 	vErr = errors.Join(vErr, fmt.Errorf("category not found: %w", err))
+	// }
 
 	if i.List != nil {
 		vErr = errors.Join(vErr, i.List.Validate(ctx))

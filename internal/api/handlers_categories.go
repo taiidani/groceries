@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 
-	"github.com/taiidani/groceries/internal/models"
+	"github.com/taiidani/groceries/internal/db/models"
 )
 
 func (s *Server) categoriesListHandler(w http.ResponseWriter, r *http.Request) {
-	categories, err := models.LoadCategories(r.Context())
+	categories, err := s.db.ListCategories(r.Context())
 	if err != nil {
 		internalError(w, err)
 		return
@@ -21,13 +20,13 @@ func (s *Server) categoriesListHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) categoriesGetHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
+	id, err := parseId(r.PathValue("id"))
 	if err != nil {
 		badRequest(w, "id must be an integer")
 		return
 	}
 
-	category, err := models.GetCategory(r.Context(), id)
+	category, err := s.db.GetCategory(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			notFound(w, "category")
@@ -37,7 +36,7 @@ func (s *Server) categoriesGetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	items, err := category.Items(r.Context())
+	items, err := s.db.ListItemsForCategory(r.Context(), category.ID)
 	if err != nil {
 		internalError(w, err)
 		return
@@ -56,7 +55,7 @@ func (s *Server) categoriesGetHandler(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) categoriesCreateHandler(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		StoreID     int    `json:"store_id"`
+		StoreID     int32  `json:"store_id"`
 		Name        string `json:"name"`
 		Description string `json:"description"`
 	}
@@ -75,19 +74,18 @@ func (s *Server) categoriesCreateHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	cat := models.Category{
+	cat, err := s.db.CreateCategory(r.Context(), models.CreateCategoryParams{
 		StoreID:     body.StoreID,
 		Name:        body.Name,
 		Description: body.Description,
-	}
-
-	if err := models.AddCategory(r.Context(), cat); err != nil {
+	})
+	if err != nil {
 		internalError(w, err)
 		return
 	}
 
 	// Reload to get the generated ID and item_count
-	categories, err := models.LoadCategories(r.Context())
+	categories, err := s.db.ListCategories(r.Context())
 	if err != nil {
 		internalError(w, err)
 		return
@@ -105,13 +103,13 @@ func (s *Server) categoriesCreateHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *Server) categoriesUpdateHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
+	id, err := parseId(r.PathValue("id"))
 	if err != nil {
 		badRequest(w, "id must be an integer")
 		return
 	}
 
-	existing, err := models.GetCategory(r.Context(), id)
+	existing, err := s.db.GetCategory(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			notFound(w, "category")
@@ -122,7 +120,7 @@ func (s *Server) categoriesUpdateHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	var body struct {
-		StoreID     int    `json:"store_id"`
+		StoreID     int32  `json:"store_id"`
 		Name        string `json:"name"`
 		Description string `json:"description"`
 	}
@@ -145,12 +143,12 @@ func (s *Server) categoriesUpdateHandler(w http.ResponseWriter, r *http.Request)
 	existing.Name = body.Name
 	existing.Description = body.Description
 
-	if err := models.EditCategory(r.Context(), existing); err != nil {
-		internalError(w, err)
-		return
-	}
-
-	updated, err := models.GetCategory(r.Context(), id)
+	updated, err := s.db.UpdateCategory(r.Context(), models.UpdateCategoryParams{
+		ID:          id,
+		StoreID:     body.StoreID,
+		Name:        body.Name,
+		Description: body.Description,
+	})
 	if err != nil {
 		internalError(w, err)
 		return
@@ -160,13 +158,13 @@ func (s *Server) categoriesUpdateHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *Server) categoriesDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.PathValue("id"))
+	id, err := parseId(r.PathValue("id"))
 	if err != nil {
 		badRequest(w, "id must be an integer")
 		return
 	}
 
-	if _, err := models.GetCategory(r.Context(), id); err != nil {
+	if _, err := s.db.GetCategory(r.Context(), id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			notFound(w, "category")
 		} else {
@@ -175,7 +173,7 @@ func (s *Server) categoriesDeleteHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := models.DeleteCategory(r.Context(), id); err != nil {
+	if err := s.db.DeleteCategory(r.Context(), id); err != nil {
 		if err.Error() == "category is still in use" {
 			conflict(w, err.Error())
 		} else {

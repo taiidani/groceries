@@ -1,0 +1,9 @@
+{{ range . }}
+    <li class="category">
+        <span class="name">
+            <strong><a href="/category/{{.ID}}">{{ .Name }}</a></strong>
+            ({{ .ItemCount }} item{{ if ne .ItemCount 1 }}s{{end}})
+            <br/><em>{{ .Description }}</em>
+        </span>
+    </li>
+{{ end }}

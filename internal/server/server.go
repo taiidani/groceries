@@ -110,6 +110,8 @@ func (s *Server) addRoutes(mux *http.ServeMux) {
 
 	mux.Handle("GET /sse", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.sseHandler))))
 
+	mux.Handle("GET /partials/categories-list-for-store/{id}", sentryHandler.Handle(s.sessionMiddleware(http.HandlerFunc(s.partialCategoriesListForStoreHandler))))
+
 	mux.Handle("/assets/", sentryHandler.Handle(http.HandlerFunc(s.assetsHandler)))
 	mux.Handle("/apple-touch-icon.png", sentryHandler.Handle(http.HandlerFunc(s.assetsHandler)))
 
