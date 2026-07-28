@@ -28,8 +28,6 @@ type Server struct {
 	ctx       context.Context
 	db        *models.Queries
 	cache     cache.Cache
-	publicURL string
-	port      string
 	sseServer events.PubSub
 	svc       *service.Service
 	*http.Server
@@ -42,12 +40,6 @@ var templates embed.FS
 var DevMode = os.Getenv("DEV") == "true"
 
 func NewServer(ctx context.Context, conn *sql.DB, rds *redis.Client, port string, mux *http.ServeMux) *Server {
-
-	publicURL := os.Getenv("PUBLIC_URL")
-	if publicURL == "" {
-		publicURL = "http://localhost:" + port
-	}
-
 	srv := &Server{
 		Server: &http.Server{
 			Addr:    fmt.Sprintf(":%s", port),
@@ -55,8 +47,6 @@ func NewServer(ctx context.Context, conn *sql.DB, rds *redis.Client, port string
 		},
 		ctx:       ctx,
 		db:        models.New(conn),
-		publicURL: publicURL,
-		port:      port,
 		cache:     cache.NewRedisCache(rds),
 		sseServer: events.NewRedisPubSub(rds),
 		svc:       service.New(conn, events.NewRedisPubSub(rds)),
