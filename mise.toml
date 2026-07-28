@@ -13,11 +13,12 @@ GOOSE_DBSTRING = "postgresql://postgres:root@127.0.0.1:5432/{{vars.filename}}"
 GOOSE_MIGRATION_DIR = "./internal/db/migrations"
 
 [tools]
-go = "1.25.1"
+go = "1.26.5"
 tuist = "latest"
-node = "24.18.0"
+node = "26.5.0"
 sqlc = "latest"
 "go:github.com/evanw/esbuild/cmd/esbuild" = "latest"
+staticcheck = "latest"
 
 [vars]
 filename = 'groceries'
@@ -62,7 +63,7 @@ run = ["go tool goose --no-versioning up"]
 
 [tasks.lint]
 depends = ["dependencies", "generate:*"]
-run = ["go vet ./...", "go tool staticcheck ./..."]
+run = ["go vet ./...", "staticcheck ./..."]
 
 [tasks."lint:sqlc"]
 run = ["sqlc vet"]
