@@ -58,6 +58,23 @@ private struct AccountView: View {
                 Section("Profile") {
                     LabeledContent("Username", value: AccountDisplay.usernameText(for: authViewModel.currentUser?.name))
                 }
+
+                Section {
+                    Button(role: .destructive) {
+                        Task { await authViewModel.logout() }
+                    } label: {
+                        HStack {
+                            Spacer()
+                            if authViewModel.isLoading {
+                                ProgressView()
+                            } else {
+                                Text("Log Out")
+                            }
+                            Spacer()
+                        }
+                    }
+                    .disabled(authViewModel.isLoading)
+                }
             }
             .navigationTitle("Account")
         }
