@@ -35,7 +35,7 @@ type Server struct {
 	*http.Server
 }
 
-//go:embed templates
+//go:embed all:templates
 var templates embed.FS
 
 // DevMode can be toggled to pull rendered files from the filesystem or the embedded FS.
