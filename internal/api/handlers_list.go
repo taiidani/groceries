@@ -1,34 +1,24 @@
 package api
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
 
-	"github.com/taiidani/groceries/internal/models"
+	"github.com/taiidani/groceries/internal/service"
 )
 
 func (s *Server) listGetHandler(w http.ResponseWriter, r *http.Request) {
-	items, err := models.LoadList(r.Context())
+	summary, err := s.svc.GetList(r.Context())
 	if err != nil {
 		internalError(w, err)
 		return
 	}
 
-	total := len(items)
-	totalDone := 0
-	listItems := make([]listItemJSON, 0, len(items))
-
-	for _, item := range items {
-		if item.List == nil {
-			continue
-		}
-		if item.List.Done {
-			totalDone++
-		}
-		listItems = append(listItems, listItemToJSON(item))
+	listItems := make([]listItemJSON, 0, len(summary.Items))
+	for _, entry := range summary.Items {
+		listItems = append(listItems, listItemJSONFromEntry(entry))
 	}
 
 	type response struct {
@@ -39,8 +29,8 @@ func (s *Server) listGetHandler(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, response{
 		Items:     listItems,
-		Total:     total,
-		TotalDone: totalDone,
+		Total:     summary.Total,
+		TotalDone: summary.TotalDone,
 	})
 }
 
@@ -55,59 +45,19 @@ func (s *Server) listAddItemHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var item models.Item
-
-	switch {
-	case req.ItemID != nil:
-		var err error
-		item, err = models.GetItem(r.Context(), *req.ItemID)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				notFound(w, "item")
-			} else {
-				internalError(w, err)
-			}
-			return
-		}
-
-	case req.Name != "":
-		var err error
-		item, err = models.GetItemByName(r.Context(), req.Name)
-		if errors.Is(err, sql.ErrNoRows) {
-			// Create a new uncategorized item on the fly
-			newItem := models.Item{
-				Name: req.Name,
-			}
-			if addErr := models.AddItem(r.Context(), newItem); addErr != nil {
-				internalError(w, addErr)
-				return
-			}
-			item, err = models.GetItemByName(r.Context(), req.Name)
-		}
-		if err != nil {
-			internalError(w, err)
-			return
-		}
-
-	default:
-		badRequest(w, "one of item_id or name is required")
-		return
+	var itemID *int32
+	if req.ItemID != nil {
+		id := int32(*req.ItemID)
+		itemID = &id
 	}
 
-	if err := models.ListAddItem(r.Context(), item.ID, req.Quantity); err != nil {
-		// Unique constraint violation means item is already on the list
-		conflict(w, "item is already on the list")
-		return
-	}
-
-	// Re-fetch the item so the response includes the populated list field
-	updated, err := models.GetItem(r.Context(), item.ID)
+	entry, err := s.svc.AddItem(r.Context(), itemID, req.Name, req.Quantity)
 	if err != nil {
-		internalError(w, err)
+		listServiceError(w, err, "item")
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, listItemToJSON(updated))
+	writeJSON(w, http.StatusCreated, listItemJSONFromEntry(entry))
 }
 
 func (s *Server) listUpdateItemHandler(w http.ResponseWriter, r *http.Request) {
@@ -126,46 +76,13 @@ func (s *Server) listUpdateItemHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := models.GetItem(r.Context(), id)
+	entry, err := s.svc.UpdateItem(r.Context(), int32(id), req.Quantity, req.Done)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			notFound(w, "list item")
-		} else {
-			internalError(w, err)
-		}
+		listServiceError(w, err, "list item")
 		return
 	}
 
-	if item.List == nil {
-		notFound(w, "list item")
-		return
-	}
-
-	if req.Quantity != nil {
-		item.List.Quantity = *req.Quantity
-	}
-
-	if req.Done != nil {
-		if err := models.MarkItemDone(r.Context(), strconv.Itoa(id), *req.Done); err != nil {
-			internalError(w, err)
-			return
-		}
-	}
-
-	if req.Quantity != nil {
-		if err := models.EditItem(r.Context(), item); err != nil {
-			internalError(w, err)
-			return
-		}
-	}
-
-	updated, err := models.GetItem(r.Context(), id)
-	if err != nil {
-		internalError(w, err)
-		return
-	}
-
-	writeJSON(w, http.StatusOK, listItemToJSON(updated))
+	writeJSON(w, http.StatusOK, listItemJSONFromEntry(entry))
 }
 
 func (s *Server) listRemoveItemHandler(w http.ResponseWriter, r *http.Request) {
@@ -175,13 +92,14 @@ func (s *Server) listRemoveItemHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := strconv.Atoi(id); err != nil {
+	parsed, err := strconv.Atoi(id)
+	if err != nil {
 		badRequest(w, "id must be an integer")
 		return
 	}
 
-	if err := models.DeleteFromList(r.Context(), id); err != nil {
-		internalError(w, err)
+	if err := s.svc.RemoveItem(r.Context(), int32(parsed)); err != nil {
+		listServiceError(w, err, "list item")
 		return
 	}
 
@@ -189,7 +107,7 @@ func (s *Server) listRemoveItemHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listFinishHandler(w http.ResponseWriter, r *http.Request) {
-	if err := models.FinishShopping(r.Context()); err != nil {
+	if err := s.svc.Finish(r.Context()); err != nil {
 		internalError(w, err)
 		return
 	}
@@ -197,29 +115,40 @@ func (s *Server) listFinishHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// listServiceError maps service-layer sentinel errors onto API status codes.
+func listServiceError(w http.ResponseWriter, err error, resource string) {
+	switch {
+	case errors.Is(err, service.ErrValidation):
+		badRequest(w, err.Error())
+	case errors.Is(err, service.ErrNotFound):
+		notFound(w, resource)
+	case errors.Is(err, service.ErrConflict):
+		conflict(w, err.Error())
+	default:
+		internalError(w, err)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // JSON representation helpers
 // ---------------------------------------------------------------------------
 
 type listItemJSON struct {
-	ID         int    `json:"id"`
-	ItemID     int    `json:"item_id"`
+	ID         int32  `json:"id"`
+	ItemID     int32  `json:"item_id"`
 	ItemName   string `json:"item_name"`
-	CategoryID int    `json:"category_id"`
+	CategoryID int32  `json:"category_id"`
 	Quantity   string `json:"quantity"`
 	Done       bool   `json:"done"`
 }
 
-func listItemToJSON(item models.Item) listItemJSON {
-	out := listItemJSON{
-		ItemID:     item.ID,
-		ItemName:   item.Name,
-		CategoryID: item.CategoryID,
+func listItemJSONFromEntry(entry service.ListEntry) listItemJSON {
+	return listItemJSON{
+		ID:         entry.ID,
+		ItemID:     entry.ItemID,
+		ItemName:   entry.Name,
+		CategoryID: entry.CategoryID,
+		Quantity:   entry.Quantity,
+		Done:       entry.Done,
 	}
-	if item.List != nil {
-		out.ID = item.List.ID
-		out.Quantity = item.List.Quantity
-		out.Done = item.List.Done
-	}
-	return out
 }

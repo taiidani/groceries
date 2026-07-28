@@ -20,6 +20,7 @@ import (
 type Cache interface {
 	Set(ctx context.Context, key string, value any, expiration time.Duration) (err error)
 	Get(ctx context.Context, key string, value any) error
+	Delete(ctx context.Context, key string) error
 }
 
 const (

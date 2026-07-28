@@ -123,7 +123,7 @@ func TestDeleteSession(t *testing.T) {
 			// Set DEV environment variable
 			t.Setenv("DEV", fmt.Sprintf("%t", tt.devMode))
 
-			cookie := DeleteSession()
+			cookie := DeleteSessionCookie()
 
 			// Verify cookie properties
 			if cookie.Name != "session" {
@@ -395,8 +395,47 @@ func TestSessionLifecycle(t *testing.T) {
 	}
 
 	// Delete the session (cookie-wise)
-	deleteCookie := DeleteSession()
+	deleteCookie := DeleteSessionCookie()
 	if deleteCookie.MaxAge != -1 {
 		t.Errorf("DeleteSession().MaxAge = %v, want -1", deleteCookie.MaxAge)
+	}
+}
+
+func TestDeleteSessionFull(t *testing.T) {
+	t.Setenv("DEV", "true")
+	ctx := context.Background()
+	store := &cache.MemoryStore{Data: make(map[string][]byte)}
+
+	// Create an API token and a session embedding it
+	token, _, err := NewAPIToken(ctx, 7, store)
+	if err != nil {
+		t.Fatalf("NewAPIToken() error = %v", err)
+	}
+	sessCookie, err := NewSession(ctx, Session{UserID: 7, APIToken: token}, store)
+	if err != nil {
+		t.Fatalf("NewSession() error = %v", err)
+	}
+
+	req := httptest.NewRequest("GET", "/", nil)
+	req = req.WithContext(ctx)
+	req.AddCookie(sessCookie)
+
+	clearCookie, err := DeleteSession(ctx, req, store)
+	if err != nil {
+		t.Fatalf("DeleteSession() error = %v", err)
+	}
+	if clearCookie.MaxAge != -1 {
+		t.Errorf("DeleteSession() cookie.MaxAge = %v, want -1", clearCookie.MaxAge)
+	}
+
+	// Session key should be gone
+	var sess Session
+	if err := store.Get(ctx, "session:"+sessCookie.Value, &sess); err != cache.ErrKeyNotFound {
+		t.Errorf("session lookup after DeleteSession error = %v, want %v", err, cache.ErrKeyNotFound)
+	}
+
+	// API token should be revoked
+	if _, err := ResolveAPIToken(ctx, token, store); err == nil {
+		t.Error("ResolveAPIToken() after DeleteSession succeeded, want error")
 	}
 }

@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/taiidani/groceries/internal/authz"
@@ -51,7 +52,11 @@ func (s *Server) auth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
-	cookie := authz.DeleteSession()
+	cookie, err := authz.DeleteSession(r.Context(), r, s.cache)
+	if err != nil {
+		slog.WarnContext(r.Context(), "failed to fully delete session", "error", err)
+		cookie = authz.DeleteSessionCookie()
+	}
 	http.SetCookie(w, cookie)
 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 }

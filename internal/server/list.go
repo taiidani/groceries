@@ -1,75 +1,61 @@
 package server
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 
-	"github.com/taiidani/groceries/internal/models"
+	"github.com/taiidani/groceries/internal/service"
 )
 
 func (s *Server) listAddHandler(w http.ResponseWriter, r *http.Request) {
-	var item models.Item
-	var err error
-	switch {
-	case r.FormValue("name") != "":
-		item, err = models.GetItemByName(r.Context(), r.FormValue("name"))
-		if errors.Is(err, sql.ErrNoRows) {
-			// The item doesn't exist yet. That's okay!
-			// Let's create a new one
-			item = models.Item{
-				Name: r.FormValue("name"),
-			}
-			err = models.AddItem(r.Context(), item)
-			if err != nil {
-				errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("unable to add item: %w", err))
-				return
-			}
+	var itemID *int32
+	name := r.FormValue("name")
 
-			item, err = models.GetItemByName(r.Context(), r.FormValue("name"))
-		}
-	case r.PathValue("id") != "":
+	if name == "" && r.PathValue("id") != "" {
 		id, convErr := strconv.Atoi(r.PathValue("id"))
 		if convErr != nil {
 			errorResponse(w, r, http.StatusBadRequest, convErr)
 			return
 		}
-
-		item, err = models.GetItem(r.Context(), id)
+		id32 := int32(id)
+		itemID = &id32
 	}
 
+	entry, err := s.svc.AddItem(r.Context(), itemID, name, r.FormValue("quantity"))
 	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
+		switch {
+		case errors.Is(err, service.ErrValidation):
+			errorResponse(w, r, http.StatusBadRequest, err)
+		case errors.Is(err, service.ErrNotFound):
+			errorResponse(w, r, http.StatusInternalServerError, err)
+		case errors.Is(err, service.ErrConflict):
+			errorResponse(w, r, http.StatusConflict, err)
+		default:
+			errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("unable to add item: %w", err))
+		}
 		return
 	}
-
-	err = models.ListAddItem(r.Context(), item.ID, r.FormValue("quantity"))
-	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
-		return
-	}
-
-	// Broadcast the change
-	s.sseServer.Publish(r.Context(), sseEventList, nil)
 
 	redirect := r.FormValue("redirect")
 	if redirect == "" {
-		redirect = fmt.Sprintf("/item/%d", item.ID)
+		redirect = fmt.Sprintf("/item/%d", entry.ItemID)
 	}
 	http.Redirect(w, r, redirect, http.StatusFound)
 }
 
 func (s *Server) listDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	err := models.DeleteFromList(r.Context(), r.PathValue("id"))
+	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Broadcast the change
-	s.sseServer.Publish(r.Context(), sseEventList, nil)
+	if err := s.svc.RemoveItem(r.Context(), int32(id)); err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
 
 	redirect := r.FormValue("redirect")
 	if redirect == "" {
@@ -79,42 +65,33 @@ func (s *Server) listDeleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listDoneHandler(w http.ResponseWriter, r *http.Request) {
-	err := models.MarkItemDone(r.Context(), r.FormValue("id"), true)
-	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
-		return
-	}
-
-	// Broadcast the change
-	s.sseServer.Publish(r.Context(), sseEventList, nil)
-	s.sseServer.Publish(r.Context(), sseEventCart, nil)
-
-	http.Redirect(w, r, "/", http.StatusFound)
+	s.listMarkDone(w, r, true)
 }
 
 func (s *Server) listUnDoneHandler(w http.ResponseWriter, r *http.Request) {
-	err := models.MarkItemDone(r.Context(), r.FormValue("id"), false)
+	s.listMarkDone(w, r, false)
+}
+
+func (s *Server) listMarkDone(w http.ResponseWriter, r *http.Request, done bool) {
+	id, err := strconv.Atoi(r.FormValue("id"))
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Broadcast the change
-	s.sseServer.Publish(r.Context(), sseEventList, nil)
-	s.sseServer.Publish(r.Context(), sseEventCart, nil)
+	if err := s.svc.MarkDone(r.Context(), int32(id), done); err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
+		return
+	}
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func (s *Server) finishHandler(w http.ResponseWriter, r *http.Request) {
-	err := models.FinishShopping(r.Context())
-	if err != nil {
+	if err := s.svc.Finish(r.Context()); err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
 	}
-
-	// Broadcast the change
-	s.sseServer.Publish(r.Context(), sseEventCart, nil)
 
 	http.Redirect(w, r, "/", http.StatusFound)
 }

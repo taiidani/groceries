@@ -1,9 +1,11 @@
 package server
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/taiidani/groceries/internal/db/models"
+	"github.com/taiidani/groceries/internal/service"
 )
 
 func (s *Server) categoriesHandler(w http.ResponseWriter, r *http.Request) {
@@ -14,7 +16,7 @@ func (s *Server) categoriesHandler(w http.ResponseWriter, r *http.Request) {
 
 	bag := data{baseBag: s.newBag(r.Context())}
 
-	stores, err := s.db.ListStores(r.Context())
+	stores, err := s.svc.ListStores(r.Context())
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
@@ -56,19 +58,20 @@ func (s *Server) categoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bag.Category, err = s.db.GetCategory(r.Context(), id)
+	detail, err := s.svc.GetCategory(r.Context(), id)
 	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
+		status := http.StatusInternalServerError
+		if errors.Is(err, service.ErrNotFound) {
+			status = http.StatusNotFound
+		}
+		errorResponse(w, r, status, err)
 		return
 	}
 
-	bag.Items, err = s.db.ListItemsForCategory(r.Context(), bag.Category.ID)
-	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
-		return
-	}
+	bag.Category = detail.Category
+	bag.Items = detail.Items
 
-	bag.Stores, err = s.db.ListStores(r.Context())
+	bag.Stores, err = s.svc.ListStores(r.Context())
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
@@ -84,17 +87,11 @@ func (s *Server) categoryAddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = s.db.CreateCategory(r.Context(), models.CreateCategoryParams{
-		StoreID:     storeID,
-		Name:        r.FormValue("name"),
-		Description: r.FormValue("description"),
-	})
+	_, err = s.svc.CreateCategory(r.Context(), storeID, r.FormValue("name"), r.FormValue("description"))
 	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
+		categoryStoreErrorResponse(w, r, err)
 		return
 	}
-
-	s.sseServer.Publish(r.Context(), sseEventCategory, nil)
 
 	http.Redirect(w, r, "/categories", http.StatusFound)
 }
@@ -112,18 +109,11 @@ func (s *Server) categoryEditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = s.db.UpdateCategory(r.Context(), models.UpdateCategoryParams{
-		ID:          id,
-		StoreID:     storeID,
-		Name:        r.FormValue("name"),
-		Description: r.FormValue("description"),
-	})
+	_, err = s.svc.UpdateCategory(r.Context(), id, storeID, r.FormValue("name"), r.FormValue("description"))
 	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
+		categoryStoreErrorResponse(w, r, err)
 		return
 	}
-
-	s.sseServer.Publish(r.Context(), sseEventCategory, nil)
 
 	http.Redirect(w, r, "/categories", http.StatusFound)
 }
@@ -135,12 +125,25 @@ func (s *Server) categoryDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.db.DeleteCategory(r.Context(), id); err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
+	if err := s.svc.DeleteCategory(r.Context(), id); err != nil {
+		categoryStoreErrorResponse(w, r, err)
 		return
 	}
 
-	s.sseServer.Publish(r.Context(), sseEventCategory, nil)
-
 	http.Redirect(w, r, "/categories", http.StatusFound)
+}
+
+// categoryStoreErrorResponse maps service sentinel errors onto HTTP status
+// codes for the web transport.
+func categoryStoreErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
+	switch {
+	case errors.Is(err, service.ErrValidation):
+		errorResponse(w, r, http.StatusBadRequest, err)
+	case errors.Is(err, service.ErrNotFound):
+		errorResponse(w, r, http.StatusNotFound, err)
+	case errors.Is(err, service.ErrConflict):
+		errorResponse(w, r, http.StatusConflict, err)
+	default:
+		errorResponse(w, r, http.StatusInternalServerError, err)
+	}
 }

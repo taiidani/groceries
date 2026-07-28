@@ -1,16 +1,14 @@
 package api
 
 import (
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/taiidani/groceries/internal/db/models"
 )
 
 func (s *Server) storesListHandler(w http.ResponseWriter, r *http.Request) {
-	stores, err := s.db.ListStores(r.Context())
+	stores, err := s.svc.ListStores(r.Context())
 	if err != nil {
 		internalError(w, err)
 		return
@@ -26,19 +24,9 @@ func (s *Server) storesGetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	store, err := s.db.GetStore(r.Context(), id)
+	detail, err := s.svc.GetStore(r.Context(), id)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			notFound(w, "store")
-		} else {
-			internalError(w, err)
-		}
-		return
-	}
-
-	categories, err := s.db.ListCategoriesForStore(r.Context(), store.ID)
-	if err != nil {
-		internalError(w, err)
+		listServiceError(w, err, "store")
 		return
 	}
 
@@ -48,8 +36,8 @@ func (s *Server) storesGetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, response{
-		Store:      store,
-		Categories: categories,
+		Store:      detail.Store,
+		Categories: detail.Categories,
 	})
 }
 
@@ -62,14 +50,9 @@ func (s *Server) storesCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.db.ValidateStore(r.Context(), models.Store{Name: req.Name}); err != nil {
-		badRequest(w, err.Error())
-		return
-	}
-
-	store, err := s.db.CreateStore(r.Context(), req.Name)
+	store, err := s.svc.CreateStore(r.Context(), req.Name)
 	if err != nil {
-		internalError(w, err)
+		listServiceError(w, err, "store")
 		return
 	}
 
@@ -83,16 +66,6 @@ func (s *Server) storesUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	existing, err := s.db.GetStore(r.Context(), id)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			notFound(w, "store")
-		} else {
-			internalError(w, err)
-		}
-		return
-	}
-
 	var req struct {
 		Name string `json:"name"`
 	}
@@ -101,18 +74,9 @@ func (s *Server) storesUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.db.ValidateStore(r.Context(), models.Store{ID: id, Name: req.Name}); err != nil {
-		badRequest(w, err.Error())
-		return
-	}
-
-	existing.Name = req.Name
-	store, err := s.db.UpdateStore(r.Context(), models.UpdateStoreParams{
-		ID:   id,
-		Name: req.Name,
-	})
+	store, err := s.svc.UpdateStore(r.Context(), id, req.Name)
 	if err != nil {
-		internalError(w, err)
+		listServiceError(w, err, "store")
 		return
 	}
 
@@ -126,18 +90,8 @@ func (s *Server) storesDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := s.db.GetStore(r.Context(), id); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			notFound(w, "store")
-		} else {
-			internalError(w, err)
-		}
-		return
-	}
-
-	if err := s.db.DeleteStore(r.Context(), id); err != nil {
-		// DeleteStore returns a descriptive error when the store is in use
-		conflict(w, err.Error())
+	if err := s.svc.DeleteStore(r.Context(), id); err != nil {
+		listServiceError(w, err, "store")
 		return
 	}
 

@@ -14,6 +14,7 @@ import (
 	"github.com/taiidani/groceries/internal/cache"
 	"github.com/taiidani/groceries/internal/db/models"
 	"github.com/taiidani/groceries/internal/events"
+	"github.com/taiidani/groceries/internal/service"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
@@ -23,6 +24,7 @@ type Server struct {
 	db        *models.Queries
 	cache     cache.Cache
 	sseServer events.PubSub
+	svc       *service.Service
 }
 
 // NewServer creates a new API server and registers all routes onto the provided mux.
@@ -33,6 +35,7 @@ func NewServer(ctx context.Context, conn *sql.DB, rds *redis.Client, mux *http.S
 		db:        models.New(conn),
 		cache:     cache.NewRedisCache(rds),
 		sseServer: events.NewRedisPubSub(rds),
+		svc:       service.New(conn, events.NewRedisPubSub(rds)),
 	}
 	srv.addRoutes(mux)
 	return srv

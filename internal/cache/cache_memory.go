@@ -28,3 +28,8 @@ func (s *MemoryStore) Get(ctx context.Context, key string, value any) error {
 
 	return json.Unmarshal(data, value)
 }
+
+func (s *MemoryStore) Delete(ctx context.Context, key string) error {
+	delete(s.Data, dbPrefix+key)
+	return nil
+}

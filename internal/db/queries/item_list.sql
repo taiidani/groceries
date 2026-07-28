@@ -33,6 +33,10 @@ RETURNING *;
 DELETE FROM item_list
 WHERE id = $1;
 
+-- name: DeleteListItemByItemID :exec
+DELETE FROM item_list
+WHERE item_id = $1;
+
 -- name: FinishShopping :exec
 DELETE FROM item_list
 WHERE done = TRUE;

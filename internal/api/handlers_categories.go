@@ -1,16 +1,14 @@
 package api
 
 import (
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/taiidani/groceries/internal/db/models"
 )
 
 func (s *Server) categoriesListHandler(w http.ResponseWriter, r *http.Request) {
-	categories, err := s.db.ListCategories(r.Context())
+	categories, err := s.svc.ListCategories(r.Context())
 	if err != nil {
 		internalError(w, err)
 		return
@@ -26,19 +24,9 @@ func (s *Server) categoriesGetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	category, err := s.db.GetCategory(r.Context(), id)
+	detail, err := s.svc.GetCategory(r.Context(), id)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			notFound(w, "category")
-		} else {
-			internalError(w, err)
-		}
-		return
-	}
-
-	items, err := s.db.ListItemsForCategory(r.Context(), category.ID)
-	if err != nil {
-		internalError(w, err)
+		listServiceError(w, err, "category")
 		return
 	}
 
@@ -48,8 +36,8 @@ func (s *Server) categoriesGetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, response{
-		Category: category,
-		Items:    items,
+		Category: detail.Category,
+		Items:    detail.Items,
 	})
 }
 
@@ -65,40 +53,12 @@ func (s *Server) categoriesCreateHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if body.Name == "" {
-		badRequest(w, "name is required")
-		return
-	}
-	if body.StoreID == 0 {
-		badRequest(w, "store_id is required")
-		return
-	}
-
-	cat, err := s.db.CreateCategory(r.Context(), models.CreateCategoryParams{
-		StoreID:     body.StoreID,
-		Name:        body.Name,
-		Description: body.Description,
-	})
+	cat, err := s.svc.CreateCategory(r.Context(), body.StoreID, body.Name, body.Description)
 	if err != nil {
-		internalError(w, err)
+		listServiceError(w, err, "category")
 		return
 	}
 
-	// Reload to get the generated ID and item_count
-	categories, err := s.db.ListCategories(r.Context())
-	if err != nil {
-		internalError(w, err)
-		return
-	}
-
-	for _, c := range categories {
-		if c.Name == body.Name && c.StoreID == body.StoreID {
-			writeJSON(w, http.StatusCreated, c)
-			return
-		}
-	}
-
-	// Fallback: return the struct we built (ID will be zero)
 	writeJSON(w, http.StatusCreated, cat)
 }
 
@@ -106,16 +66,6 @@ func (s *Server) categoriesUpdateHandler(w http.ResponseWriter, r *http.Request)
 	id, err := parseId(r.PathValue("id"))
 	if err != nil {
 		badRequest(w, "id must be an integer")
-		return
-	}
-
-	existing, err := s.db.GetCategory(r.Context(), id)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			notFound(w, "category")
-		} else {
-			internalError(w, err)
-		}
 		return
 	}
 
@@ -130,27 +80,9 @@ func (s *Server) categoriesUpdateHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if body.Name == "" {
-		badRequest(w, "name is required")
-		return
-	}
-	if body.StoreID == 0 {
-		badRequest(w, "store_id is required")
-		return
-	}
-
-	existing.StoreID = body.StoreID
-	existing.Name = body.Name
-	existing.Description = body.Description
-
-	updated, err := s.db.UpdateCategory(r.Context(), models.UpdateCategoryParams{
-		ID:          id,
-		StoreID:     body.StoreID,
-		Name:        body.Name,
-		Description: body.Description,
-	})
+	updated, err := s.svc.UpdateCategory(r.Context(), id, body.StoreID, body.Name, body.Description)
 	if err != nil {
-		internalError(w, err)
+		listServiceError(w, err, "category")
 		return
 	}
 
@@ -164,21 +96,8 @@ func (s *Server) categoriesDeleteHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if _, err := s.db.GetCategory(r.Context(), id); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			notFound(w, "category")
-		} else {
-			internalError(w, err)
-		}
-		return
-	}
-
-	if err := s.db.DeleteCategory(r.Context(), id); err != nil {
-		if err.Error() == "category is still in use" {
-			conflict(w, err.Error())
-		} else {
-			internalError(w, err)
-		}
+	if err := s.svc.DeleteCategory(r.Context(), id); err != nil {
+		listServiceError(w, err, "category")
 		return
 	}
 

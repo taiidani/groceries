@@ -20,6 +20,7 @@ import (
 	"github.com/taiidani/groceries/internal/cache"
 	"github.com/taiidani/groceries/internal/db/models"
 	"github.com/taiidani/groceries/internal/events"
+	"github.com/taiidani/groceries/internal/service"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
@@ -30,6 +31,7 @@ type Server struct {
 	publicURL string
 	port      string
 	sseServer events.PubSub
+	svc       *service.Service
 	*http.Server
 }
 
@@ -57,6 +59,7 @@ func NewServer(ctx context.Context, conn *sql.DB, rds *redis.Client, port string
 		port:      port,
 		cache:     cache.NewRedisCache(rds),
 		sseServer: events.NewRedisPubSub(rds),
+		svc:       service.New(conn, events.NewRedisPubSub(rds)),
 	}
 	srv.addRoutes(mux)
 

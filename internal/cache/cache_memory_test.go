@@ -149,3 +149,27 @@ func TestMemoryStore_KeyPrefix(t *testing.T) {
 		t.Errorf("Expected key %q to be stored with prefix, but not found", prefixedKey)
 	}
 }
+
+func TestMemoryStore_Delete(t *testing.T) {
+	ctx := context.Background()
+	store := &MemoryStore{Data: make(map[string][]byte)}
+
+	key := "delete-me"
+	if err := store.Set(ctx, key, "value", time.Minute); err != nil {
+		t.Fatalf("Set() error = %v", err)
+	}
+
+	if err := store.Delete(ctx, key); err != nil {
+		t.Fatalf("Delete() error = %v", err)
+	}
+
+	var result string
+	if err := store.Get(ctx, key, &result); err != ErrKeyNotFound {
+		t.Errorf("Get() after Delete error = %v, want %v", err, ErrKeyNotFound)
+	}
+
+	// Deleting a missing key should not error
+	if err := store.Delete(ctx, "never-existed"); err != nil {
+		t.Errorf("Delete() of missing key error = %v, want nil", err)
+	}
+}

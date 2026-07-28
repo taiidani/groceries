@@ -19,7 +19,7 @@ import (
 	"github.com/taiidani/groceries/internal/api"
 	"github.com/taiidani/groceries/internal/cache"
 	"github.com/taiidani/groceries/internal/db"
-	"github.com/taiidani/groceries/internal/models"
+
 	"github.com/taiidani/groceries/internal/server"
 	"github.com/taiidani/groceries/internal/telemetry"
 )
@@ -51,12 +51,6 @@ func main() {
 	rds := cache.NewClient(ctx)
 
 	// Set up the relational database
-	err = models.InitDB(ctx)
-	if err != nil {
-		slog.ErrorContext(ctx, "could not connect to database", "err", err)
-		os.Exit(2)
-	}
-
 	conn, err := db.New(ctx, os.Getenv("DATABASE_URL"))
 	if err != nil {
 		slog.ErrorContext(ctx, "could not connect to database", "err", err)

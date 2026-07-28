@@ -6,17 +6,20 @@ import (
 	"time"
 
 	"github.com/taiidani/groceries/internal/events"
+	"github.com/taiidani/groceries/internal/service"
 )
 
+// SSE event names. These alias the canonical constants in internal/service so
+// there is a single source of truth for event names.
 const (
 	// sseEventList is triggered when an item added to or removed from the list
-	sseEventList = "list"
+	sseEventList = service.EventList
 
 	// sseEventCart is triggered when an item added to or removed from the cart
-	sseEventCart = "cart"
+	sseEventCart = service.EventCart
 
 	// sseEventCategory is triggered when a category is added or removed
-	sseEventCategory = "category"
+	sseEventCategory = service.EventCategory
 )
 
 func (s *Server) sseHandler(w http.ResponseWriter, r *http.Request) {

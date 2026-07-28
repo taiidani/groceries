@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -36,10 +37,9 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		}
 
 		// Look up the token in the cache
-		var tokenData authz.APIToken
-		err := s.cache.Get(r.Context(), tokenCacheKey(token), &tokenData)
+		tokenData, err := authz.ResolveAPIToken(r.Context(), token, s.cache)
 		if err != nil {
-			if err == cache.ErrKeyNotFound {
+			if errors.Is(err, cache.ErrKeyNotFound) {
 				errorJSON(w, http.StatusUnauthorized, "invalid or expired token")
 			} else {
 				slog.ErrorContext(r.Context(), "failed to look up API token", "error", err)
@@ -56,7 +56,7 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), tokenKey, &tokenData)
+		ctx := context.WithValue(r.Context(), tokenKey, tokenData)
 		ctx = context.WithValue(ctx, userKey, &user)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -86,9 +86,4 @@ func (s *Server) adminMiddleware(next http.Handler) http.Handler {
 func userFromContext(ctx context.Context) *models.User {
 	user, _ := ctx.Value(userKey).(*models.User)
 	return user
-}
-
-// tokenCacheKey returns the Redis cache key for a given raw token string.
-func tokenCacheKey(token string) string {
-	return "api_token:" + token
 }

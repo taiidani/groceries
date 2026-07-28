@@ -13,6 +13,13 @@ LEFT JOIN category ON (item.category_id = category.id)
 LEFT JOIN item_list ON (item_list.item_id = item.id)
 WHERE item.id = $1;
 
+-- name: SummarizeItemByName :one
+SELECT item.id, item.category_id, item.name, category.name AS category_name, item_list.id AS list_id
+FROM item
+LEFT JOIN category ON (item.category_id = category.id)
+LEFT JOIN item_list ON (item_list.item_id = item.id)
+WHERE item.name = $1;
+
 -- name: ListItems :many
 SELECT * FROM item
 ORDER BY name;
@@ -44,4 +51,8 @@ RETURNING *;
 
 -- name: DeleteItem :exec
 DELETE FROM item
+WHERE id = $1;
+
+-- name: ItemChangeCategory :exec
+UPDATE item SET category_id = $2
 WHERE id = $1;

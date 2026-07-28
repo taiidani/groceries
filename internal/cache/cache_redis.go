@@ -45,3 +45,7 @@ func (s *RedisStore) Get(ctx context.Context, key string, value any) error {
 
 	return json.Unmarshal(data, value)
 }
+
+func (s *RedisStore) Delete(ctx context.Context, key string) error {
+	return s.Client.Del(ctx, dbPrefix+key).Err()
+}

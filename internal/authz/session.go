@@ -31,7 +31,9 @@ func NewSession(ctx context.Context, sess Session, backend cache.Cache) (*http.C
 	return &cookie, nil
 }
 
-func DeleteSession() *http.Cookie {
+// DeleteSessionCookie returns an expired cookie that clears the client's
+// session cookie.
+func DeleteSessionCookie() *http.Cookie {
 	cookie := http.Cookie{
 		Name:     "session",
 		Value:    "",
@@ -41,6 +43,26 @@ func DeleteSession() *http.Cookie {
 		MaxAge:   -1,
 	}
 	return &cookie
+}
+
+// DeleteSession removes the session referenced by the request's cookie from
+// the cache backend and returns an expired cookie for the client. If the
+// session embeds an API token, that token is revoked as well.
+func DeleteSession(ctx context.Context, r *http.Request, backend cache.Cache) (*http.Cookie, error) {
+	cookie, err := r.Cookie("session")
+	if err == nil {
+		var sess Session
+		if err := backend.Get(ctx, "session:"+cookie.Value, &sess); err == nil && sess.APIToken != "" {
+			if err := RevokeAPIToken(ctx, sess.APIToken, backend); err != nil {
+				return nil, fmt.Errorf("could not revoke session token: %w", err)
+			}
+		}
+		if err := backend.Delete(ctx, "session:"+cookie.Value); err != nil {
+			return nil, fmt.Errorf("could not delete session: %w", err)
+		}
+	}
+
+	return DeleteSessionCookie(), nil
 }
 
 func GetSession(r *http.Request, cache cache.Cache) (*Session, error) {

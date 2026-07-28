@@ -3,8 +3,8 @@ package server
 import (
 	"net/http"
 
-	"github.com/taiidani/groceries/internal/client"
 	"github.com/taiidani/groceries/internal/db/models"
+	"github.com/taiidani/groceries/internal/service"
 )
 
 func (s *Server) storesHandler(w http.ResponseWriter, r *http.Request) {
@@ -16,7 +16,7 @@ func (s *Server) storesHandler(w http.ResponseWriter, r *http.Request) {
 
 	bag := data{baseBag: s.newBag(r.Context())}
 
-	stores, err := s.db.ListStores(r.Context())
+	stores, err := s.svc.ListStores(r.Context())
 	if err != nil {
 		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
@@ -42,29 +42,22 @@ func (s *Server) storeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	store, err := s.db.GetStore(r.Context(), id)
+	detail, err := s.svc.GetStore(r.Context(), id)
 	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
+		categoryStoreErrorResponse(w, r, err)
 		return
 	}
 
-	categories, err := s.db.ListCategoriesForStore(r.Context(), store.ID)
-	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
-		return
-	}
-
-	bag.Store = store
-	bag.Categories = categories
+	bag.Store = detail.Store
+	bag.Categories = detail.Categories
 
 	renderHtml(w, http.StatusOK, "store.gohtml", bag)
 }
 
 func (s *Server) storeAddHandler(w http.ResponseWriter, r *http.Request) {
-	apiClient := clientFromContext(r.Context())
-	_, err := apiClient.CreateStore(r.Context(), r.FormValue("name"))
+	_, err := s.svc.CreateStore(r.Context(), r.FormValue("name"))
 	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
+		categoryStoreErrorResponse(w, r, err)
 		return
 	}
 
@@ -78,12 +71,9 @@ func (s *Server) storeEditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = s.db.UpdateStore(r.Context(), models.UpdateStoreParams{
-		ID:   id,
-		Name: r.FormValue("name"),
-	})
+	_, err = s.svc.UpdateStore(r.Context(), id, r.FormValue("name"))
 	if err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
+		categoryStoreErrorResponse(w, r, err)
 		return
 	}
 
@@ -97,20 +87,14 @@ func (s *Server) storeDeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.db.DeleteStore(r.Context(), id); err != nil {
-		errorResponse(w, r, http.StatusInternalServerError, err)
+	if err := s.svc.DeleteStore(r.Context(), id); err != nil {
+		categoryStoreErrorResponse(w, r, err)
 		return
 	}
 
 	http.Redirect(w, r, "/stores", http.StatusFound)
 }
 
-type storeWithCategories struct {
-	client.Store
-	Categories []categoryWithItems
-}
+type storeWithCategories = service.StoreWithCategories
 
-type categoryWithItems struct {
-	client.Category
-	Items []client.Item
-}
+type categoryWithItems = service.CategoryWithItems
