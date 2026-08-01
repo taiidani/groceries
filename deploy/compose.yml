@@ -1,0 +1,64 @@
+name: groceries
+
+services:
+  groceries-app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    x-ports:
+      - groceries.taiidani.com:3000/https
+    restart: unless-stopped
+    depends_on:
+      groceries-postgres:
+        condition: service_healthy
+      groceries-redis:
+        condition: service_started
+    environment:
+      PORT: "3000"
+      URL: "https://groceries.taiidani.com"
+      LOG_LEVEL: "info"
+      DB_TYPE: "postgres"
+      REDIS_HOST: groceries-redis.internal
+      REDIS_PORT: "6379"
+      DATABASE_URL: secret://DATABASE_URL
+      OTEL_SERVICE_NAME: "groceries"
+      OTEL_TRACES_EXPORTER: "otlp"
+      OTEL_TRACES_SAMPLER: "parentbased_always_on"
+      OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=prod"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://host.docker.internal:4317"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+
+  groceries-postgres:
+    image: postgres:18
+    user: "977:988"
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: secret://DATABASE_USER
+      POSTGRES_PASSWORD: secret://DATABASE_PASS
+      POSTGRES_DB: groceries
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - /data/groceries/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    shm_size: 256mb
+
+  groceries-redis:
+    image: redis:8
+    restart: unless-stopped
+    healthcheck:
+      test: redis-cli ping || exit 1
+    volumes:
+      - /data/groceries/redis:/data
+
+secrets:
+  DATABASE_URL:
+    x-command: sh -c 'echo "postgres://$(fnox get DATABASE_USER):$(fnox get DATABASE_PASS)@groceries-postgres.internal:5432/groceries?sslmode=disable"'
+  DATABASE_USER:
+    x-command: fnox get DATABASE_USER
+  DATABASE_PASS:
+    x-command: fnox get DATABASE_PASS

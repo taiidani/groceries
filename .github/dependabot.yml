@@ -23,3 +23,11 @@ updates:
     groups:
       docker:
         patterns: ["*"]
+
+  - package-ecosystem: "docker"
+    directory: "/deploy"
+    schedule:
+      interval: "monthly"
+    groups:
+      docker:
+        patterns: ["*"]

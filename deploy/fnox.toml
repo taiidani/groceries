@@ -1,0 +1,9 @@
+default_provider = "onepass"
+
+[providers.onepass]
+type = "1password"
+vault = "Development"
+
+[secrets]
+"DATABASE_USER"= { provider = "onepass", value = "Postgres/username" }
+"DATABASE_PASS"= { provider = "onepass", value = "Postgres/password" }

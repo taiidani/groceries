@@ -19,6 +19,7 @@ node = "26.5.0"
 sqlc = "latest"
 "go:github.com/evanw/esbuild/cmd/esbuild" = "latest"
 staticcheck = "latest"
+fnox = "latest"
 
 [vars]
 filename = 'groceries'
