@@ -6,7 +6,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -21,7 +20,6 @@ import (
 	"github.com/taiidani/groceries/internal/db"
 
 	"github.com/taiidani/groceries/internal/server"
-	"github.com/taiidani/groceries/internal/telemetry"
 )
 
 func main() {
@@ -33,19 +31,6 @@ func main() {
 	// active span context is annotated with trace_id/span_id for correlation
 	// with traces in the observability backend.
 	initLogging()
-
-	// Set up OpenTelemetry tracing
-	shutdownTelemetry, err := telemetry.Init(ctx)
-	if err != nil {
-		log.Fatalf("telemetry init: %s", err)
-	}
-	defer func() {
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := shutdownTelemetry(shutdownCtx); err != nil {
-			slog.Error("telemetry shutdown", "err", err)
-		}
-	}()
 
 	// Set up the Redis/Memory database
 	rds := cache.NewClient(ctx)
@@ -97,7 +82,6 @@ func initLogging() {
 	} else {
 		handler = slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: level})
 	}
-	handler = telemetry.NewTraceHandler(handler)
 
 	slog.SetDefault(slog.New(handler))
 }
