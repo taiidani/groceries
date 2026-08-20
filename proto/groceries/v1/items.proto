@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package groceries.v1;
+
+
+// Grocery item management.
+service ItemService {
+  // List all items, optionally filtered.
+  rpc ListItems(ListItemsRequest) returns (ListItemsResponse);
+
+  // Create a new item.
+  rpc CreateItem(CreateItemRequest) returns (CreateItemResponse);
+
+  // Get an item by ID.
+  rpc GetItem(GetItemRequest) returns (GetItemResponse);
+
+  // Update an item.
+  rpc UpdateItem(UpdateItemRequest) returns (UpdateItemResponse);
+
+  // Delete an item.
+  //
+  // Fails with FAILED_PRECONDITION if the item is used in any recipes.
+  rpc DeleteItem(DeleteItemRequest) returns (DeleteItemResponse);
+}
+
+// Presence of the `list` field on an Item indicates the item is on the
+// shopping list.
+message ListItemSummary {
+  // ID of the list entry (not the item itself).
+  int64 id = 1;
+
+  string quantity = 2;
+
+  // Whether this item has been picked up during the current shopping trip.
+  bool done = 3;
+}
+
+message Item {
+  int64 id = 1;
+  int64 category_id = 2;
+  string category_name = 3;
+  string name = 4;
+
+  // Present when this item is currently on the shopping list.
+  ListItemSummary list = 5;
+}
+
+message ListItemsRequest {
+  // Filter items by category. Unset means no category filter.
+  optional int64 category_id = 1;
+
+  // Filter to only items that are (or are not) on the shopping list.
+  // Unset means no list filter.
+  optional bool in_list = 2;
+}
+
+message ListItemsResponse {
+  repeated Item items = 1;
+}
+
+message CreateItemRequest {
+  int64 category_id = 1;
+  string name = 2;
+}
+
+message CreateItemResponse {
+  Item item = 1;
+}
+
+message GetItemRequest {
+  int64 id = 1;
+}
+
+message GetItemResponse {
+  Item item = 1;
+}
+
+message UpdateItemRequest {
+  int64 id = 1;
+  int64 category_id = 2;
+  string name = 3;
+}
+
+message UpdateItemResponse {
+  Item item = 1;
+}
+
+message DeleteItemRequest {
+  int64 id = 1;
+}
+
+message DeleteItemResponse {}

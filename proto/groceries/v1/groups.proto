@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package groceries.v1;
+
+
+// Group management (admin only).
+service GroupService {
+  // List all groups.
+  rpc ListGroups(ListGroupsRequest) returns (ListGroupsResponse);
+
+  // Create a new group.
+  rpc CreateGroup(CreateGroupRequest) returns (CreateGroupResponse);
+
+  // Get a group by ID.
+  rpc GetGroup(GetGroupRequest) returns (GetGroupResponse);
+
+  // Update a group.
+  rpc UpdateGroup(UpdateGroupRequest) returns (UpdateGroupResponse);
+
+  // Delete a group.
+  //
+  // Fails with FAILED_PRECONDITION if any users are still assigned to the
+  // group.
+  rpc DeleteGroup(DeleteGroupRequest) returns (DeleteGroupResponse);
+}
+
+message Group {
+  int64 id = 1;
+  string name = 2;
+}
+
+message ListGroupsRequest {}
+
+message ListGroupsResponse {
+  repeated Group groups = 1;
+}
+
+message CreateGroupRequest {
+  string name = 1;
+}
+
+message CreateGroupResponse {
+  Group group = 1;
+}
+
+message GetGroupRequest {
+  int64 id = 1;
+}
+
+message GetGroupResponse {
+  Group group = 1;
+}
+
+message UpdateGroupRequest {
+  int64 id = 1;
+  string name = 2;
+}
+
+message UpdateGroupResponse {
+  Group group = 1;
+}
+
+message DeleteGroupRequest {
+  int64 id = 1;
+}
+
+message DeleteGroupResponse {}

@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package groceries.v1;
+
+import "google/protobuf/field_mask.proto";
+
+// User management (admin only).
+service UserService {
+  // List all users.
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+
+  // Create a new user.
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+
+  // Get a user by ID.
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+
+  // Update a user.
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+
+  // Delete a user.
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
+}
+
+message User {
+  int64 id = 1;
+  string name = 2;
+
+  // Whether this user has administrator privileges.
+  bool admin = 3;
+}
+
+message ListUsersRequest {}
+
+message ListUsersResponse {
+  repeated User users = 1;
+}
+
+message CreateUserRequest {
+  string name = 1;
+  bool admin = 2;
+}
+
+message CreateUserResponse {
+  User user = 1;
+}
+
+message GetUserRequest {
+  int64 id = 1;
+}
+
+message GetUserResponse {
+  User user = 1;
+}
+
+message UpdateUserRequest {
+  int64 id = 1;
+  string name = 2;
+  bool admin = 3;
+
+  // Fields to update. Only fields listed here are applied.
+  google.protobuf.FieldMask update_mask = 4;
+}
+
+message UpdateUserResponse {
+  User user = 1;
+}
+
+message DeleteUserRequest {
+  int64 id = 1;
+}
+
+message DeleteUserResponse {}

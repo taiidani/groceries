@@ -13,3 +13,6 @@ clients/ios/Tuist/.build/
 
 # Local git worktrees
 .worktrees/
+
+# Protobuf generated artifacts
+gen/

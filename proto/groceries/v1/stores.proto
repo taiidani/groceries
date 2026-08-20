@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package groceries.v1;
+
+import "groceries/v1/categories.proto";
+
+// Store management.
+service StoreService {
+  // List all stores.
+  rpc ListStores(ListStoresRequest) returns (ListStoresResponse);
+
+  // Create a new store.
+  rpc CreateStore(CreateStoreRequest) returns (CreateStoreResponse);
+
+  // Get a store by ID, including its categories.
+  rpc GetStore(GetStoreRequest) returns (GetStoreResponse);
+
+  // Update a store.
+  rpc UpdateStore(UpdateStoreRequest) returns (UpdateStoreResponse);
+
+  // Delete a store.
+  //
+  // Fails with FAILED_PRECONDITION if any categories are still assigned to
+  // the store.
+  rpc DeleteStore(DeleteStoreRequest) returns (DeleteStoreResponse);
+}
+
+message Store {
+  int64 id = 1;
+  string name = 2;
+}
+
+message ListStoresRequest {}
+
+message ListStoresResponse {
+  repeated Store stores = 1;
+}
+
+message CreateStoreRequest {
+  string name = 1;
+}
+
+message CreateStoreResponse {
+  Store store = 1;
+}
+
+message GetStoreRequest {
+  int64 id = 1;
+}
+
+message GetStoreResponse {
+  Store store = 1;
+  repeated Category categories = 2;
+}
+
+message UpdateStoreRequest {
+  int64 id = 1;
+  string name = 2;
+}
+
+message UpdateStoreResponse {
+  Store store = 1;
+}
+
+message DeleteStoreRequest {
+  int64 id = 1;
+}
+
+message DeleteStoreResponse {}

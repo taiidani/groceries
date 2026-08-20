@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package groceries.v1;
+
+import "google/protobuf/field_mask.proto";
+
+// Shopping list management.
+service ListService {
+  // Get the current shopping list.
+  rpc GetList(GetListRequest) returns (GetListResponse);
+
+  // Add an item to the shopping list.
+  //
+  // Either reference an existing item by ID, or provide a name to create a
+  // new item and immediately add it to the list.
+  rpc AddToList(AddToListRequest) returns (AddToListResponse);
+
+  // Update a list item's quantity or done status.
+  rpc UpdateListItem(UpdateListItemRequest) returns (UpdateListItemResponse);
+
+  // Remove an item from the shopping list.
+  rpc RemoveFromList(RemoveFromListRequest) returns (RemoveFromListResponse);
+
+  // Finish shopping: remove all done items from the list.
+  rpc FinishShopping(FinishShoppingRequest) returns (FinishShoppingResponse);
+}
+
+message ListItem {
+  // ID of the list entry.
+  int64 id = 1;
+
+  int64 item_id = 2;
+  string item_name = 3;
+  int64 category_id = 4;
+  string quantity = 5;
+
+  // Whether this item has been picked up during the current shopping trip.
+  bool done = 6;
+}
+
+message ShoppingList {
+  repeated ListItem items = 1;
+
+  // Total number of items on the list.
+  int64 total = 2;
+
+  // Number of items already marked done.
+  int64 total_done = 3;
+}
+
+message GetListRequest {}
+
+message GetListResponse {
+  ShoppingList list = 1;
+}
+
+message AddToListRequest {
+  // The item to add: either an existing item by ID, or the name of a new
+  // item to create and immediately add to the list.
+  oneof item {
+    int64 item_id = 1;
+    string name = 2;
+  }
+
+  string quantity = 3;
+}
+
+message AddToListResponse {
+  ListItem item = 1;
+}
+
+message UpdateListItemRequest {
+  // Item ID (the grocery item ID, not the list entry ID).
+  int64 item_id = 1;
+
+  string quantity = 2;
+  bool done = 3;
+
+  // Fields to update. Only fields listed here are applied.
+  google.protobuf.FieldMask update_mask = 4;
+}
+
+message UpdateListItemResponse {
+  ListItem item = 1;
+}
+
+message RemoveFromListRequest {
+  // Item ID (the grocery item ID, not the list entry ID).
+  int64 item_id = 1;
+}
+
+message RemoveFromListResponse {}
+
+message FinishShoppingRequest {}
+
+message FinishShoppingResponse {}

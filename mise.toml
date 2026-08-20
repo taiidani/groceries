@@ -20,6 +20,7 @@ sqlc = "latest"
 "go:github.com/evanw/esbuild/cmd/esbuild" = "latest"
 staticcheck = "latest"
 fnox = "latest"
+buf = "latest"
 
 [vars]
 filename = 'groceries'
