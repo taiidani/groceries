@@ -7,7 +7,7 @@ import (
 )
 
 func (s *Server) categoriesListHandler(w http.ResponseWriter, r *http.Request) {
-	categories, err := s.svc.ListCategories(r.Context())
+	categories, err := s.svc.ListCategoriesWithItemCount(r.Context())
 	if err != nil {
 		internalError(w, err)
 		return

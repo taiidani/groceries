@@ -114,6 +114,33 @@ func TestGetCategoryIncludesItems(t *testing.T) {
 	}
 }
 
+func TestListCategoriesWithItemCount(t *testing.T) {
+	t.Parallel()
+
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock: %v", err)
+	}
+	defer db.Close()
+
+	svc := New(db, nil)
+
+	mock.ExpectQuery("SELECT id, name, description, store_id, .* as item_count FROM category").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "description", "store_id", "item_count"}).
+			AddRow(5, "Produce", "Fresh", 1, 3))
+
+	categories, err := svc.ListCategoriesWithItemCount(context.Background())
+	if err != nil {
+		t.Fatalf("ListCategoriesWithItemCount: %v", err)
+	}
+	if len(categories) != 1 || categories[0].ItemCount != 3 {
+		t.Fatalf("unexpected categories: %#v", categories)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}
+
 func TestUpdateCategoryNotFound(t *testing.T) {
 	t.Parallel()
 

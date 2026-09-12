@@ -25,6 +25,16 @@ func (s *Service) ListCategories(ctx context.Context) ([]models.Category, error)
 	return categories, nil
 }
 
+// ListCategoriesWithItemCount returns all categories ordered by name, along
+// with the number of items assigned to each.
+func (s *Service) ListCategoriesWithItemCount(ctx context.Context) ([]models.ListCategoriesWithItemCountRow, error) {
+	categories, err := s.queries.ListCategoriesWithItemCount(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list categories with item count: %w", err)
+	}
+	return categories, nil
+}
+
 // GetCategory returns a category and its items. Returns ErrNotFound if the
 // category does not exist.
 func (s *Service) GetCategory(ctx context.Context, id int32) (CategoryDetail, error) {
