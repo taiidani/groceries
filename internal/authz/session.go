@@ -11,7 +11,7 @@ import (
 	"github.com/taiidani/groceries/internal/cache"
 )
 
-const defaultSessionExpiration = time.Duration(time.Hour * 720)
+const defaultSessionExpiration = time.Duration(time.Hour * 2160) // 90 days, kept in sync with authz.defaultTokenExpiration
 
 func NewSession(ctx context.Context, sess Session, backend cache.Cache) (*http.Cookie, error) {
 	sessionKey := uuid.New().String()
