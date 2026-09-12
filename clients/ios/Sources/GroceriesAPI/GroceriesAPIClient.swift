@@ -184,16 +184,18 @@ extension JSONDecoder {
     static let apiDecoder: JSONDecoder = {
         let dec = JSONDecoder()
 
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [
-            .withInternetDateTime,
-            .withFractionalSeconds,
-        ]
-
         dec.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let string = try container.decode(String.self)
 
+            // Formatters are created fresh inside the closure (rather than
+            // captured from an outer scope) because ISO8601DateFormatter is a
+            // mutable, non-Sendable class, and this closure must be @Sendable.
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [
+                .withInternetDateTime,
+                .withFractionalSeconds,
+            ]
             if let date = formatter.date(from: string) {
                 return date
             }

@@ -73,8 +73,10 @@ PORT=3000                    # HTTP server port
 DATABASE_URL=postgresql://...  # PostgreSQL connection string
 REDIS_HOST=localhost:6379    # Redis host:port
 DB_TYPE=postgres             # Database type (only postgres supported)
-DEV=true                     # Enable dev mode (live template reload)
+DEV=true                     # Enable dev mode (live template reload; also gates the /auth/dev-login bypass)
 LOG_LEVEL=info               # Logging level (debug, info, warn, error)
+OIDC_ISSUER_URL=https://auth.taiidani.com  # Authelia issuer URL, used for OIDC discovery at startup
+OIDC_CLIENT_ID=groceries     # Authelia client_id registered for this app
 
 # OpenTelemetry tracing (all optional; standard OTEL variables):
 OTEL_SERVICE_NAME=groceries  # Service name reported to the trace backend
@@ -91,7 +93,15 @@ User defined environment variables may be set in `.env` file (loaded by mise) an
 
 Required in `.env` file (loaded by mise):
 
-No secrets are currently required to be set.
+```
+OIDC_CLIENT_SECRET=...  # Authelia client_secret for the `groceries` client (see 1Password)
+```
+
+Only needed to exercise the real Authelia login flow (`/auth/login` → `/auth/callback`).
+For local/CI testing without it, use the DevMode-only `/auth/dev-login?username=<name>`
+bypass instead (requires `DEV=true`, never registered in production) — in that case
+`OIDC_CLIENT_SECRET` just needs to be any non-empty placeholder value, since the server
+still requires it to be present at startup even though it's never used.
 
 ## Testing Guidelines
 

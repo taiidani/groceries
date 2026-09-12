@@ -5,6 +5,11 @@ URL = "http://localhost:3000"
 DEV = "true"
 LOG_LEVEL = "info"
 
+# OIDC_CLIENT_SECRET is deliberately NOT defaulted here since it's a secret;
+# set it in your own gitignored .env to exercise the real login flow locally.
+OIDC_ISSUER_URL = "https://auth.taiidani.com"
+OIDC_CLIENT_ID = "groceries"
+
 REDIS_HOST = "localhost:6379"
 DB_TYPE = "postgres"
 DATABASE_URL = "postgresql://postgres:root@127.0.0.1:5432/{{vars.filename}}"

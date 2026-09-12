@@ -213,13 +213,21 @@ final class OIDCAuthenticator: NSObject {
 
 extension OIDCAuthenticator: ASWebAuthenticationPresentationContextProviding {
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        guard
-            let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
-            let window = scene.windows.first(where: \.isKeyWindow) ?? scene.windows.first
-        else {
-            return ASPresentationAnchor()
+        let scenes = UIApplication.shared.connectedScenes
+        let windowScene =
+            (scenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene)
+            ?? scenes.first(where: { $0 is UIWindowScene }) as? UIWindowScene
+
+        guard let windowScene else {
+            // No window scene is available at all (should not happen while presenting
+            // a web authentication session). ASPresentationAnchor's parameterless
+            // initializer is deprecated, so there is no safe fallback here.
+            fatalError("No UIWindowScene available to present ASWebAuthenticationSession")
         }
-        return window
+
+        return windowScene.windows.first(where: \.isKeyWindow)
+            ?? windowScene.windows.first
+            ?? UIWindow(windowScene: windowScene)
     }
 }
 

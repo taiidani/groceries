@@ -26,6 +26,11 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
+    env:
+      # Not a real Authelia client secret - the e2e suite only exercises the
+      # DevMode-only /auth/dev-login bypass, never the real OIDC exchange, so
+      # this just needs to be non-empty to satisfy the server's startup check.
+      OIDC_CLIENT_SECRET: "e2e-test-placeholder-secret"
     steps:
       - uses: actions/checkout@v7
       - uses: jdx/mise-action@v4.3.0
