@@ -2,12 +2,10 @@ package server
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
-	"slices"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -154,28 +152,10 @@ func (s *Server) authCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isAdmin := slices.Contains(claims.Groups, "admins")
-
-	user, err := s.db.GetUserByName(ctx, claims.PreferredUsername)
-	switch {
-	case errors.Is(err, sql.ErrNoRows):
-		user, err = s.db.CreateUser(ctx, models.CreateUserParams{Name: claims.PreferredUsername, Admin: isAdmin})
-		if err != nil {
-			errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("could not create user: %w", err))
-			return
-		}
-		slog.InfoContext(ctx, "Provisioned new user from OIDC login", "name", user.Name, "admin", user.Admin)
-	case err != nil:
-		errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("could not look up user: %w", err))
+	user, err := authz.SyncUserFromOIDC(ctx, s.db, claims.PreferredUsername, claims.Groups)
+	if err != nil {
+		errorResponse(w, r, http.StatusInternalServerError, err)
 		return
-	case user.Admin != isAdmin:
-		// Authelia's `groups` claim is the source of truth for admin status;
-		// re-sync it on every login.
-		user, err = s.db.UpdateUser(ctx, models.UpdateUserParams{ID: user.ID, Name: user.Name, Admin: isAdmin})
-		if err != nil {
-			errorResponse(w, r, http.StatusInternalServerError, fmt.Errorf("could not sync admin status: %w", err))
-			return
-		}
 	}
 
 	if err := s.establishSession(ctx, w, user); err != nil {

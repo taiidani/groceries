@@ -35,16 +35,25 @@ icon shows a friendly error and does nothing else.
 ### API connection
 
 Aisle4 talks to `https://groceries.taiidani.com` by default (configurable in
-Settings). Before using the plugin you need to connect it to the API:
+Settings). Before using the plugin you need to connect it to the API. Login is
+handled entirely through Authelia (the same self-hosted SSO used by the web
+app), via the OAuth 2.0 Device Authorization Grant — there's no password
+stored in the plugin at all.
 
 1. Open **Settings → Aisle4**.
-2. Enter your username and password.
-3. Click **Connect**. The plugin calls `POST /api/v1/auth/login`, stores the
-   returned 30-day bearer token, and displays the expiry date in green when
-   successful.
+2. Click **Connect**. The plugin requests a device/user code from Authelia and
+   shows you a link and a short code.
+3. Click the link (or visit it manually) and approve the code in your
+   browser, logging into Authelia if you aren't already.
+4. The plugin polls in the background until it detects the approval, then
+   exchanges the resulting Authelia access token for the API's own 90-day
+   bearer token via `POST /api/v1/auth/login`, and displays the expiry date
+   in green when successful.
 
 The token survives Obsidian restarts because it is saved in the plugin's data
-store alongside the other settings.
+store alongside the other settings. If the token expires, the next time you
+try to verify or add items the plugin will show a "reconnect" message —
+it never nags you in the background, only when you actually try to use it.
 
 ---
 
@@ -168,12 +177,20 @@ ribbon click
 ### `src/settings.js` — Settings tab
 
 Defines `DEFAULT_SETTINGS` and `Aisle4SettingTab`. The settings tab renders the
-API base URL, username, and password fields, plus a Connect button that calls
-`POST /api/v1/auth/login` and stores the returned token. The connection status
-(connected with expiry / expired / not connected) is displayed inline in the
-same setting row.
+API base URL field and a Connect button that drives the full OAuth 2.0 Device
+Authorization Grant flow against Authelia: requesting a device/user code,
+displaying the code and a verification link while polling Authelia's token
+endpoint in the background, then exchanging the resulting Authelia access
+token for the API's own bearer token via `POST /api/v1/auth/login`. The
+connection status (connected with expiry / expired / not connected) is
+displayed inline in the same setting row.
 
-Settings stored: `apiBaseUrl`, `username`, `password`, `token`, `tokenExpiresAt`.
+Settings stored: `apiBaseUrl`, `token`, `tokenExpiresAt`.
+
+Authelia's base URL and the plugin's public OIDC client ID
+(`groceries-obsidian`) are not user-configurable settings — they're constants
+in `settings.js`, since they aren't secrets and there's only one deployment
+target for this personal plugin.
 
 ### `src/scraper.js` — DOM scraper (pure functions)
 
@@ -260,13 +277,18 @@ Returns `{ added, appended, alreadyOnList, errors }`.
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| `POST` | `/api/v1/auth/login` | None | Exchange credentials for a bearer token |
+| `POST` | `/api/v1/auth/login` | None | Exchange an Authelia access token for this API's bearer token |
 | `GET`  | `/api/v1/items`      | Bearer | Fetch full item catalog for verification |
 | `POST` | `/api/v1/list/items` | Bearer | Add a new or unknown item to the shopping list |
 | `PUT`  | `/api/v1/list/items/{id}` | Bearer | Update an existing list entry's quantity |
 
 The `{id}` in the PUT path is the **catalog item ID** (from the `id` field of
 the `GET /api/v1/items` response), not the list entry ID.
+
+The plugin also talks directly to Authelia (not the Groceries server) for the
+device flow itself: `POST /api/oidc/device-authorization` to start it, and
+`POST /api/oidc/token` to poll for approval. Only the resulting access token
+is ever sent to the Groceries API.
 
 ---
 

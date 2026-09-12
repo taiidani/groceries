@@ -105,7 +105,9 @@ func initServer(ctx context.Context, conn *sql.DB, rds *redis.Client) error {
 	// The web server owns the mux. The API server registers its routes onto
 	// the same mux so both share a single listener and connection pool.
 	mux := http.NewServeMux()
-	api.NewServer(ctx, conn, rds, mux)
+	if _, err := api.NewServer(ctx, conn, rds, mux, oidcCfg.IssuerURL); err != nil {
+		return fmt.Errorf("could not initialize API server: %w", err)
+	}
 	srv, err := server.NewServer(ctx, conn, rds, port, mux, oidcCfg)
 	if err != nil {
 		return fmt.Errorf("could not initialize web server: %w", err)

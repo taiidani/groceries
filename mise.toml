@@ -87,7 +87,7 @@ run = """
     --format=cjs \\
     --external:obsidian \\
     --outfile=obsidian/aisle4/main.js
-  DEST="$HOME/Obsidian/merrett and ryan/.obsidian/plugins/aisle4"
+  DEST="$HOME/Documents/merrett and ryan/.obsidian/plugins/aisle4"
   mkdir -p "$DEST"
   cp obsidian/aisle4/main.js obsidian/aisle4/manifest.json obsidian/aisle4/styles.css "$DEST/"
   echo "Deployed to $DEST"

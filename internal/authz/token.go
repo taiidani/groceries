@@ -10,7 +10,7 @@ import (
 	"github.com/taiidani/groceries/internal/cache"
 )
 
-const defaultTokenExpiration = time.Duration(time.Hour * 720)
+const defaultTokenExpiration = time.Duration(time.Hour * 2160) // 90 days
 
 // NewAPIToken generates a cryptographically random Bearer token for the given
 // user, stores it in the cache with the standard expiration, and returns the

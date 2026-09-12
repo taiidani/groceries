@@ -8,33 +8,53 @@ import (
 	"strings"
 
 	"github.com/taiidani/groceries/internal/authz"
+	"golang.org/x/oauth2"
 )
 
+// authLoginHandler exchanges an Authelia OIDC access token (obtained by the
+// client via the OAuth 2.0 Device Authorization Grant) for this API's own
+// long-lived Bearer token. The access token is validated by calling
+// Authelia's UserInfo endpoint directly - this requires no client ID or
+// secret on our side, since UserInfo validates the token itself regardless
+// of which client requested it.
 func (s *Server) authLoginHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
+		AccessToken string `json:"access_token"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		badRequest(w, "invalid JSON body")
 		return
 	}
 
-	req.Username = strings.TrimSpace(req.Username)
-	if req.Username == "" || req.Password == "" {
-		badRequest(w, "username and password are required")
+	req.AccessToken = strings.TrimSpace(req.AccessToken)
+	if req.AccessToken == "" {
+		badRequest(w, "access_token is required")
 		return
 	}
 
-	if err := authz.ValidateCredentials(req.Password); err != nil {
-		errorJSON(w, http.StatusUnauthorized, "invalid credentials")
-		return
-	}
-
-	user, err := s.db.GetUserByName(r.Context(), req.Username)
+	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: req.AccessToken})
+	userInfo, err := s.oidcProvider.UserInfo(r.Context(), tokenSource)
 	if err != nil {
-		// Don't leak whether the user exists vs password was wrong
-		errorJSON(w, http.StatusUnauthorized, "invalid credentials")
+		errorJSON(w, http.StatusUnauthorized, "invalid or expired access token")
+		return
+	}
+
+	var claims struct {
+		PreferredUsername string   `json:"preferred_username"`
+		Groups            []string `json:"groups"`
+	}
+	if err := userInfo.Claims(&claims); err != nil {
+		internalError(w, err)
+		return
+	}
+	if claims.PreferredUsername == "" {
+		errorJSON(w, http.StatusUnauthorized, "user info is missing the preferred_username claim")
+		return
+	}
+
+	user, err := authz.SyncUserFromOIDC(r.Context(), s.db, claims.PreferredUsername, claims.Groups)
+	if err != nil {
+		internalError(w, err)
 		return
 	}
 

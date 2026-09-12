@@ -1,18 +1,21 @@
 # Authentication
 
-Two credential types, one storage backend (Redis), shared resolution logic in
-`internal/authz`.
+Every credential is ultimately backed by Authelia (self-hosted OpenID Connect
+provider). All three clients — the web app, the Obsidian plugin, and (soon)
+the iOS app — authenticate against Authelia, then exchange the result for
+one of the two credential types below, both stored in Redis with shared
+resolution logic in `internal/authz`.
 
 ## Credential types
 
 | | API token | Web session |
 |---|---|---|
-| Used by | iOS client (`internal/api`) | Browser (`internal/server`) |
+| Used by | API clients (Obsidian plugin, future iOS client) (`internal/api`) | Browser (`internal/server`) |
 | Transport | `Authorization: Bearer <token>` header | `session` cookie (HttpOnly) |
 | Redis key | `api_token:<token>` | `session:<uuid>` |
 | Payload | `APIToken{UserID, ExpiresAt}` | `Session{UserID, APIToken}` |
-| TTL | 720 h (30 days) | 720 h (30 days) |
-| Credential source | Shared static password (`authz.ValidateCredentials`) | Authelia OIDC (Authorization Code + PKCE) |
+| TTL | 2160 h (90 days) | 2160 h (90 days) |
+| Credential source | Authelia OIDC (Device Authorization Grant) | Authelia OIDC (Authorization Code + PKCE) |
 
 A web session **embeds an API token**: login mints both at once. The embedded
 token exists so the session and token lifecycles stay coupled — revoking one
@@ -24,6 +27,12 @@ on logout revokes both.
 knows the token cache-key format, performs the lookup, and rejects invalid
 entries (`UserID == 0`, expired `ExpiresAt`). The API's `authMiddleware` is a
 thin wrapper around it — don't reimplement token lookup elsewhere.
+
+`authz.SyncUserFromOIDC(ctx, db, username, groups)` is the single place that
+knows how to find-or-create the local `user` row for an Authelia identity and
+(re-)sync the `admin` flag from the `groups` claim. Every login path —
+the web OIDC callback, the web dev-login bypass, and the API's token
+exchange — calls this instead of duplicating the logic.
 
 ## Middleware chains
 
@@ -42,10 +51,23 @@ shared surface is the credential resolution, not the middleware.
 
 ## Login / logout lifecycle
 
-**API login**: validate credentials (`authz.ValidateCredentials` + `GetUserByName`)
-→ `authz.NewAPIToken`. Returns the token as JSON. This is the legacy shared-password
-flow, retained for the iOS client and Obsidian plugin until they're migrated to OIDC
-too.
+**API login** (`internal/api/handlers_auth.go`): the client (currently the
+Obsidian plugin) completes the OAuth 2.0 Device Authorization Grant against
+Authelia entirely on its own — requesting a device/user code, showing the
+user a link + code to approve, and polling Authelia's token endpoint — with
+no involvement from the Groceries server at all. Once it has an Authelia
+access token, it calls `POST /api/v1/auth/login` with `{ access_token }`.
+The handler validates that token by calling Authelia's UserInfo endpoint
+directly (this requires no client ID/secret on the server's side, since
+UserInfo validates the token itself regardless of which client requested
+it), reads `preferred_username`/`groups`, calls `authz.SyncUserFromOIDC`, and
+mints an `authz.NewAPIToken`. Returns the token as JSON.
+
+Authelia's `groceries-obsidian` client is registered as **public** (no
+secret) since a distributed plugin can't keep one confidential; the device
+flow doesn't require a redirect URI either, which is what makes it work for
+clients (like Obsidian, including its mobile app) that have no way to
+receive a browser redirect.
 
 **Web login** (`internal/server/auth.go`, `oidc.go`): Authorization Code + PKCE
 against Authelia.
@@ -66,14 +88,18 @@ against Authelia.
    same reason Grafana's OIDC client points `api_url` at
    `/api/oidc/userinfo`). The UserInfo response's `sub` is checked against
    the ID token's to guard against token substitution.
-5. `preferred_username` is resolved to a local `user` row via
-   `GetUserByName`, auto-provisioning one via `CreateUser` if none exists.
-   The `groups` claim is checked for `admins` membership and used to
-   (re-)sync the local `user.admin` column on every login — Authelia is the
-   source of truth for admin status, though the existing manual toggle in the
-   admin UI still works until the next login overwrites it.
+5. `authz.SyncUserFromOIDC` resolves `preferred_username` to a local `user`
+   row (auto-provisioning one if none exists) and (re-)syncs the `admin`
+   column from the `groups` claim on every login — Authelia is the source of
+   truth for admin status, though the existing manual toggle in the admin UI
+   still works until the next login overwrites it.
 6. `authz.NewAPIToken` + `authz.NewSession` proceed exactly as before, so
    `sessionMiddleware`/`adminMiddleware` are unchanged.
+
+A DevMode-only `GET /auth/dev-login?username=<name>` bypass (registered only
+when `DEV=true`, never in production) skips the Authelia round-trip entirely
+for local dev/E2E testing, but still mints sessions through the same
+`establishSession` helper the real callback uses.
 
 **Logout** must tear down *everything*:
 
@@ -90,3 +116,11 @@ against Authelia.
 `cache.Cache` (Redis + in-memory implementations) exposes `Set`, `Get`, and
 `Delete`. `Delete` exists specifically to support clean revocation — prefer
 it over the old pattern of overwriting keys with zero values and short TTLs.
+
+## Not yet migrated
+
+The iOS client (`clients/ios`) still calls the old `{ username, password }`
+contract, which no longer exists server-side — it's broken until it's
+migrated to the same OIDC-based exchange used by the Obsidian plugin (likely
+its own public Authelia client, using either the Device Authorization Grant
+or a native redirect-based flow via `ASWebAuthenticationSession`).

@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-redis/redis/v8"
 	"github.com/taiidani/groceries/internal/cache"
 	"github.com/taiidani/groceries/internal/db/models"
@@ -28,25 +29,36 @@ import (
 
 // Server is the API server instance.
 type Server struct {
-	ctx       context.Context
-	db        *models.Queries
-	cache     cache.Cache
-	sseServer events.PubSub
-	svc       *service.Service
+	ctx          context.Context
+	db           *models.Queries
+	cache        cache.Cache
+	sseServer    events.PubSub
+	svc          *service.Service
+	oidcProvider *oidc.Provider
 }
 
 // NewServer creates a new API server and registers all routes onto the provided mux.
 // Routes are mounted under /api/v1/.
-func NewServer(ctx context.Context, conn *sql.DB, rds *redis.Client, mux *http.ServeMux) *Server {
+//
+// oidcIssuerURL is Authelia's issuer URL, used only to validate access tokens
+// via its UserInfo endpoint during login - unlike the web server, the API
+// doesn't need a registered client ID/secret of its own for this.
+func NewServer(ctx context.Context, conn *sql.DB, rds *redis.Client, mux *http.ServeMux, oidcIssuerURL string) (*Server, error) {
+	provider, err := oidc.NewProvider(ctx, oidcIssuerURL)
+	if err != nil {
+		return nil, fmt.Errorf("could not discover OIDC provider %q: %w", oidcIssuerURL, err)
+	}
+
 	srv := &Server{
-		ctx:       ctx,
-		db:        models.New(conn),
-		cache:     cache.NewRedisCache(rds),
-		sseServer: events.NewRedisPubSub(rds),
-		svc:       service.New(conn, events.NewRedisPubSub(rds)),
+		ctx:          ctx,
+		db:           models.New(conn),
+		cache:        cache.NewRedisCache(rds),
+		sseServer:    events.NewRedisPubSub(rds),
+		svc:          service.New(conn, events.NewRedisPubSub(rds)),
+		oidcProvider: provider,
 	}
 	srv.addRoutes(mux)
-	return srv
+	return srv, nil
 }
 
 func (s *Server) addRoutes(mux *http.ServeMux) {

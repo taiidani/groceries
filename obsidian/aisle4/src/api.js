@@ -4,6 +4,18 @@ import { requestUrl } from "obsidian";
 // API helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+const RECONNECT_MESSAGE =
+  "Your connection has expired. Open Settings → Aisle4 and reconnect.";
+
+// Throws a friendlier error when the server rejects our token, so the user
+// gets an actionable message instead of a raw 401 the moment they try to use
+// the plugin (rather than the plugin nagging them in the background).
+function assertNotUnauthorized(response) {
+  if (response.status === 401) {
+    throw new Error(RECONNECT_MESSAGE);
+  }
+}
+
 /**
  * Fetches the full item catalog and checks each item's name against it.
  *
@@ -29,6 +41,7 @@ export async function verifyItems(items, settings) {
     throw: false,
   });
 
+  assertNotUnauthorized(response);
   if (response.status !== 200) {
     const body = response.json || {};
     throw new Error(body.error || `Server returned ${response.status}`);
@@ -101,6 +114,7 @@ export async function addToGroceryList(items, settings) {
         }),
         throw: false,
       });
+      assertNotUnauthorized(response);
       if (response.status === 200) {
         appended++;
       } else {
@@ -118,6 +132,7 @@ export async function addToGroceryList(items, settings) {
         body: JSON.stringify({ name: item.name, quantity: item.quantity }),
         throw: false,
       });
+      assertNotUnauthorized(response);
       if (response.status === 201) {
         added++;
       } else if (response.status === 409) {

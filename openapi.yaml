@@ -16,7 +16,13 @@ info:
     Authorization: Bearer <token>
     ```
 
-    Tokens are obtained from the login endpoint and expire after 720 hours (30 days).
+    Tokens are obtained from the login endpoint and expire after 2160 hours (90 days).
+
+    Login itself is a two-step process: the client first completes an OpenID Connect
+    login against Authelia (Authorization Code + PKCE for the web app, the OAuth 2.0
+    Device Authorization Grant for native/plugin clients), then exchanges the
+    resulting Authelia access token for this API's own Bearer token via
+    `POST /api/v1/auth/login`.
 
 servers:
   - url: http://localhost:3000
@@ -67,17 +73,17 @@ components:
 
     LoginRequest:
       type: object
-      required: [username, password]
+      required: [access_token]
       properties:
-        username:
+        access_token:
           type: string
+          description: |
+            An OAuth 2.0 access token issued by Authelia after the client completes
+            its own OIDC login (Authorization Code + PKCE for the web app, Device
+            Authorization Grant for native/plugin clients). Validated server-side by
+            calling Authelia's UserInfo endpoint.
           examples:
-            - "alice"
-        password:
-          type: string
-          format: password
-          examples:
-            - "hunter2"
+            - "a1b2c3..."
 
     LoginResponse:
       type: object
@@ -509,10 +515,13 @@ paths:
   /api/v1/auth/login:
     post:
       operationId: authLogin
-      summary: Log in and obtain an API token
+      summary: Exchange an Authelia access token for an API token
       description: |
-        Validates credentials and returns a Bearer token. The token is also stored
-        in Redis alongside any existing web session, sharing the same 720-hour TTL.
+        Validates the given Authelia OIDC access token (via Authelia's UserInfo
+        endpoint), provisions/syncs the local user from its `preferred_username`
+        and `groups` claims, and returns this API's own Bearer token. The token is
+        also stored in Redis alongside any existing web session, sharing the same
+        2160-hour (90-day) TTL.
       tags: [auth]
       security: [] # No token required
       requestBody:

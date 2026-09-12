@@ -4,10 +4,6 @@
 package authz
 
 import (
-	"crypto/md5"
-	"errors"
-	"fmt"
-	"io"
 	"time"
 )
 
@@ -21,18 +17,4 @@ type APIToken struct {
 type Session struct {
 	UserID   int32
 	APIToken string
-}
-
-func ValidateCredentials(password string) error {
-	// Super secret, just between us
-	const expected = "ab77936ff6728921c550adb7fc338623"
-
-	hasher := md5.New()
-	io.WriteString(hasher, password)
-	sum := fmt.Sprintf("%x", hasher.Sum(nil))
-	if sum != expected {
-		return errors.New("invalid password")
-	}
-
-	return nil
 }
