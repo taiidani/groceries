@@ -127,8 +127,3 @@ for local dev/E2E testing, but still mints sessions through the same
 `cache.Cache` (Redis + in-memory implementations) exposes `Set`, `Get`, and
 `Delete`. `Delete` exists specifically to support clean revocation — prefer
 it over the old pattern of overwriting keys with zero values and short TTLs.
-
-## Not yet migrated
-
-Nothing outstanding — the web app, Obsidian plugin, and iOS app all
-authenticate through Authelia via `internal/authz.SyncUserFromOIDC`.
