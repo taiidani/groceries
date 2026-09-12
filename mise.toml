@@ -20,6 +20,7 @@ sqlc = "latest"
 "go:github.com/evanw/esbuild/cmd/esbuild" = "latest"
 staticcheck = "latest"
 fnox = "latest"
+"github:pressly/goose" = "latest"
 
 [vars]
 filename = 'groceries'
@@ -60,7 +61,7 @@ run = ["go test -race -covermode=atomic -cover ./..."]
 description = "Populate the database with seeds"
 depends = []
 env.GOOSE_MIGRATION_DIR = "./internal/db/seeds"
-run = ["go tool goose --no-versioning up"]
+run = ["goose --no-versioning up"]
 
 [tasks.lint]
 depends = ["dependencies", "generate:*"]

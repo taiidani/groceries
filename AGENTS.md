@@ -50,9 +50,9 @@ mise run generate:sqlc      # Regenerate internal/db/models after editing querie
 
 ### Database Operations
 ```bash
-go tool goose up        # Apply pending migrations
-go tool goose down      # Rollback one migration
-go tool goose status    # Show migration status
+goose up        # Apply pending migrations
+goose down      # Rollback one migration
+goose status    # Show migration status
 mise run seed           # Populate database with seed data
 ```
 
@@ -60,7 +60,7 @@ mise run seed           # Populate database with seed data
 
 1. Start dependencies: `docker compose up -d` (launches Redis and PostgreSQL)
 2. Ensure `.env` file exists with required variables (see `mise.toml` for template)
-3. Run migrations: `go tool goose up` (or automatic on first run)
+3. Run migrations: `goose up` (or automatic on first run)
 4. Build and run: `mise run default`
 5. Access at `http://localhost:3000`
 

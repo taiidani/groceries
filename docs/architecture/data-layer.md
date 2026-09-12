@@ -33,9 +33,9 @@ column list (see `SummarizeItems` in `queries/item.sql`) rather than
 
 ## Migrations
 
-- Apply: `go tool goose up` (also runs automatically via `db.New` on startup)
-- Roll back one: `go tool goose down`
-- Status: `go tool goose status`
+- Apply: `goose up` (also runs automatically via `db.New` on startup)
+- Roll back one: `goose down`
+- Status: `goose status`
 
 Migration files use `+goose Up` / `+goose Down` directives. Since sqlc reads
 the migrations as its schema source, queries and migrations must stay in
