@@ -7,20 +7,8 @@
 
             <p>Log in for access to this site.</p>
 
-            <form id="loginForm" method="POST" action="/auth">
-                <div class="field label border">
-                    <input type="text" name="username" placeholder="Username" autofocus required />
-                    <label for="username">Username</label>
-                </div>
-
-                <div class="field label border">
-                    <input type="password" name="password" placeholder="Password" required />
-                    <label for="password">Password</label>
-                </div>
-            </form>
-
             <footer>
-                    <button form="loginForm" type="submit"><i>login</i> Login</button>
+                <a href="/auth/login"><button><i>login</i> Log in with Authelia</button></a>
             </footer>
         </article>
     </section>

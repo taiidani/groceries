@@ -66,24 +66,6 @@ func (s *Server) userUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, redirect, http.StatusFound)
 }
 
-func (s *Server) userAddHandler(w http.ResponseWriter, r *http.Request) {
-	_, err := s.db.CreateUser(r.Context(), models.CreateUserParams{
-		Name:  r.FormValue("name"),
-		Admin: r.FormValue("admin") == "on" || r.FormValue("admin") == "true",
-	})
-	if err != nil {
-		err = fmt.Errorf("could not add user: %w", err)
-		errorResponse(w, r, http.StatusInternalServerError, err)
-		return
-	}
-
-	redirect := r.FormValue("redirect")
-	if redirect == "" {
-		redirect = "/admin"
-	}
-	http.Redirect(w, r, redirect, http.StatusFound)
-}
-
 func (s *Server) userDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := parseId(r.PathValue("id"))
 	if err != nil {

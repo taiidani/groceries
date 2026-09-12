@@ -21,6 +21,9 @@ services:
       REDIS_HOST: groceries-redis.internal
       REDIS_PORT: "6379"
       DATABASE_URL: secret://DATABASE_URL
+      OIDC_ISSUER_URL: "https://auth.taiidani.com"
+      OIDC_CLIENT_ID: "groceries"
+      OIDC_CLIENT_SECRET: secret://OIDC_CLIENT_SECRET
       OTEL_SERVICE_NAME: "groceries"
       OTEL_TRACES_EXPORTER: "otlp"
       OTEL_TRACES_SAMPLER: "parentbased_always_on"
@@ -62,3 +65,5 @@ secrets:
     x-command: fnox get DATABASE_USER
   DATABASE_PASS:
     x-command: fnox get DATABASE_PASS
+  OIDC_CLIENT_SECRET:
+    x-command: fnox get GROCERIES_OIDC_CLIENT_SECRET

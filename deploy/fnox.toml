@@ -7,3 +7,4 @@ vault = "Development"
 [secrets]
 "DATABASE_USER"= { provider = "onepass", value = "Postgres/username" }
 "DATABASE_PASS"= { provider = "onepass", value = "Postgres/password" }
+"GROCERIES_OIDC_CLIENT_SECRET"= { provider = "onepass", value = "Groceries OIDC client_secret" }

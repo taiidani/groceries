@@ -30,6 +30,7 @@ type Server struct {
 	cache     cache.Cache
 	sseServer events.PubSub
 	svc       *service.Service
+	oidc      *oidcAuth
 	*http.Server
 }
 
@@ -39,7 +40,12 @@ var templates embed.FS
 // DevMode can be toggled to pull rendered files from the filesystem or the embedded FS.
 var DevMode = os.Getenv("DEV") == "true"
 
-func NewServer(ctx context.Context, conn *sql.DB, rds *redis.Client, port string, mux *http.ServeMux) *Server {
+func NewServer(ctx context.Context, conn *sql.DB, rds *redis.Client, port string, mux *http.ServeMux, oidcCfg OIDCConfig) (*Server, error) {
+	oidcAuth, err := newOIDCAuth(ctx, oidcCfg)
+	if err != nil {
+		return nil, fmt.Errorf("could not initialize OIDC: %w", err)
+	}
+
 	srv := &Server{
 		Server: &http.Server{
 			Addr:    fmt.Sprintf(":%s", port),
@@ -50,10 +56,11 @@ func NewServer(ctx context.Context, conn *sql.DB, rds *redis.Client, port string
 		cache:     cache.NewRedisCache(rds),
 		sseServer: events.NewRedisPubSub(rds),
 		svc:       service.New(conn, events.NewRedisPubSub(rds)),
+		oidc:      oidcAuth,
 	}
 	srv.addRoutes(mux)
 
-	return srv
+	return srv, nil
 }
 
 func (s *Server) addRoutes(mux *http.ServeMux) {
@@ -66,11 +73,19 @@ func (s *Server) addRoutes(mux *http.ServeMux) {
 
 	handle("GET /{$}", s.sessionMiddleware(http.HandlerFunc(s.indexHandler)))
 
-	handle("POST /auth", http.HandlerFunc(s.auth))
 	handle("GET /login", http.HandlerFunc(s.login))
+	handle("GET /auth/login", http.HandlerFunc(s.authLogin))
+	handle("GET /auth/callback", http.HandlerFunc(s.authCallback))
 	handle("GET /logout", http.HandlerFunc(s.logout))
 
-	handle("POST /admin/user/add", s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.userAddHandler))))
+	if DevMode {
+		// Bypasses the Authelia round-trip so local dev and E2E tests can log
+		// in as a seeded user without a real OIDC provider. Reuses the same
+		// session-issuing code as the real callback, and is never registered
+		// outside of DEV=true (never true in production, see deploy/compose.yml).
+		handle("GET /auth/dev-login", http.HandlerFunc(s.devLogin))
+	}
+
 	handle("POST /admin/user/delete/{id}", s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.userDeleteHandler))))
 	handle("POST /admin/user", s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.userUpdateHandler))))
 	handle("POST /admin/group/add", s.sessionMiddleware(s.adminMiddleware(http.HandlerFunc(s.groupAddHandler))))

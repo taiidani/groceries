@@ -12,6 +12,7 @@ Two credential types, one storage backend (Redis), shared resolution logic in
 | Redis key | `api_token:<token>` | `session:<uuid>` |
 | Payload | `APIToken{UserID, ExpiresAt}` | `Session{UserID, APIToken}` |
 | TTL | 720 h (30 days) | 720 h (30 days) |
+| Credential source | Shared static password (`authz.ValidateCredentials`) | Authelia OIDC (Authorization Code + PKCE) |
 
 A web session **embeds an API token**: login mints both at once. The embedded
 token exists so the session and token lifecycles stay coupled — revoking one
@@ -41,10 +42,38 @@ shared surface is the credential resolution, not the middleware.
 
 ## Login / logout lifecycle
 
-**Login** (both): validate credentials (`authz.ValidateCredentials` +
-`GetUserByName`) → `authz.NewAPIToken` → (web only) `authz.NewSession`
-storing the token in the session. The API returns the token as JSON; the web
-sets the cookie.
+**API login**: validate credentials (`authz.ValidateCredentials` + `GetUserByName`)
+→ `authz.NewAPIToken`. Returns the token as JSON. This is the legacy shared-password
+flow, retained for the iOS client and Obsidian plugin until they're migrated to OIDC
+too.
+
+**Web login** (`internal/server/auth.go`, `oidc.go`): Authorization Code + PKCE
+against Authelia.
+
+1. `GET /login` renders a landing page with a "Log in with Authelia" link.
+2. `GET /auth/login` generates a `state`/`nonce`/PKCE `verifier`, stores them
+   in Redis (`oidc_state:<state>`, 10 min TTL) with `state` also set as a
+   short-lived, HttpOnly `oidc_state` cookie, then redirects to Authelia's
+   authorization endpoint.
+3. `GET /auth/callback` requires the `state` query param to match the
+   `oidc_state` cookie (CSRF / login-fixation protection), looks up and
+   deletes the one-time Redis entry, exchanges the code (with the PKCE
+   verifier), and verifies the returned ID token (including the `nonce`).
+4. `preferred_username` and `groups` are fetched from Authelia's UserInfo
+   endpoint (not the ID token) using the access token — by default Authelia
+   only places minimal claims (`sub`, `iss`, `aud`, …) directly in the ID
+   token, and exposes profile/groups/email claims via UserInfo instead (the
+   same reason Grafana's OIDC client points `api_url` at
+   `/api/oidc/userinfo`). The UserInfo response's `sub` is checked against
+   the ID token's to guard against token substitution.
+5. `preferred_username` is resolved to a local `user` row via
+   `GetUserByName`, auto-provisioning one via `CreateUser` if none exists.
+   The `groups` claim is checked for `admins` membership and used to
+   (re-)sync the local `user.admin` column on every login — Authelia is the
+   source of truth for admin status, though the existing manual toggle in the
+   admin UI still works until the next login overwrites it.
+6. `authz.NewAPIToken` + `authz.NewSession` proceed exactly as before, so
+   `sessionMiddleware`/`adminMiddleware` are unchanged.
 
 **Logout** must tear down *everything*:
 
@@ -52,7 +81,9 @@ sets the cookie.
 - Web logout: `authz.DeleteSession(ctx, r, backend)` — deletes the Redis
   session key, revokes the embedded API token, and returns an expired
   cookie. (`DeleteSessionCookie` is the cookie-only helper for cases where
-  the backend call isn't possible.)
+  the backend call isn't possible.) This only ends the Groceries session;
+  Authelia's own SSO cookie (shared across `*.taiidani.com`) is left intact
+  by design.
 
 ## Cache interface
 

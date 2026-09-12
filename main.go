@@ -92,11 +92,24 @@ func initServer(ctx context.Context, conn *sql.DB, rds *redis.Client) error {
 		return fmt.Errorf("required PORT environment variable not present")
 	}
 
+	oidcCfg := server.OIDCConfig{
+		IssuerURL:    os.Getenv("OIDC_ISSUER_URL"),
+		ClientID:     os.Getenv("OIDC_CLIENT_ID"),
+		ClientSecret: os.Getenv("OIDC_CLIENT_SECRET"),
+		BaseURL:      os.Getenv("URL"),
+	}
+	if oidcCfg.IssuerURL == "" || oidcCfg.ClientID == "" || oidcCfg.ClientSecret == "" || oidcCfg.BaseURL == "" {
+		return fmt.Errorf("required OIDC_ISSUER_URL, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET, and URL environment variables must all be present")
+	}
+
 	// The web server owns the mux. The API server registers its routes onto
 	// the same mux so both share a single listener and connection pool.
 	mux := http.NewServeMux()
 	api.NewServer(ctx, conn, rds, mux)
-	srv := server.NewServer(ctx, conn, rds, port, mux)
+	srv, err := server.NewServer(ctx, conn, rds, port, mux, oidcCfg)
+	if err != nil {
+		return fmt.Errorf("could not initialize web server: %w", err)
+	}
 
 	go func() {
 		slog.Info("Server starting", "port", port)

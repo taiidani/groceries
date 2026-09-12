@@ -5,8 +5,12 @@ const { test, expect } = require("@playwright/test");
 // (see internal/db/seeds). "Apples" is seeded as an item that exists in the
 // catalog but starts off the shopping list, making it a safe item to
 // exercise the add/done/checkout flow without disturbing other seeded data.
+//
+// Authentication is provided by Authelia in production, so these tests log
+// in via the `/auth/dev-login` bypass instead of a real OIDC round-trip.
+// That route only exists when the server is started with DEV=true, which is
+// how these tests are expected to run.
 const TEST_USERNAME = "admin";
-const TEST_PASSWORD = "marbleslyra";
 const TEST_ITEM = "Apples";
 
 test.describe.configure({ mode: "serial" });
@@ -15,11 +19,7 @@ test("shopping list journey: login, add, mark done, and check out", async ({
   page,
 }) => {
   await test.step("can log in", async () => {
-    await page.goto("/login");
-
-    await page.getByPlaceholder("Username").fill(TEST_USERNAME);
-    await page.getByPlaceholder("Password").fill(TEST_PASSWORD);
-    await page.getByRole("button", { name: "Login" }).click();
+    await page.goto(`/auth/dev-login?username=${TEST_USERNAME}`);
 
     await expect(page).toHaveURL("/");
     await expect(page.getByRole("link", { name: "Logout" })).toBeVisible();
