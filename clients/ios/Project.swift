@@ -25,6 +25,12 @@ let project = Project(
                     "NSAllowsLocalNetworking": true
                 ],
                 "API_BASE_URL": "$(API_BASE_URL)",
+                "CFBundleURLTypes": [
+                    [
+                        "CFBundleURLName": "com.ryannixon.groceries.auth",
+                        "CFBundleURLSchemes": ["com.ryannixon.groceries"],
+                    ]
+                ],
             ]),
             sources: ["Sources/Groceries/**"],
             resources: [

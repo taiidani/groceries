@@ -1,21 +1,21 @@
 # Authentication
 
 Every credential is ultimately backed by Authelia (self-hosted OpenID Connect
-provider). All three clients — the web app, the Obsidian plugin, and (soon)
-the iOS app — authenticate against Authelia, then exchange the result for
-one of the two credential types below, both stored in Redis with shared
-resolution logic in `internal/authz`.
+provider). All three clients — the web app, the Obsidian plugin, and the iOS
+app — authenticate against Authelia, then exchange the result for one of the
+two credential types below, both stored in Redis with shared resolution
+logic in `internal/authz`.
 
 ## Credential types
 
 | | API token | Web session |
 |---|---|---|
-| Used by | API clients (Obsidian plugin, future iOS client) (`internal/api`) | Browser (`internal/server`) |
+| Used by | API clients (Obsidian plugin, iOS app) (`internal/api`) | Browser (`internal/server`) |
 | Transport | `Authorization: Bearer <token>` header | `session` cookie (HttpOnly) |
 | Redis key | `api_token:<token>` | `session:<uuid>` |
 | Payload | `APIToken{UserID, ExpiresAt}` | `Session{UserID, APIToken}` |
 | TTL | 2160 h (90 days) | 2160 h (90 days) |
-| Credential source | Authelia OIDC (Device Authorization Grant) | Authelia OIDC (Authorization Code + PKCE) |
+| Credential source | Authelia OIDC (Device Authorization Grant for Obsidian; Authorization Code + PKCE via `ASWebAuthenticationSession` for iOS) | Authelia OIDC (Authorization Code + PKCE) |
 
 A web session **embeds an API token**: login mints both at once. The embedded
 token exists so the session and token lifecycles stay coupled — revoking one
@@ -37,8 +37,10 @@ exchange — calls this instead of duplicating the logic.
 ## Middleware chains
 
 **API** (`internal/api/middleware.go`):
-`authMiddleware` (Bearer → `ResolveAPIToken` → load user → context) →
-optional `adminMiddleware`. Failures return JSON 401/403.
+`authMiddleware` (Bearer → `ResolveAPIToken` → load user → context). Failures
+return JSON 401. There is no admin-only middleware in the API layer — the API
+intentionally exposes no admin-only routes (see [Adding an
+Endpoint](adding-an-endpoint.md)).
 
 **Web** (`internal/server/middleware.go`):
 `sessionMiddleware` (cookie → `GetSession` → load user → context) →
@@ -51,23 +53,32 @@ shared surface is the credential resolution, not the middleware.
 
 ## Login / logout lifecycle
 
-**API login** (`internal/api/handlers_auth.go`): the client (currently the
-Obsidian plugin) completes the OAuth 2.0 Device Authorization Grant against
-Authelia entirely on its own — requesting a device/user code, showing the
-user a link + code to approve, and polling Authelia's token endpoint — with
-no involvement from the Groceries server at all. Once it has an Authelia
-access token, it calls `POST /api/v1/auth/login` with `{ access_token }`.
-The handler validates that token by calling Authelia's UserInfo endpoint
-directly (this requires no client ID/secret on the server's side, since
-UserInfo validates the token itself regardless of which client requested
-it), reads `preferred_username`/`groups`, calls `authz.SyncUserFromOIDC`, and
-mints an `authz.NewAPIToken`. Returns the token as JSON.
+**API login** (`internal/api/handlers_auth.go`): both API clients complete
+their own OIDC login against Authelia entirely client-side, with no
+involvement from the Groceries server until the very last step:
 
-Authelia's `groceries-obsidian` client is registered as **public** (no
-secret) since a distributed plugin can't keep one confidential; the device
-flow doesn't require a redirect URI either, which is what makes it work for
-clients (like Obsidian, including its mobile app) that have no way to
-receive a browser redirect.
+- **Obsidian** uses the OAuth 2.0 Device Authorization Grant — requesting a
+  device/user code, showing the user a link + code to approve, and polling
+  Authelia's token endpoint (no redirect target needed; works on Obsidian
+  mobile too).
+- **iOS** uses Authorization Code + PKCE via `ASWebAuthenticationSession`
+  (`clients/ios/Sources/Groceries/Features/Auth/OIDCAuthenticator.swift`) —
+  the same flow the web app uses, redirecting back to the app via the
+  `com.ryannixon.groceries://auth/callback` custom URL scheme.
+
+Either way, once the client has an Authelia access token, it calls
+`POST /api/v1/auth/login` with `{ access_token }`. The handler validates that
+token by calling Authelia's UserInfo endpoint directly (this requires no
+client ID/secret on the server's side, since UserInfo validates the token
+itself regardless of which client requested it), reads
+`preferred_username`/`groups`, calls `authz.SyncUserFromOIDC`, and mints an
+`authz.NewAPIToken`. Returns the token as JSON.
+
+Both `groceries-obsidian` and `groceries-ios` are registered in Authelia as
+**public** clients (no secret) — a distributed app/plugin can't keep one
+confidential. `groceries-ios` additionally uses `require_pkce` since,
+unlike the device flow, its authorization_code flow needs PKCE to protect
+the code exchange in the absence of a client secret.
 
 **Web login** (`internal/server/auth.go`, `oidc.go`): Authorization Code + PKCE
 against Authelia.
@@ -119,8 +130,5 @@ it over the old pattern of overwriting keys with zero values and short TTLs.
 
 ## Not yet migrated
 
-The iOS client (`clients/ios`) still calls the old `{ username, password }`
-contract, which no longer exists server-side — it's broken until it's
-migrated to the same OIDC-based exchange used by the Obsidian plugin (likely
-its own public Authelia client, using either the Device Authorization Grant
-or a native redirect-based flow via `ASWebAuthenticationSession`).
+Nothing outstanding — the web app, Obsidian plugin, and iOS app all
+authenticate through Authelia via `internal/authz.SyncUserFromOIDC`.

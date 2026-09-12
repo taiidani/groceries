@@ -62,25 +62,6 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// adminMiddleware ensures the authenticated user has the admin flag set.
-// Must be used after authMiddleware.
-func (s *Server) adminMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user, ok := r.Context().Value(userKey).(*models.User)
-		if !ok || user == nil {
-			errorJSON(w, http.StatusUnauthorized, "not authenticated")
-			return
-		}
-
-		if !user.Admin {
-			errorJSON(w, http.StatusForbidden, "admin access required")
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
 // userFromContext retrieves the authenticated user from the request context.
 // Returns nil if no user is present (should not happen after authMiddleware).
 func userFromContext(ctx context.Context) *models.User {

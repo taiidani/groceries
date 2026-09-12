@@ -1,3 +1,4 @@
+import AuthenticationServices
 import Foundation
 import GroceriesAPI
 
@@ -35,6 +36,9 @@ final class AuthViewModel {
     /// without receiving it through multiple layers of initialiser injection.
     let apiClient: GroceriesAPIClient
 
+    /// Drives the native OIDC login flow against Authelia.
+    private let oidcAuthenticator = OIDCAuthenticator()
+
     // MARK: - Init
 
     /// Creates an `AuthViewModel`.
@@ -53,22 +57,11 @@ final class AuthViewModel {
 
     // MARK: - Public API
 
-    /// Authenticates with the server using the supplied credentials.
-    ///
-    /// On success the token is persisted to the Keychain, the API client is
-    /// updated, and `currentUser` is populated.
-    ///
-    /// - Parameters:
-    ///   - username: The user's login name.
-    ///   - password: The user's password.
-    func login(username: String, password: String) async {
+    /// Signs the user in via Authelia: presents the system web view for the
+    /// user to authenticate, exchanges the resulting Authelia access token
+    /// for this app's own Bearer token, then fetches the current user.
+    func login() async {
         guard !isLoading else { return }
-
-        let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedUsername.isEmpty, !password.isEmpty else {
-            errorMessage = "Please enter your username and password."
-            return
-        }
 
         isLoading = true
         errorMessage = nil
@@ -76,10 +69,8 @@ final class AuthViewModel {
         defer { isLoading = false }
 
         do {
-            let response = try await apiClient.login(
-                username: trimmedUsername,
-                password: password
-            )
+            let accessToken = try await oidcAuthenticator.authenticate()
+            let response = try await apiClient.login(accessToken: accessToken)
 
             // Persist token to Keychain.
             try KeychainStore.saveToken(response.token)
@@ -92,6 +83,10 @@ final class AuthViewModel {
             isAuthenticated = true
         } catch let apiError as APIError {
             errorMessage = apiError.errorDescription
+        } catch is CancellationError {
+            // User dismissed the web authentication sheet — not an error.
+        } catch let authError as ASWebAuthenticationSessionError where authError.code == .canceledLogin {
+            // User dismissed the web authentication sheet — not an error.
         } catch {
             errorMessage = error.localizedDescription
         }

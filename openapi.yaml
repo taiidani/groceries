@@ -31,14 +31,10 @@ servers:
 tags:
   - name: auth
     description: Authentication and current user
-  - name: users
-    description: User management (admin only)
-  - name: groups
-    description: Group management (admin only)
   - name: stores
-    description: Store management
+    description: Store browsing (read-only; management is a web-app-only, admin feature)
   - name: categories
-    description: Category management
+    description: Category browsing (read-only; management is a web-app-only, admin feature)
   - name: items
     description: Grocery item management
   - name: list
@@ -117,66 +113,6 @@ components:
           type: boolean
           description: Whether this user has administrator privileges
 
-    CreateUserRequest:
-      type: object
-      required: [name]
-      properties:
-        name:
-          type: string
-          minLength: 1
-          examples:
-            - "alice"
-        admin:
-          type: boolean
-          default: false
-
-    UpdateUserRequest:
-      type: object
-      properties:
-        name:
-          type: string
-          minLength: 1
-          examples:
-            - "alice"
-        admin:
-          type: boolean
-
-    # --- Group ---------------------------------------------------------------
-
-    Group:
-      type: object
-      required: [id, name]
-      properties:
-        id:
-          type: integer
-          examples:
-            - 1
-        name:
-          type: string
-          minLength: 3
-          examples:
-            - "Household"
-
-    CreateGroupRequest:
-      type: object
-      required: [name]
-      properties:
-        name:
-          type: string
-          minLength: 3
-          examples:
-            - "Household"
-
-    UpdateGroupRequest:
-      type: object
-      required: [name]
-      properties:
-        name:
-          type: string
-          minLength: 3
-          examples:
-            - "Household"
-
     # --- Store ---------------------------------------------------------------
 
     Store:
@@ -187,26 +123,6 @@ components:
           type: integer
           examples:
             - 1
-        name:
-          type: string
-          minLength: 3
-          examples:
-            - "Whole Foods"
-
-    CreateStoreRequest:
-      type: object
-      required: [name]
-      properties:
-        name:
-          type: string
-          minLength: 3
-          examples:
-            - "Whole Foods"
-
-    UpdateStoreRequest:
-      type: object
-      required: [name]
-      properties:
         name:
           type: string
           minLength: 3
@@ -241,39 +157,6 @@ components:
           description: Number of items assigned to this category
           examples:
             - 12
-
-    CreateCategoryRequest:
-      type: object
-      required: [store_id, name]
-      properties:
-        store_id:
-          type: integer
-          examples:
-            - 1
-        name:
-          type: string
-          minLength: 3
-          examples:
-            - "Produce"
-        description:
-          type: string
-          default: ""
-
-    UpdateCategoryRequest:
-      type: object
-      required: [store_id, name]
-      properties:
-        store_id:
-          type: integer
-          examples:
-            - 1
-        name:
-          type: string
-          minLength: 3
-          examples:
-            - "Produce"
-        description:
-          type: string
 
     # --- Item ----------------------------------------------------------------
 
@@ -576,248 +459,11 @@ paths:
           $ref: "#/components/responses/InternalServerError"
 
   # --------------------------------------------------------------------------
-  # Users
-  # --------------------------------------------------------------------------
-
-  /api/v1/users:
-    get:
-      operationId: listUsers
-      summary: List all users
-      tags: [users]
-      responses:
-        "200":
-          description: List of users
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/User"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-    post:
-      operationId: createUser
-      summary: Create a new user
-      tags: [users]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateUserRequest"
-      responses:
-        "201":
-          description: User created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /api/v1/users/{id}:
-    parameters:
-      - $ref: "#/components/parameters/IdPath"
-
-    get:
-      operationId: getUser
-      summary: Get a user by ID
-      tags: [users]
-      responses:
-        "200":
-          description: User
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-    put:
-      operationId: updateUser
-      summary: Update a user
-      tags: [users]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateUserRequest"
-      responses:
-        "200":
-          description: Updated user
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-    delete:
-      operationId: deleteUser
-      summary: Delete a user
-      tags: [users]
-      responses:
-        "204":
-          $ref: "#/components/responses/NoContent"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  # --------------------------------------------------------------------------
-  # Groups
-  # --------------------------------------------------------------------------
-
-  /api/v1/groups:
-    get:
-      operationId: listGroups
-      summary: List all groups
-      tags: [groups]
-      responses:
-        "200":
-          description: List of groups
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Group"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-    post:
-      operationId: createGroup
-      summary: Create a new group
-      tags: [groups]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateGroupRequest"
-      responses:
-        "201":
-          description: Group created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Group"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  /api/v1/groups/{id}:
-    parameters:
-      - $ref: "#/components/parameters/IdPath"
-
-    get:
-      operationId: getGroup
-      summary: Get a group by ID
-      tags: [groups]
-      responses:
-        "200":
-          description: Group
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Group"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-    put:
-      operationId: updateGroup
-      summary: Update a group
-      tags: [groups]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateGroupRequest"
-      responses:
-        "200":
-          description: Updated group
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Group"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-    delete:
-      operationId: deleteGroup
-      summary: Delete a group
-      description: Fails if any users are still assigned to the group.
-      tags: [groups]
-      responses:
-        "204":
-          $ref: "#/components/responses/NoContent"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-  # --------------------------------------------------------------------------
   # Stores
+  #
+  # Read-only in this API: stores are managed via the web app's admin UI
+  # only. iOS and Obsidian only need to browse stores/categories, never
+  # create/edit/delete them.
   # --------------------------------------------------------------------------
 
   /api/v1/stores:
@@ -836,32 +482,6 @@ paths:
                   $ref: "#/components/schemas/Store"
         "401":
           $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-    post:
-      operationId: createStore
-      summary: Create a new store
-      tags: [stores]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateStoreRequest"
-      responses:
-        "201":
-          description: Store created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Store"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "409":
-          $ref: "#/components/responses/Conflict"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -895,51 +515,10 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-    put:
-      operationId: updateStore
-      summary: Update a store
-      tags: [stores]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateStoreRequest"
-      responses:
-        "200":
-          description: Updated store
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Store"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-    delete:
-      operationId: deleteStore
-      summary: Delete a store
-      description: Fails if any categories are still assigned to the store.
-      tags: [stores]
-      responses:
-        "204":
-          $ref: "#/components/responses/NoContent"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
   # --------------------------------------------------------------------------
   # Categories
+  #
+  # Read-only in this API: see note on Stores above.
   # --------------------------------------------------------------------------
 
   /api/v1/categories:
@@ -958,32 +537,6 @@ paths:
                   $ref: "#/components/schemas/Category"
         "401":
           $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-    post:
-      operationId: createCategory
-      summary: Create a new category
-      tags: [categories]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateCategoryRequest"
-      responses:
-        "201":
-          description: Category created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Category"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "409":
-          $ref: "#/components/responses/Conflict"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -1014,49 +567,6 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-    put:
-      operationId: updateCategory
-      summary: Update a category
-      tags: [categories]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateCategoryRequest"
-      responses:
-        "200":
-          description: Updated category
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Category"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
-    delete:
-      operationId: deleteCategory
-      summary: Delete a category
-      description: Fails if any items are still assigned to the category.
-      tags: [categories]
-      responses:
-        "204":
-          $ref: "#/components/responses/NoContent"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
         "500":
           $ref: "#/components/responses/InternalServerError"
 

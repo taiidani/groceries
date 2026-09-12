@@ -2,13 +2,15 @@ import Foundation
 
 // MARK: - Auth
 
-public struct LoginRequest: Encodable, Sendable {
-    public let username: String
-    public let password: String
+public struct AccessTokenLoginRequest: Encodable, Sendable {
+    public let accessToken: String
 
-    public init(username: String, password: String) {
-        self.username = username
-        self.password = password
+    public init(accessToken: String) {
+        self.accessToken = accessToken
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case accessToken = "access_token"
     }
 }
 

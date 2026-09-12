@@ -29,6 +29,7 @@ clients/ios/
 │   │   └── Features/
 │   │       ├── Auth/
 │   │       │   ├── AuthViewModel.swift
+│   │       │   ├── OIDCAuthenticator.swift
 │   │       │   ├── LoginView.swift
 │   │       │   └── KeychainStore.swift
 │   │       ├── Navigation/
@@ -46,7 +47,8 @@ clients/ios/
 │       ├── Models.swift
 │       ├── AuthEndpoints.swift
 │       ├── ListEndpoints.swift
-│       └── ItemEndpoints.swift
+│       ├── ItemEndpoints.swift
+│       └── StoreEndpoints.swift
 └── Tests/
     ├── GroceriesAPITests/     # Unit tests for the API layer
     └── GroceriesTests/        # Unit tests for app features/view models
@@ -140,7 +142,7 @@ The app follows a straightforward MVVM pattern using Swift's `@Observable` macro
 ```
 GroceriesApp (@main)
 └── RootView               — routes between Login and main content
-    ├── LoginView          — username/password form
+    ├── LoginView          — "Sign in with Authelia" button (ASWebAuthenticationSession)
     │   └── AuthViewModel  — owns GroceriesAPIClient, manages token lifecycle
     └── AppTabsView        — authenticated shell tab order: List -> Items -> Account
         ├── ShoppingListView      — list screen with deduped auto-refresh coordinator

@@ -76,33 +76,13 @@ func (s *Server) addRoutes(mux *http.ServeMux) {
 	handle("POST /api/v1/auth/logout", wrap(http.HandlerFunc(s.authLogoutHandler)))
 	handle("GET /api/v1/auth/me", wrap(http.HandlerFunc(s.authMeHandler)))
 
-	// Users (admin only)
-	handle("GET /api/v1/users", wrap(s.adminMiddleware(http.HandlerFunc(s.usersListHandler))))
-	handle("POST /api/v1/users", wrap(s.adminMiddleware(http.HandlerFunc(s.usersCreateHandler))))
-	handle("GET /api/v1/users/{id}", wrap(s.adminMiddleware(http.HandlerFunc(s.usersGetHandler))))
-	handle("PUT /api/v1/users/{id}", wrap(s.adminMiddleware(http.HandlerFunc(s.usersUpdateHandler))))
-	handle("DELETE /api/v1/users/{id}", wrap(s.adminMiddleware(http.HandlerFunc(s.usersDeleteHandler))))
-
-	// Groups (admin only)
-	handle("GET /api/v1/groups", wrap(s.adminMiddleware(http.HandlerFunc(s.groupsListHandler))))
-	handle("POST /api/v1/groups", wrap(s.adminMiddleware(http.HandlerFunc(s.groupsCreateHandler))))
-	handle("GET /api/v1/groups/{id}", wrap(s.adminMiddleware(http.HandlerFunc(s.groupsGetHandler))))
-	handle("PUT /api/v1/groups/{id}", wrap(s.adminMiddleware(http.HandlerFunc(s.groupsUpdateHandler))))
-	handle("DELETE /api/v1/groups/{id}", wrap(s.adminMiddleware(http.HandlerFunc(s.groupsDeleteHandler))))
-
-	// Stores
+	// Stores - read only; management is a web-app-only, admin-facing concern
 	handle("GET /api/v1/stores", wrap(http.HandlerFunc(s.storesListHandler)))
-	handle("POST /api/v1/stores", wrap(http.HandlerFunc(s.storesCreateHandler)))
 	handle("GET /api/v1/stores/{id}", wrap(http.HandlerFunc(s.storesGetHandler)))
-	handle("PUT /api/v1/stores/{id}", wrap(http.HandlerFunc(s.storesUpdateHandler)))
-	handle("DELETE /api/v1/stores/{id}", wrap(http.HandlerFunc(s.storesDeleteHandler)))
 
-	// Categories
+	// Categories - read only; management is a web-app-only, admin-facing concern
 	handle("GET /api/v1/categories", wrap(http.HandlerFunc(s.categoriesListHandler)))
-	handle("POST /api/v1/categories", wrap(http.HandlerFunc(s.categoriesCreateHandler)))
 	handle("GET /api/v1/categories/{id}", wrap(http.HandlerFunc(s.categoriesGetHandler)))
-	handle("PUT /api/v1/categories/{id}", wrap(http.HandlerFunc(s.categoriesUpdateHandler)))
-	handle("DELETE /api/v1/categories/{id}", wrap(http.HandlerFunc(s.categoriesDeleteHandler)))
 
 	// Items
 	handle("GET /api/v1/items", wrap(http.HandlerFunc(s.itemsListHandler)))

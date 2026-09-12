@@ -4,18 +4,17 @@ import Foundation
 
 extension GroceriesAPIClient {
 
-    /// Authenticates with the API and returns a token + expiry.
+    /// Authenticates with the API by exchanging an Authelia access token,
+    /// returning the app's own token + expiry.
     ///
     /// On success the client automatically stores the returned token so
     /// subsequent calls are authenticated without any extra steps.
     ///
-    /// - TODO: `POST /api/v1/auth/login` no longer accepts `{ username, password }`.
-    ///   The server now requires `{ access_token }` from an Authelia OIDC login
-    ///   (see the web app and Obsidian plugin's Device Authorization Grant flow
-    ///   for reference). This call is broken until the iOS client is migrated
-    ///   to OIDC too.
-    public func login(username: String, password: String) async throws -> LoginResponse {
-        let body = LoginRequest(username: username, password: password)
+    /// - Parameter accessToken: An OAuth 2.0 access token issued by Authelia
+    ///   after the app completes its own OIDC login (Authorization Code +
+    ///   PKCE via `ASWebAuthenticationSession`).
+    public func login(accessToken: String) async throws -> LoginResponse {
+        let body = AccessTokenLoginRequest(accessToken: accessToken)
         let req = try request(method: "POST", path: "/api/v1/auth/login", body: body)
         let response: LoginResponse = try await perform(req)
         setToken(response.token)
