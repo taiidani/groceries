@@ -30,6 +30,20 @@ struct GroceriesApp: App {
             RootView()
                 .environment(authViewModel)
                 .task {
+                    // Only relevant to dev builds talking to a Mac's LAN IP;
+                    // Release always talks to production over HTTPS, so
+                    // never surface this permission prompt there — even
+                    // though `NSBonjourServices`/`NSLocalNetworkUsageDescription`
+                    // are already omitted from Release's Info.plist (see
+                    // `Project.swift`), gate the call itself too.
+                    #if DEBUG
+                        // Trigger iOS's Local Network permission prompt (if
+                        // needed) at a predictable, safe time, decoupled from
+                        // the OIDC login flow's UI transitions. See
+                        // `LocalNetworkPermission.requestIfNeeded()`.
+                        await LocalNetworkPermission.requestIfNeeded()
+                    #endif
+
                     // On launch, silently validate any restored Keychain token.
                     // If it has expired the user will be redirected to LoginView.
                     await authViewModel.refreshCurrentUser()

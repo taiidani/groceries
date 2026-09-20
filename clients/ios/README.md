@@ -129,6 +129,27 @@ Or bake it in permanently by adding an `infoPlist` key in `Project.swift`:
 "API_BASE_URL": "https://your-server.example.com"
 ```
 
+When running on a physical device via `mise run xcode`, `localhost` refers to
+the phone itself, not your Mac. That task automatically detects your Mac's
+LAN IP and passes it into `tuist generate` as `TUIST_API_BASE_URL`, which
+`Project.swift` reads (falling back to `http://localhost:3000` for a plain
+`tuist generate` or simulator build). This requires the phone and Mac to be
+on the same LAN, and the first launch may prompt for Local Network
+permission, which must be allowed for the app to reach the server.
+
+### Dev builds install as a separate app
+
+`mise run xcode` also exports `TUIST_DEV_BUILD=1`, which `Project.swift`
+uses to give the Debug build its own bundle ID (`com.ryannixon.groceries.local`),
+display name ("Groceries Dev"), URL scheme, and Keychain access group. This
+means it installs alongside — rather than overwriting — a "real" Groceries
+install pointed at production, and it never sees a Keychain-stored auth
+token from that install (which would otherwise fail to validate against the
+local dev database and surface as an auth error). A plain `tuist generate`
+or Xcode build (without `TUIST_DEV_BUILD` set) always uses the production
+identifiers, and never declares the Local Network permission keys used only
+by dev builds (see `LocalNetworkPermission.swift`).
+
 ### Apple Developer Team
 
 The Team ID is `JE539SF9V7` and is set in `Project.swift`. Signing is handled

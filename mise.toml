@@ -97,3 +97,43 @@ run = """
   cp obsidian/aisle4/main.js obsidian/aisle4/manifest.json obsidian/aisle4/styles.css "$DEST/"
   echo "Deployed to $DEST"
 """
+
+[tasks.xcode]
+description = "Build and run the iOS app in Xcode"
+dir = "clients/ios"
+run = """
+set -e
+
+# Installs as a separate "Groceries Dev" app (distinct bundle ID, Keychain,
+# and local data) so this never overwrites or shares auth state with a real
+# Groceries install pointed at production.
+export TUIST_DEV_BUILD=1
+
+# The physical device can't reach the Mac via `localhost`, so point the Debug
+# build at the Mac's LAN IP instead (assumes phone and Mac share a LAN).
+LAN_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)
+if [ -z "$LAN_IP" ]; then
+    echo "Could not determine LAN IP address; falling back to localhost, which will not be reachable from a physical device" >&2
+else
+    export TUIST_API_BASE_URL="http://$LAN_IP:3000"
+    echo "Pointing device build at $TUIST_API_BASE_URL"
+fi
+
+tuist generate --no-open
+
+xcodebuild \
+    -project Groceries.xcodeproj \
+    -scheme Aisle4 \
+    -destination 'platform=iOS,id=00008110-000A7D022184801E' \
+    -allowProvisioningUpdates \
+    -derivedDataPath ./Derived \
+    build
+
+xcrun devicectl device install app \
+    --device 00008110-000A7D022184801E \
+    ./Derived/Build/Products/Debug-iphoneos/Aisle4.app
+
+xcrun devicectl device process launch \
+    --device 00008110-000A7D022184801E \
+    com.ryannixon.groceries.local
+"""

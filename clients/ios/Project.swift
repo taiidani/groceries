@@ -1,4 +1,29 @@
+import Foundation
 import ProjectDescription
+
+// Allows `mise run xcode` to point Debug builds at the Mac's LAN IP (so a
+// physical device can reach the locally-running server) without editing this
+// file. Falls back to localhost for the simulator / default `tuist generate`.
+// Must be TUIST_-prefixed: Tuist only forwards env vars with that prefix into
+// the manifest (Project.swift) process.
+let debugAPIBaseURL = ProcessInfo.processInfo.environment["TUIST_API_BASE_URL"] ?? "http://localhost:3000"
+
+// When set (by `mise run xcode`), the Debug build is installed as a
+// separate app — its own bundle ID, display name, URL scheme, and Keychain
+// access group — so it never overwrites or shares data with a "real"
+// Groceries install that talks to production data.
+//
+// The bundle ID uses "local" rather than "dev": iOS permanently records a
+// silent "local network prohibited" decision for a bundle ID the first time
+// it attempts local-network access without NSLocalNetworkUsageDescription
+// present, and that decision persists (with no Settings entry to undo it)
+// across uninstall/reinstall. "com.ryannixon.groceries.dev" got poisoned
+// this way during development before the key was added; if this identifier
+// ever suffers the same fate, rename it again rather than debugging further.
+let isDevBuild = ProcessInfo.processInfo.environment["TUIST_DEV_BUILD"] != nil
+let appBundleId = isDevBuild ? "com.ryannixon.groceries.local" : "com.ryannixon.groceries"
+let appDisplayName = isDevBuild ? "Groceries Dev" : "Groceries"
+let keychainAccessGroup = isDevBuild ? "JE539SF9V7.groceries.local" : "JE539SF9V7.groceries"
 
 let project = Project(
     name: "Groceries",
@@ -12,26 +37,49 @@ let project = Project(
             name: "Aisle4",
             destinations: .iOS,
             product: .app,
-            bundleId: "com.ryannixon.groceries",
+            bundleId: appBundleId,
             deploymentTargets: .iOS("26.0"),
-            infoPlist: .extendingDefault(with: [
-                "CFBundleDisplayName": "Groceries",
-                "CFBundleShortVersionString": "1.0",
-                "CFBundleVersion": "1",
-                "CFBundleIconName": "AppIcon",
-                "UIPrerenderedIcon": true,
-                "UILaunchScreen": [:],
-                "NSAppTransportSecurity": [
-                    "NSAllowsLocalNetworking": true
-                ],
-                "API_BASE_URL": "$(API_BASE_URL)",
-                "CFBundleURLTypes": [
-                    [
-                        "CFBundleURLName": "com.ryannixon.groceries.auth",
-                        "CFBundleURLSchemes": ["com.ryannixon.groceries"],
-                    ]
-                ],
-            ]),
+            infoPlist: .extendingDefault(
+                with: [
+                    "CFBundleDisplayName": .string(appDisplayName),
+                    "CFBundleShortVersionString": "1.0",
+                    "CFBundleVersion": "1",
+                    "CFBundleIconName": "AppIcon",
+                    "UIPrerenderedIcon": true,
+                    "UILaunchScreen": [:],
+                    "NSAppTransportSecurity": [
+                        "NSAllowsLocalNetworking": true
+                    ],
+                    "API_BASE_URL": "$(API_BASE_URL)",
+                    "CFBundleURLTypes": [
+                        [
+                            "CFBundleURLName": .string("\(appBundleId).auth"),
+                            "CFBundleURLSchemes": [.string(appBundleId)],
+                        ]
+                    ],
+                ]
+                // Local Network access (and the permission prompt for it) is
+                // only ever needed talking to a Mac's LAN IP during dev-build
+                // testing; a real Release build always talks to production
+                // over HTTPS, so these keys — and the runtime Bonjour probe
+                // in `LocalNetworkPermission.swift`, which is itself gated by
+                // `#if DEBUG` — are omitted entirely outside dev builds.
+                .merging(
+                    isDevBuild
+                        ? [
+                            "NSLocalNetworkUsageDescription":
+                                "Groceries needs to connect to the API server on your local network.",
+                            // A declared Bonjour service type (even one we don't
+                            // actually advertise/discover anything meaningful
+                            // with) is required to reliably trigger iOS's Local
+                            // Network permission *prompt* — plain URLSession
+                            // requests to a raw IP address alone often never
+                            // surface it.
+                            "NSBonjourServices": ["_http._tcp."],
+                        ]
+                        : [:]
+                ) { _, new in new }
+            ),
             sources: ["Sources/Groceries/**"],
             resources: [
                 .glob(
@@ -40,7 +88,7 @@ let project = Project(
             ],
             entitlements: .dictionary([
                 "keychain-access-groups": .array([
-                    .string("$(AppIdentifierPrefix)JE539SF9V7.groceries")
+                    .string("$(AppIdentifierPrefix)\(keychainAccessGroup)")
                 ])
             ]),
             dependencies: [
@@ -64,7 +112,7 @@ let project = Project(
                         name: "Debug",
                         settings: [
                             "SWIFT_ACTIVE_COMPILATION_CONDITIONS": "DEBUG",
-                            "API_BASE_URL": "http://localhost:3000",
+                            "API_BASE_URL": SettingValue(stringLiteral: debugAPIBaseURL),
                         ]),
                     .release(
                         name: "Release",
